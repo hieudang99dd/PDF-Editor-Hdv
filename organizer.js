@@ -23,7 +23,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = '/static/organizer.css';
+            link.href = 'organizer.css';
             document.head.appendChild(link);
         }
         
