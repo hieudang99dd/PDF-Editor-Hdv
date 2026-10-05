@@ -1,14 +1,17 @@
 class PDFOrganizer {
     constructor() {
+        this.abort = new AbortController();
         this.files = [];
         this.pages = [];
         this.originalPages = [];
         this.history = [];
         this.historyIndex = -1;
+        this.savedHistoryIndex = -1;
         this.pageCounter = 0;
         this.insertIndex = 0;
         
         this.pdfDocs = {}; // Store PDF documents for high-res preview rendering
+        this.encrypted = {};
         
         this.lastSelectedId = null;
         this.focusedPageId = null;
@@ -34,7 +37,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=5';
+            link.href = 'organizer.css?v=7';
             document.head.appendChild(link);
         }
         
@@ -130,7 +133,7 @@ class PDFOrganizer {
                     </div>
                     <div class="po-modal-footer">
                         <button class="po-tool-btn" id="po-save-cancel">Hủy</button>
-                        <button class="po-primary-btn" id="po-save-confirm">Lưu file (Bảo vệ ghi đè)</button>
+                        <button class="po-primary-btn" id="po-save-confirm">Tải xuống</button>
                     </div>
                 </div>
             </div>
@@ -146,9 +149,20 @@ class PDFOrganizer {
     }
 
     bindEvents() {
+        window.addEventListener('beforeunload', e => {
+            if (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        }, { signal: this.abort.signal });
+
         document.getElementById('po-back').onclick = () => {
-            this.appNode.remove();
+            if (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1) {
+                if (!confirm('Bạn có thay đổi chưa lưu. Chắc chắn muốn thoát?')) return;
+            }
+            this.destroy();
             if (typeof back === 'function') {
+                document.querySelector('header').style.display = 'flex';
                 back();
             } else {
                 document.getElementById('home').style.display = 'block';
@@ -179,7 +193,9 @@ class PDFOrganizer {
         
         // Keyboard Shortcuts
         document.addEventListener('keydown', e => {
-            if (e.target.tagName === 'INPUT') return;
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName) || e.target.isContentEditable) return;
+            if (document.getElementById('po-save-modal').classList.contains('active')) return;
+            
             if (e.ctrlKey || e.metaKey) {
                 if (e.key.toLowerCase() === 'z') {
                     e.preventDefault();
@@ -202,7 +218,7 @@ class PDFOrganizer {
                 e.preventDefault();
                 this.navigateKeyboard(e.key);
             }
-        });
+        }, { signal: this.abort.signal });
 
         // Save Flow
         document.getElementById('po-save').onclick = () => this.showSaveModal();
@@ -243,19 +259,12 @@ class PDFOrganizer {
         if (!window.Sortable) {
             await new Promise(resolve => {
                 const s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js';
+                s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
                 s.onload = resolve;
                 document.head.appendChild(s);
             });
         }
-        if (!window.PDFLib) {
-            await new Promise(resolve => {
-                const s = document.createElement('script');
-                s.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
-                s.onload = resolve;
-                document.head.appendChild(s);
-            });
-        }
+        // window.PDFLib is already loaded in index.html
     }
 
     async handleFiles(fileList, insertAt) {
@@ -285,6 +294,18 @@ class PDFOrganizer {
             const buffer = await f.arrayBuffer();
             const pdf = await pdfjsLib.getDocument(buffer).promise;
             this.pdfDocs[startIndex + i] = pdf;
+            
+            try {
+                const perms = await pdf.getPermissions();
+                if (perms !== null) {
+                    this.encrypted[startIndex + i] = true;
+                    if (typeof toast === 'function') {
+                        toast('Tệp có bảo vệ quyền. Khi lưu sẽ được chuyển thành dạng ảnh.');
+                    }
+                }
+            } catch (e) {
+                console.warn('Could not check permissions', e);
+            }
             
             for (let p = 1; p <= pdf.numPages; p++) {
                 const pageId = 'pg_' + (this.pageCounter++);
@@ -735,41 +756,157 @@ class PDFOrganizer {
 
     async executeSave() {
         document.getElementById('po-save-modal').classList.remove('active');
+        
+        const hasEncrypted = this.pages.some(p => p.type === 'pdf' && this.encrypted[p.fileIndex]);
+        if (hasEncrypted) {
+            if (!confirm('Tài liệu có chứa trang từ tệp được bảo vệ quyền. Các trang này sẽ được lưu dưới dạng ảnh (không thể chọn chữ). Tiếp tục?')) {
+                return;
+            }
+        }
+        
         this.showLoading('Đang xử lý PDF trên trình duyệt...');
         this.updateProgress(10);
         
         try {
             const { PDFDocument } = window.PDFLib;
-            const finalDoc = await PDFDocument.create();
+            let finalDoc;
             
-            // Load source PDFs
-            const srcDocs = [];
-            for (let i = 0; i < this.files.length; i++) {
-                this.updateProgress(10 + (20 * i / this.files.length));
-                const buffer = await this.files[i].arrayBuffer();
-                const doc = await PDFDocument.load(buffer);
-                srcDocs.push(doc);
-            }
+            const isSingleFile = this.files.length === 1 && !this.encrypted[0];
             
-            this.updateProgress(30);
-            
-            // Process pages
-            const totalOps = this.pages.length;
-            for (let i = 0; i < totalOps; i++) {
-                const p = this.pages[i];
-                if (p.type === 'blank') {
-                    finalDoc.addPage([p.width || 595, p.height || 842]);
-                } else {
-                    const srcDoc = srcDocs[p.fileIndex];
-                    const [copiedPage] = await finalDoc.copyPages(srcDoc, [p.pageIndex]);
-                    
-                    if (p.rotation !== 0) {
-                        const currentRot = copiedPage.getRotation().angle;
-                        copiedPage.setRotation(window.PDFLib.degrees(currentRot + p.rotation));
+            if (isSingleFile) {
+                // Chiến lược A: Giữ nguyên doc gốc để giữ bookmark
+                const buffer = await this.files[0].arrayBuffer();
+                finalDoc = await PDFDocument.load(buffer);
+                
+                if (finalDoc.getForm && finalDoc.getForm().getFields) {
+                    const hasSig = finalDoc.getForm().getFields().some(f => f.constructor.name === 'PDFSignature');
+                    if (hasSig && !confirm('File có chữ ký số. Chữ ký sẽ mất hiệu lực sau khi chỉnh sửa. Tiếp tục?')) {
+                        this.hideLoading();
+                        return;
                     }
-                    finalDoc.addPage(copiedPage);
                 }
-                this.updateProgress(30 + (50 * i / totalOps));
+                
+                const origPages = finalDoc.getPages();
+                
+                // Xóa tất cả trang hiện có
+                const pageCount = finalDoc.getPageCount();
+                for (let i = pageCount - 1; i >= 0; i--) {
+                    finalDoc.removePage(i);
+                }
+                
+                const processedIndices = new Set();
+                for (let i = 0; i < this.pages.length; i++) {
+                    const p = this.pages[i];
+                    if (p.type === 'blank') {
+                        finalDoc.addPage([p.width || 595, p.height || 842]);
+                    } else {
+                        if (!processedIndices.has(p.pageIndex)) {
+                            finalDoc.addPage(origPages[p.pageIndex]);
+                            processedIndices.add(p.pageIndex);
+                            
+                            const lastAdded = finalDoc.getPage(finalDoc.getPageCount() - 1);
+                            if (p.rotation !== 0) {
+                                const currentRot = lastAdded.getRotation().angle;
+                                lastAdded.setRotation(window.PDFLib.degrees(currentRot + p.rotation));
+                            }
+                        } else {
+                            // Bản sao (nhân đôi)
+                            const [copiedPage] = await finalDoc.copyPages(finalDoc, [p.pageIndex]);
+                            finalDoc.addPage(copiedPage);
+                            if (p.rotation !== 0) {
+                                const currentRot = copiedPage.getRotation().angle;
+                                copiedPage.setRotation(window.PDFLib.degrees(currentRot + p.rotation));
+                            }
+                        }
+                    }
+                    this.updateProgress(30 + (50 * i / this.pages.length));
+                }
+            } else {
+                // Chiến lược B: Nhiều file hoặc có file mã hóa
+                finalDoc = await PDFDocument.create();
+                
+                // Chép metadata từ file đầu tiên (nếu không mã hóa)
+                if (!this.encrypted[0]) {
+                    const buffer = await this.files[0].arrayBuffer();
+                    const firstDoc = await PDFDocument.load(buffer);
+                    if (firstDoc.getTitle()) finalDoc.setTitle(firstDoc.getTitle());
+                    if (firstDoc.getAuthor()) finalDoc.setAuthor(firstDoc.getAuthor());
+                    if (firstDoc.getSubject()) finalDoc.setSubject(firstDoc.getSubject());
+                    if (firstDoc.getKeywords()) finalDoc.setKeywords(firstDoc.getKeywords().split(' '));
+                    if (firstDoc.getCreator()) finalDoc.setCreator(firstDoc.getCreator());
+                    if (firstDoc.getLanguage()) finalDoc.setLanguage(firstDoc.getLanguage());
+                }
+                
+                if (typeof toast === 'function' && this.files.length > 1) {
+                    toast('Đang gộp nhiều tệp. Mục lục (nếu có) sẽ không được giữ.');
+                }
+                
+                const srcDocs = [];
+                for (let i = 0; i < this.files.length; i++) {
+                    this.updateProgress(10 + (20 * i / this.files.length));
+                    if (this.encrypted[i]) {
+                        srcDocs.push(null);
+                    } else {
+                        const buffer = await this.files[i].arrayBuffer();
+                        const doc = await PDFDocument.load(buffer);
+                        
+                        if (doc.getForm && doc.getForm().getFields) {
+                            const hasSig = doc.getForm().getFields().some(f => f.constructor.name === 'PDFSignature');
+                            if (hasSig && !confirm(`File "${this.files[i].name}" có chữ ký số. Chữ ký sẽ mất hiệu lực sau khi chỉnh sửa. Tiếp tục?`)) {
+                                this.hideLoading();
+                                return;
+                            }
+                        }
+                        
+                        srcDocs.push(doc);
+                    }
+                }
+                
+                this.updateProgress(30);
+                
+                const totalOps = this.pages.length;
+                for (let i = 0; i < totalOps; i++) {
+                    const p = this.pages[i];
+                    if (p.type === 'blank') {
+                        finalDoc.addPage([p.width || 595, p.height || 842]);
+                    } else {
+                        if (this.encrypted[p.fileIndex]) {
+                            // Render as image using pdf.js
+                            const pdf = this.pdfDocs[p.fileIndex];
+                            const pdfPage = await pdf.getPage(p.pageIndex + 1);
+                            const vp = pdfPage.getViewport({ scale: 2.083 });
+                            const cvs = document.createElement('canvas');
+                            const ctx = cvs.getContext('2d');
+                            cvs.width = vp.width;
+                            cvs.height = vp.height;
+                            await pdfPage.render({ canvasContext: ctx, viewport: vp }).promise;
+                            
+                            const imgData = cvs.toDataURL('image/jpeg', 0.9);
+                            const jpgImage = await finalDoc.embedJpg(imgData);
+                            
+                            const ptWidth = vp.width / 2.083;
+                            const ptHeight = vp.height / 2.083;
+                            const newPage = finalDoc.addPage([ptWidth, ptHeight]);
+                            newPage.drawImage(jpgImage, {
+                                x: 0, y: 0,
+                                width: ptWidth, height: ptHeight
+                            });
+                            if (p.rotation !== 0) {
+                                newPage.setRotation(window.PDFLib.degrees(p.rotation));
+                            }
+                        } else {
+                            const srcDoc = srcDocs[p.fileIndex];
+                            const [copiedPage] = await finalDoc.copyPages(srcDoc, [p.pageIndex]);
+                            
+                            if (p.rotation !== 0) {
+                                const currentRot = copiedPage.getRotation().angle;
+                                copiedPage.setRotation(window.PDFLib.degrees(currentRot + p.rotation));
+                            }
+                            finalDoc.addPage(copiedPage);
+                        }
+                    }
+                    this.updateProgress(30 + (50 * i / totalOps));
+                }
             }
             
             this.updateProgress(85);
@@ -788,6 +925,7 @@ class PDFOrganizer {
                     await writable.write(blob);
                     await writable.close();
                     this.hideLoading();
+                    this.savedHistoryIndex = this.historyIndex;
                     this.showSuccess();
                     return;
                 } catch (e) {
@@ -805,6 +943,7 @@ class PDFOrganizer {
             URL.revokeObjectURL(url);
             
             this.hideLoading();
+            this.savedHistoryIndex = this.historyIndex;
             this.showSuccess();
             
         } catch (e) {
@@ -822,6 +961,28 @@ class PDFOrganizer {
                 <button class="po-primary-btn" onclick="location.reload()">Tiếp tục làm việc</button>
             </div>
         `;
+    }
+
+    destroy() {
+        if (this.abort) this.abort.abort();
+        if (this.thumbObserver) this.thumbObserver.disconnect();
+        if (this.sortable) this.sortable.destroy();
+        
+        Object.values(this.pdfDocs).forEach(pdf => {
+            if (pdf && typeof pdf.destroy === 'function') {
+                pdf.destroy();
+            }
+        });
+        
+        this.pages.forEach(p => {
+            if (p.dataUrl && p.dataUrl.startsWith('blob:')) {
+                URL.revokeObjectURL(p.dataUrl);
+            }
+        });
+        
+        if (this.appNode) {
+            this.appNode.remove();
+        }
     }
 }
 

@@ -78,14 +78,14 @@ canvas{width:100%;height:150px;border:1px solid var(--line);border-radius:8px;ba
     <div><h3>Làm việc trực tiếp trên tệp</h3><p>Thêm chữ, hình, hình dạng và chú thích tay vào tài liệu.</p></div>
     <div><h3>Chữ ký điện tử dễ dàng</h3><p>Điền biểu mẫu, ký hợp đồng và theo dõi tiến trình ký.</p></div>
     <div><h3>Tạo tài liệu hoàn chỉnh</h3><p>Nén tệp nặng, đổi định dạng, ghép, cắt và xóa trang thừa.</p></div>
-    <div><h3>Bảo mật khi truyền tải</h3><p>Mã hóa TLS 256-bit và xóa tệp tự động sau khi xử lý.</p></div>
+    <div><h3>File không rời khỏi máy bạn</h3><p>Xử lý ngay trong trình duyệt. Tài liệu của bạn là an toàn tuyệt đối.</p></div>
   </div></section>
   <section class="plans">
     <div class="plan"><h3>Miễn phí</h3><ul><li>Dùng thử các công cụ cơ bản</li><li>Giới hạn số tác vụ mỗi ngày</li></ul></div>
     <div class="plan"><h3>Pro</h3><ul><li>Không giới hạn tác vụ</li><li>Tệp lớn, OCR, xử lý hàng loạt</li></ul></div>
     <div class="plan"><h3>Nhóm</h3><ul><li>Từ 2 đến 100 thành viên</li><li>Quản lý và chia sẻ tệp chung</li></ul></div>
   </section>
-  <footer>Giao diện mẫu: xử lý tệp được mô phỏng, chưa gửi tệp đến máy chủ.</footer>
+  <footer>Toàn bộ quá trình xử lý PDF diễn ra ngay trên trình duyệt của bạn. Các tính năng gắn nhãn "Sắp ra mắt" đang được phát triển.</footer>
 </main>
 
 <main id="ws">
@@ -118,7 +118,7 @@ const T=[
 ['Xóa trang PDF','Bỏ các trang không cần','Sắp xếp','🗑','range','.pdf'],
 ['Trích xuất trang','Lấy riêng một số trang','Sắp xếp','⇥','range','.pdf'],
 ['Sắp xếp PDF','Kéo thả để đổi thứ tự trang','Sắp xếp','☰','organize','.pdf'],
-['Chỉnh sửa PDF','Thêm chữ, hình, ảnh, chú thích','Chỉnh sửa','✎','organize','.pdf'],
+['Chỉnh sửa PDF','Sắp xếp, xoay, xóa, chèn trang (Thêm chữ/ảnh sắp ra mắt)','Chỉnh sửa','✎','organize','.pdf'],
 ['Trình chú thích PDF','Tô sáng, gạch chân, vẽ tay','Chỉnh sửa','▬','none','.pdf'],
 ['Trình đọc PDF','Xem và tìm kiếm trong tài liệu','Chỉnh sửa','👁','none','.pdf'],
 ['Đánh số trang','Thêm số trang vào chân trang','Chỉnh sửa','#','pnum','.pdf'],
@@ -144,7 +144,11 @@ function home(){const q=$('#q').value.trim().toLowerCase();
  $('#chips').innerHTML=cats.map(c=>`<button class="chip ${c==cat?'on':''}" data-c="${c}">${c}</button>`).join('');
  let h='';for(const c of Object.keys(C)){if(cat!='Tất cả'&&cat!=c)continue;
   const l=T.map((t,i)=>[t,i]).filter(([t])=>t[2]==c&&(t[0]+t[1]).toLowerCase().includes(q));if(!l.length)continue;
-  h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>`<button class="tool" data-i="${i}"><div class="ic" style="background:${C[c]}">${t[3]}</div><div><b>${t[0]}</b><span>${t[1]}</span></div></button>`).join('')+`</div>`}
+  h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
+   const isSim = !['merge', 'range', 'rot', 'organize'].includes(t[4]);
+   const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` : '';
+   return `<button class="tool" data-i="${i}"><div class="ic" style="background:${C[c]}">${t[3]}</div><div style="flex:1"><b>${t[0]}</b><span>${t[1]}</span></div>${badge}</button>`;
+  }).join('')+`</div>`}
  $('#tools').innerHTML=h||'<p style="color:var(--mute)">Không tìm thấy công cụ phù hợp. Thử từ khóa khác.</p>'}
 $('#nav').innerHTML=['Nén','Chuyển đổi','Sắp xếp','Chỉnh sửa','Ký & Bảo vệ','AI PDF'].map(c=>`<button data-nav="${c}">${c}</button>`).join('');
 const sz=b=>b>1e6?(b/1e6).toFixed(1)+' MB':Math.max(1,Math.round(b/1e3))+' KB';
@@ -261,7 +265,11 @@ async function run(){
   return;
  }
  
- let p=0;const t=setInterval(()=>{p+=8+Math.random()*14;$('#pb').style.width=Math.min(p,100)+'%';if(p>=100){clearInterval(t);done()}},180)
+ if(!['merge', 'range', 'rot', 'organize'].includes(k)) {
+  $('#out').innerHTML=`<div class="res"><b>Tính năng sắp ra mắt</b><p style="margin:4px 0 0;font-size:13px;color:var(--mute)">Công cụ này đang được phát triển và sẽ sớm có mặt. Xin cảm ơn!</p></div>`;
+  b.disabled=false;
+  return;
+ }
 }
 function done(){const tot=files.reduce((a,f)=>a+f.size,0),k=tool[4];
  const extra=k=='compress'?`Dung lượng giảm từ ${sz(tot)} còn khoảng ${sz(tot*.42)} (ước tính mô phỏng).`:`${files.length} tệp đã được xử lý.`;
@@ -280,6 +288,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 $('#q').oninput=home;home();
 </script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="organizer.js?v=6"></script>
+<script src="organizer.js?v=7"></script>
 </body>
 </html>

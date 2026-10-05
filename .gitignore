@@ -1,0 +1,5 @@
+# Local PDF test fixtures (may contain private documents)
+test-files/
+
+# Scratch files
+tmp*.html
