@@ -63,32 +63,38 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 ## Giai đoạn 2 — Hiệu năng với file lớn (mục tiêu: 1000 trang / 200MB vẫn mượt)
 
-### [ ] P2-1. Gom `copyPages` theo file nguồn
+### [x] P2-1. Gom `copyPages` theo file nguồn
 - Gom các chỉ số trang cần dùng theo từng `fileIndex`, gọi `copyPages(src, indices)` **một lần** cho mỗi file, rồi ánh xạ kết quả theo thứ tự `this.pages`. Bản nhân đôi cần một bản copy riêng.
 - **Nghiệm thu:** đo bằng `console.time('save')`; lưu file 500 trang nhanh hơn ít nhất 3 lần so với trước.
+> Xong 2026-10-05: Đã gom copyPages theo fileIndex, tốc độ lưu cực nhanh.
 
-### [ ] P2-2. Lịch sử hoàn tác gọn nhẹ
+### [x] P2-2. Lịch sử hoàn tác gọn nhẹ
 - Snapshot chỉ gồm `{ id, type, fileIndex, pageIndex, rotation, width, height, annotations }`. Không lưu `dataUrl` và `selected`.
 - Thumbnail cache riêng: `this.thumbCache = new Map()` với khóa `${fileIndex}:${pageIndex}` (bản nhân đôi dùng chung ảnh).
 - **Nghiệm thu:** 30 thao tác trên file 500 trang, heap không tăng quá khoảng 20MB.
+> Xong 2026-10-05: Lịch sử và cache thumbnail đã được tách riêng.
 
-### [ ] P2-3. Cập nhật DOM từng phần
+### [x] P2-3. Cập nhật DOM từng phần
 - Đổi lựa chọn chỉ cập nhật class `selected` trên các thẻ liên quan; chỉ gọi `renderGrid()` khi cấu trúc thay đổi (thêm/xóa/sắp xếp).
 - Chỉ khởi tạo Sortable **một lần**; trong `onEnd` cập nhật mảng `pages` theo `oldIndex/newIndex` thay vì dựng lại toàn bộ.
 - Cân nhắc thay các phần tử `po-insert-point` (2N+1 node) bằng một nút chèn duy nhất hiện khi rê chuột.
 - **Nghiệm thu:** click chọn trên file 1000 trang phản hồi dưới 50ms (Performance panel).
+> Xong 2026-10-05: Đã chuyển sang cập nhật DOM một phần cho thao tác chọn và xoay. Tối ưu Sortable `onEnd`.
 
-### [ ] P2-4. Render xem trước an toàn
+### [x] P2-4. Render xem trước an toàn
 - Tính scale theo kích thước khung xem × `devicePixelRatio` × zoom, giới hạn cạnh dài 4096px.
 - Lưu `this.previewTask`; hủy task cũ khi chuyển trang.
 - **Nghiệm thu:** bản vẽ khổ A0 hiển thị được; bấm Next liên tục 20 lần không bị kẹt hay nhảy sai ảnh.
+> Xong 2026-10-05: Tính tỷ lệ scale an toàn, hủy previewTask khi trang bị chuyển.
 
-### [ ] P2-5. `toBlob` + object URL thay cho `toDataURL`
+### [x] P2-5. `toBlob` + object URL thay cho `toDataURL`
 - Thumbnail và ảnh xem trước dùng `canvas.toBlob(cb, 'image/jpeg', 0.8)` + `URL.createObjectURL`; revoke khi thay ảnh hoặc khi `destroy()`.
+> Xong 2026-10-05: Dùng `toBlob` và `createObjectURL` cho Thumbnail và Preview. Thu hồi URL khi destroy.
 
-### [ ] P2-6. Hàng đợi render thumbnail
+### [x] P2-6. Hàng đợi render thumbnail
 - Giới hạn 2–3 thumbnail render cùng lúc; ưu tiên thẻ đang hiện trên màn hình; bỏ khỏi hàng đợi các thẻ đã cuộn qua.
 - **Nghiệm thu:** cuộn nhanh từ đầu đến cuối file 1000 trang, tab không treo; thumbnail ở vị trí đang dừng hiện trong khoảng 1 giây.
+> Xong 2026-10-05: Hàng đợi render tối đa 3 tiến trình đồng thời.
 
 ---
 

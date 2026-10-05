@@ -12,19 +12,24 @@ class PDFOrganizer {
         
         this.pdfDocs = {}; // Store PDF documents for high-res preview rendering
         this.encrypted = {};
+        this.thumbCache = new Map();
         
         this.lastSelectedId = null;
         this.focusedPageId = null;
         this.zoomLevel = 1;
         this.dirHandle = null;
         
+        this.thumbQueue = [];
+        this.activeThumbRenders = 0;
+        
         this.thumbObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
+                const img = entry.target;
+                const pageId = img.dataset.id;
                 if (entry.isIntersecting) {
-                    const img = entry.target;
-                    const pageId = img.dataset.id;
-                    this.renderThumbnail(pageId, img);
-                    this.thumbObserver.unobserve(img);
+                    this.queueThumbnail(pageId, img);
+                } else {
+                    this.dequeueThumbnail(pageId);
                 }
             });
         }, { root: null, rootMargin: '100px' });
@@ -337,10 +342,48 @@ class PDFOrganizer {
         }
     }
 
+    queueThumbnail(pageId, img) {
+        if (!this.thumbQueue.find(q => q.pageId === pageId)) {
+            this.thumbQueue.unshift({ pageId, img });
+            this.processThumbQueue();
+        }
+    }
+
+    dequeueThumbnail(pageId) {
+        this.thumbQueue = this.thumbQueue.filter(q => q.pageId !== pageId);
+    }
+
+    async processThumbQueue() {
+        if (this.activeThumbRenders >= 3 || this.thumbQueue.length === 0) return;
+        
+        this.activeThumbRenders++;
+        const { pageId, img } = this.thumbQueue.shift();
+        
+        try {
+            await this.renderThumbnail(pageId, img);
+            this.thumbObserver.unobserve(img);
+        } catch (e) {
+            console.error('Lỗi render thumbnail', e);
+        } finally {
+            this.activeThumbRenders--;
+            this.processThumbQueue();
+        }
+    }
+
     async renderThumbnail(pageId, imgElement) {
         const page = this.pages.find(p => p.id === pageId);
-        if (!page || page.type !== 'pdf' || page.dataUrl) {
-            if (page && page.dataUrl) imgElement.src = page.dataUrl;
+        if (!page) return;
+        
+        const cacheKey = page.type === 'blank' ? page.id : `${page.fileIndex}:${page.pageIndex}`;
+        
+        if (this.thumbCache.has(cacheKey)) {
+            page.dataUrl = this.thumbCache.get(cacheKey);
+            imgElement.src = page.dataUrl;
+            return;
+        }
+
+        if (page.type !== 'pdf' || page.dataUrl) {
+            if (page.dataUrl) imgElement.src = page.dataUrl;
             return;
         }
         
@@ -353,22 +396,25 @@ class PDFOrganizer {
             cvs.width = vp.width; cvs.height = vp.height;
             await pdfPage.render({ canvasContext: ctx, viewport: vp }).promise;
             
-            page.dataUrl = cvs.toDataURL('image/jpeg', 0.8);
-            page.width = vp.width;
-            page.height = vp.height;
-            
-            // Update img element if it's still for this page
-            if (imgElement.dataset.id === pageId) {
-                imgElement.src = page.dataUrl;
-            }
-            
-            // If this is the focused page and it's waiting for thumbnail, update it
-            if (this.focusedPageId === pageId) {
-                const pvImg = document.getElementById('po-preview-img');
-                if (!pvImg.src || pvImg.src === window.location.href || pvImg.src.endsWith('null')) {
-                    pvImg.src = page.dataUrl;
+            cvs.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                page.dataUrl = url;
+                page.width = vp.width;
+                page.height = vp.height;
+                
+                this.thumbCache.set(cacheKey, url);
+                
+                if (imgElement.dataset.id === pageId) {
+                    imgElement.src = url;
                 }
-            }
+                
+                if (this.focusedPageId === pageId) {
+                    const pvImg = document.getElementById('po-preview-img');
+                    if (!pvImg.src || pvImg.src === window.location.href || pvImg.src.endsWith('null')) {
+                        pvImg.src = url;
+                    }
+                }
+            }, 'image/jpeg', 0.8);
         } catch (e) {
             console.error('Error rendering thumbnail', e);
         }
@@ -380,17 +426,29 @@ class PDFOrganizer {
         cvs.width = 400; cvs.height = 565;
         const ctx = cvs.getContext('2d');
         ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,400,565);
+        const dataUrl = cvs.toDataURL();
+        
+        this.thumbCache.set(pageId, dataUrl);
         
         this.pages.splice(insertAt, 0, {
             id: pageId, type: 'blank', width: 595, height: 842,
-            rotation: 0, dataUrl: cvs.toDataURL(), selected: false
+            rotation: 0, dataUrl: dataUrl, selected: false
         });
         this.pushHistory();
         this.renderGrid();
     }
 
     pushHistory() {
-        const state = JSON.stringify(this.pages);
+        const snapshot = this.pages.map(p => ({
+            id: p.id,
+            type: p.type,
+            fileIndex: p.fileIndex,
+            pageIndex: p.pageIndex,
+            rotation: p.rotation,
+            width: p.width,
+            height: p.height
+        }));
+        const state = JSON.stringify(snapshot);
         if (this.historyIndex >= 0 && this.history[this.historyIndex] === state) return;
         this.history = this.history.slice(0, this.historyIndex + 1);
         this.history.push(state);
@@ -402,21 +460,32 @@ class PDFOrganizer {
     undo() {
         if (this.historyIndex > 0) {
             this.historyIndex--;
-            this.pages = JSON.parse(this.history[this.historyIndex]);
-            this.renderGrid();
-            this.updateUndoRedo();
-            this.updateStats();
+            this.restoreState();
         }
     }
     
     redo() {
         if (this.historyIndex < this.history.length - 1) {
             this.historyIndex++;
-            this.pages = JSON.parse(this.history[this.historyIndex]);
-            this.renderGrid();
-            this.updateUndoRedo();
-            this.updateStats();
+            this.restoreState();
         }
+    }
+
+    restoreState() {
+        const snapshot = JSON.parse(this.history[this.historyIndex]);
+        const selectedIds = new Set(this.pages.filter(p => p.selected).map(p => p.id));
+        
+        this.pages = snapshot.map(p => {
+            const cacheKey = p.type === 'blank' ? p.id : `${p.fileIndex}:${p.pageIndex}`;
+            return {
+                ...p,
+                selected: selectedIds.has(p.id),
+                dataUrl: this.thumbCache.get(cacheKey) || null
+            };
+        });
+        this.renderGrid();
+        this.updateUndoRedo();
+        this.updateStats();
     }
     
     updateUndoRedo() {
@@ -457,7 +526,7 @@ class PDFOrganizer {
     actionSelected(fn) {
         let changed = false;
         this.pages.forEach(p => { if (p.selected) { fn(p); changed = true; } });
-        if (changed) { this.pushHistory(); this.renderGrid(); }
+        if (changed) { this.pushHistory(); this.updateRotationDOM(); }
     }
     
     deleteSelected() {
@@ -502,12 +571,29 @@ class PDFOrganizer {
         });
     }
 
+    updateSelectionDOM() {
+        this.pages.forEach(p => {
+            const card = document.querySelector(`.po-card-wrapper[data-id="${p.id}"] .po-card`);
+            if (card) {
+                if (p.selected) card.classList.add('selected');
+                else card.classList.remove('selected');
+            }
+        });
+        this.updateSelection();
+    }
+
+    updateRotationDOM() {
+        this.pages.forEach(p => {
+            const img = document.querySelector(`.po-card-wrapper[data-id="${p.id}"] img`);
+            if (img) {
+                img.style.transform = `rotate(${p.rotation}deg)`;
+            }
+        });
+    }
+
     renderGrid() {
         const grid = document.getElementById('po-grid');
         grid.innerHTML = '';
-        
-        // Initial insertion point
-        grid.appendChild(this.createInsertPoint(0));
         
         this.pages.forEach((p, i) => {
             const wrapper = document.createElement('div');
@@ -533,7 +619,7 @@ class PDFOrganizer {
             card.addEventListener('touchstart', e => {
                 touchTimer = setTimeout(() => {
                     p.selected = true;
-                    this.renderGrid();
+                    this.updateSelectionDOM();
                     navigator.vibrate?.(50);
                 }, 500);
             });
@@ -548,26 +634,10 @@ class PDFOrganizer {
                 const img = card.querySelector('img');
                 this.thumbObserver.observe(img);
             }
-            
-            // Following insertion point
-            grid.appendChild(this.createInsertPoint(i + 1));
         });
         
         this.updateSelection();
         this.initSortable();
-    }
-
-    createInsertPoint(index) {
-        const div = document.createElement('div');
-        div.className = 'po-insert-point';
-        div.innerHTML = `<div class="po-insert-line"></div><div class="po-insert-btn" title="Chèn trang">+</div>`;
-        div.querySelector('.po-insert-btn').onclick = e => {
-            this.insertIndex = index;
-            // Since there's no popover in the new layout, directly trigger file upload
-            document.getElementById('po-insert-file').click();
-            e.stopPropagation();
-        };
-        return div;
     }
 
     handleCardClick(e, p, index) {
@@ -592,7 +662,7 @@ class PDFOrganizer {
             this.focusPage(p.id);
         }
         
-        this.renderGrid();
+        this.updateSelectionDOM();
     }
 
     focusPage(id, forceRender = false) {
@@ -622,22 +692,56 @@ class PDFOrganizer {
                 this.renderThumbnail(page.id, img);
             }
             
+            if (this.previewTask) {
+                this.previewTask.cancel();
+                this.previewTask = null;
+            }
+
             // Xử lý render high-res bất đồng bộ
             if (page.type === 'pdf') {
                 const pdf = this.pdfDocs[page.fileIndex];
                 if (pdf) {
+                    const taskObj = { cancelled: false };
+                    this.previewTask = { cancel: () => { taskObj.cancelled = true; } };
+
                     pdf.getPage(page.pageIndex + 1).then(pdfPage => {
-                        const vp = pdfPage.getViewport({ scale: 2.0 }); // High-res
+                        if (taskObj.cancelled) return;
+                        
+                        const container = document.getElementById('po-preview-canvas');
+                        const cw = container.clientWidth || 800;
+                        const ch = container.clientHeight || 800;
+                        const baseVp = pdfPage.getViewport({ scale: 1 });
+                        
+                        const fitScale = Math.min(cw / baseVp.width, ch / baseVp.height);
+                        let targetScale = fitScale * (window.devicePixelRatio || 1) * Math.max(1, this.zoomLevel) * 2;
+                        
+                        if (baseVp.width * targetScale > 4096 || baseVp.height * targetScale > 4096) {
+                            targetScale = Math.min(4096 / baseVp.width, 4096 / baseVp.height);
+                        }
+                        
+                        const vp = pdfPage.getViewport({ scale: targetScale });
                         const cvs = document.createElement('canvas');
                         const ctx = cvs.getContext('2d');
                         cvs.width = vp.width; cvs.height = vp.height;
-                        return pdfPage.render({ canvasContext: ctx, viewport: vp }).promise.then(() => {
-                            // Chỉ cập nhật nếu user chưa chuyển sang trang khác
-                            if (this.focusedPageId === id) {
-                                img.src = cvs.toDataURL('image/jpeg', 0.9);
-                            }
+                        
+                        const renderTask = pdfPage.render({ canvasContext: ctx, viewport: vp });
+                        taskObj.cancel = () => { taskObj.cancelled = true; renderTask.cancel(); };
+                        this.previewTask.cancel = taskObj.cancel;
+
+                        return renderTask.promise.then(() => {
+                            if (taskObj.cancelled || this.focusedPageId !== id) return;
+                            cvs.toBlob(blob => {
+                                if (taskObj.cancelled || this.focusedPageId !== id) return;
+                                if (this.previewObjUrl) URL.revokeObjectURL(this.previewObjUrl);
+                                this.previewObjUrl = URL.createObjectURL(blob);
+                                img.src = this.previewObjUrl;
+                            }, 'image/jpeg', 0.9);
                         });
-                    }).catch(e => console.error('Lỗi render high-res:', e));
+                    }).catch(e => {
+                        if (e.name !== 'RenderingCancelledException' && e.message !== 'Rendering cancelled.') {
+                            console.error('Lỗi render high-res:', e);
+                        }
+                    });
                 }
             }
         }
@@ -675,7 +779,7 @@ class PDFOrganizer {
         this.pages[index].selected = true;
         this.lastSelectedId = this.pages[index].id;
         this.focusPage(this.pages[index].id);
-        this.renderGrid();
+        this.updateSelectionDOM();
         
         // Scroll to view
         const wrapper = document.querySelector(`.po-card-wrapper[data-id="${this.pages[index].id}"]`);
@@ -710,19 +814,15 @@ class PDFOrganizer {
             draggable: '.po-card-wrapper',
             ghostClass: 'sortable-ghost',
             onEnd: e => {
-                const wrappers = grid.querySelectorAll('.po-card-wrapper');
-                const newPages = [];
-                wrappers.forEach(w => {
-                    const id = w.dataset.id;
-                    const page = this.pages.find(p => p.id === id);
-                    if(page) newPages.push(page);
-                });
-                
-                if (JSON.stringify(this.pages) !== JSON.stringify(newPages)) {
-                    this.pages = newPages;
+                if (e.oldIndex !== e.newIndex) {
+                    const movedItem = this.pages.splice(e.oldIndex, 1)[0];
+                    this.pages.splice(e.newIndex, 0, movedItem);
                     this.pushHistory();
+                    
+                    // Update numbers directly without rebuilding DOM
+                    const nums = grid.querySelectorAll('.po-card-num');
+                    nums.forEach((el, i) => { el.textContent = i + 1; });
                 }
-                this.renderGrid();
             }
         });
     }
@@ -865,6 +965,25 @@ class PDFOrganizer {
                 this.updateProgress(30);
                 
                 const totalOps = this.pages.length;
+                
+                // P2-1: Gom copyPages
+                const fileIndicesMap = {};
+                for (let i = 0; i < totalOps; i++) {
+                    const p = this.pages[i];
+                    if (p.type === 'pdf' && !this.encrypted[p.fileIndex]) {
+                        if (!fileIndicesMap[p.fileIndex]) fileIndicesMap[p.fileIndex] = [];
+                        fileIndicesMap[p.fileIndex].push(p.pageIndex);
+                    }
+                }
+                
+                const copiedPagesByFile = {};
+                const usageIndexByFile = {};
+                for (const fileIdxStr in fileIndicesMap) {
+                    const fileIdx = parseInt(fileIdxStr);
+                    copiedPagesByFile[fileIdx] = await finalDoc.copyPages(srcDocs[fileIdx], fileIndicesMap[fileIdx]);
+                    usageIndexByFile[fileIdx] = 0;
+                }
+
                 for (let i = 0; i < totalOps; i++) {
                     const p = this.pages[i];
                     if (p.type === 'blank') {
@@ -895,8 +1014,7 @@ class PDFOrganizer {
                                 newPage.setRotation(window.PDFLib.degrees(p.rotation));
                             }
                         } else {
-                            const srcDoc = srcDocs[p.fileIndex];
-                            const [copiedPage] = await finalDoc.copyPages(srcDoc, [p.pageIndex]);
+                            const copiedPage = copiedPagesByFile[p.fileIndex][usageIndexByFile[p.fileIndex]++];
                             
                             if (p.rotation !== 0) {
                                 const currentRot = copiedPage.getRotation().angle;
@@ -979,6 +1097,10 @@ class PDFOrganizer {
                 URL.revokeObjectURL(p.dataUrl);
             }
         });
+        
+        if (this.previewObjUrl) {
+            URL.revokeObjectURL(this.previewObjUrl);
+        }
         
         if (this.appNode) {
             this.appNode.remove();
