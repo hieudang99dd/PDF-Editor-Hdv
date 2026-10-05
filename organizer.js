@@ -21,6 +21,7 @@ class PDFOrganizer {
         
         this.thumbQueue = [];
         this.activeThumbRenders = 0;
+        this.activeThumbTasks = new Map();
         
         this.thumbObserver = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -42,7 +43,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=11';
+            link.href = 'organizer.css?v=12';
             document.head.appendChild(link);
         }
         
@@ -389,10 +390,17 @@ class PDFOrganizer {
 
     dequeueThumbnail(pageId) {
         this.thumbQueue = this.thumbQueue.filter(q => q.pageId !== pageId);
+        if (this.activeThumbTasks.has(pageId)) {
+            const task = this.activeThumbTasks.get(pageId);
+            if (task && typeof task.cancel === 'function') {
+                try { task.cancel(); } catch(e) {}
+            }
+            this.activeThumbTasks.delete(pageId);
+        }
     }
 
     async processThumbQueue() {
-        if (this.activeThumbRenders >= 3 || this.thumbQueue.length === 0) return;
+        if (this.previewTask || this.activeThumbRenders >= 3 || this.thumbQueue.length === 0) return;
         
         this.activeThumbRenders++;
         const { pageId, img } = this.thumbQueue.shift();
@@ -401,8 +409,11 @@ class PDFOrganizer {
             await this.renderThumbnail(pageId, img);
             this.thumbObserver.unobserve(img);
         } catch (e) {
-            console.error('Lỗi render thumbnail', e);
+            if (e.name !== 'RenderingCancelledException' && e.message !== 'Rendering cancelled.') {
+                console.error('Lỗi render thumbnail', e);
+            }
         } finally {
+            this.activeThumbTasks.delete(pageId);
             this.activeThumbRenders--;
             this.processThumbQueue();
         }
@@ -438,7 +449,11 @@ class PDFOrganizer {
             const cvs = document.createElement('canvas');
             const ctx = cvs.getContext('2d');
             cvs.width = vp.width; cvs.height = vp.height;
-            await pdfPage.render({ canvasContext: ctx, viewport: vp }).promise;
+            
+            const renderTask = pdfPage.render({ canvasContext: ctx, viewport: vp });
+            this.activeThumbTasks.set(pageId, renderTask);
+            await renderTask.promise;
+            this.activeThumbTasks.delete(pageId);
             
             cvs.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
@@ -728,17 +743,26 @@ class PDFOrganizer {
         img.dataset.id = id;
         
         if (pageChanged || forceRender) {
+            if (this.previewTask) {
+                this.previewTask.cancel();
+                this.previewTask = null;
+            }
+            
+            // Ưu tiên hiển thị preview bằng cách hủy ngay các thumbnail đang render
+            this.activeThumbTasks.forEach((task) => {
+                if (typeof task.cancel === 'function') {
+                    try { task.cancel(); } catch(e) {}
+                }
+            });
+            this.activeThumbTasks.clear();
+
             // Hiển thị lập tức thumbnail (low-res) để tránh giật lag
             if (page.dataUrl) {
                 img.src = page.dataUrl;
             } else {
                 img.removeAttribute('src');
-                this.renderThumbnail(page.id, img);
-            }
-            
-            if (this.previewTask) {
-                this.previewTask.cancel();
-                this.previewTask = null;
+                // Hiển thị SVG Spinner
+                img.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid"><circle cx="50" cy="50" fill="none" stroke="%232563eb" stroke-width="8" r="35" stroke-dasharray="164.933 56.977"><animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="1s" values="0 50 50;360 50 50" keyTimes="0;1"></animateTransform></circle></svg>';
             }
 
             // Xử lý render high-res bất đồng bộ
@@ -784,6 +808,11 @@ class PDFOrganizer {
                     }).catch(e => {
                         if (e.name !== 'RenderingCancelledException' && e.message !== 'Rendering cancelled.') {
                             console.error('Lỗi render high-res:', e);
+                        }
+                    }).finally(() => {
+                        if (this.previewTask && this.previewTask.cancel === taskObj.cancel) {
+                            this.previewTask = null;
+                            this.processThumbQueue();
                         }
                     });
                 }
@@ -1089,9 +1118,8 @@ class PDFOrganizer {
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             
             const filename = document.getElementById('po-save-filename').value || 'organized.pdf';
-            const saveMode = document.querySelector('input[name="po-save-mode"]:checked')?.value || 'download';
             
-            if (saveMode === 'picker' && window.showSaveFilePicker) {
+            if (window.showSaveFilePicker) {
                 try {
                     const handle = await window.showSaveFilePicker({
                         suggestedName: filename,
@@ -1105,11 +1133,7 @@ class PDFOrganizer {
                     this.showSuccess();
                     return;
                 } catch (e) {
-                    if (e.name === 'AbortError') {
-                        this.hideLoading();
-                        return;
-                    }
-                    console.error(e);
+                    if (e.name !== 'AbortError') console.error(e);
                 }
             }
             
