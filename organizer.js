@@ -43,7 +43,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=13';
+            link.href = 'organizer.css?v=14';
             document.head.appendChild(link);
         }
         
@@ -803,6 +803,33 @@ class PDFOrganizer {
                                 if (this.previewObjUrl) URL.revokeObjectURL(this.previewObjUrl);
                                 this.previewObjUrl = URL.createObjectURL(blob);
                                 img.src = this.previewObjUrl;
+                                
+                                // ĐỒNG BỘ THUMBNAIL: Tạo thumbnail từ ảnh high-res để hiển thị cùng lúc
+                                if (!page.dataUrl) {
+                                    const thumbCvs = document.createElement('canvas');
+                                    const thumbCtx = thumbCvs.getContext('2d');
+                                    const maxDim = 300;
+                                    let scale = Math.min(maxDim / cvs.width, maxDim / cvs.height);
+                                    if (scale > 1) scale = 1;
+                                    thumbCvs.width = cvs.width * scale;
+                                    thumbCvs.height = cvs.height * scale;
+                                    thumbCtx.drawImage(cvs, 0, 0, thumbCvs.width, thumbCvs.height);
+                                    
+                                    thumbCvs.toBlob(thumbBlob => {
+                                        const thumbUrl = URL.createObjectURL(thumbBlob);
+                                        page.dataUrl = thumbUrl;
+                                        page.width = baseVp.width;
+                                        page.height = baseVp.height;
+                                        const cacheKey = page.type === 'blank' ? page.id : `${page.fileIndex}:${page.pageIndex}`;
+                                        this.thumbCache.set(cacheKey, thumbUrl);
+                                        
+                                        const thumbImg = document.querySelector(`.po-card-preview img[data-id="${id}"]`);
+                                        if (thumbImg) thumbImg.src = thumbUrl;
+                                        
+                                        // Gỡ khỏi hàng đợi render thumbnail
+                                        this.thumbQueue = this.thumbQueue.filter(q => q.pageId !== id);
+                                    }, 'image/jpeg', 0.8);
+                                }
                             }, 'image/jpeg', 0.9);
                         });
                     }).catch(e => {
