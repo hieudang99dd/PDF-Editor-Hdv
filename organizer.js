@@ -125,20 +125,8 @@ class PDFOrganizer {
                 <div class="po-modal">
                     <h3 class="po-modal-title">Lưu tài liệu thông minh</h3>
                     <div class="po-form-group">
-                        <label class="po-form-label">Thư mục lưu</label>
-                        <div class="po-input-group">
-                            <input type="text" id="po-save-dir" class="po-form-input" readonly value="Mặc định (Thư mục Tải xuống)">
-                            <button class="po-tool-btn" id="po-btn-pick-dir" style="background:#f1f5f9; border:1px solid var(--po-border);">Chọn thư mục</button>
-                        </div>
-                    </div>
-                    <div class="po-form-group">
                         <label class="po-form-label">Tên file</label>
                         <input type="text" id="po-save-filename" class="po-form-input">
-                    </div>
-                    <div class="po-form-group">
-                        <label class="po-form-label">Đường dẫn preview realtime:</label>
-                        <div style="font-size:13px; color:var(--po-text-muted); word-break:break-all; padding:8px; background:#f8fafc; border-radius:6px; border:1px dashed var(--po-border);" id="po-save-preview">
-                        </div>
                     </div>
                     <div class="po-modal-footer">
                         <button class="po-tool-btn" id="po-save-cancel">Hủy</button>
@@ -219,8 +207,6 @@ class PDFOrganizer {
         // Save Flow
         document.getElementById('po-save').onclick = () => this.showSaveModal();
         document.getElementById('po-save-cancel').onclick = () => document.getElementById('po-save-modal').classList.remove('active');
-        document.getElementById('po-btn-pick-dir').onclick = () => this.pickDirectory();
-        document.getElementById('po-save-filename').addEventListener('input', () => this.updateSavePreview());
         document.getElementById('po-save-confirm').onclick = () => this.executeSave();
 
         // Preview Toolbar
@@ -744,28 +730,7 @@ class PDFOrganizer {
         }
         
         document.getElementById('po-save-filename').value = name + '.pdf';
-        this.updateSavePreview();
         document.getElementById('po-save-modal').classList.add('active');
-    }
-
-    async pickDirectory() {
-        try {
-            if (window.showDirectoryPicker) {
-                this.dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-                document.getElementById('po-save-dir').value = this.dirHandle.name;
-                this.updateSavePreview();
-            } else {
-                alert('Trình duyệt không hỗ trợ chọn thư mục. Sẽ dùng thư mục tải xuống mặc định.');
-            }
-        } catch (e) {
-            console.log('User cancelled dir picker');
-        }
-    }
-
-    updateSavePreview() {
-        const dir = document.getElementById('po-save-dir').value;
-        const fname = document.getElementById('po-save-filename').value;
-        document.getElementById('po-save-preview').textContent = `.../${dir}/${fname}`;
     }
 
     async executeSave() {
