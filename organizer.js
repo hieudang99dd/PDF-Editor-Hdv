@@ -42,7 +42,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=7';
+            link.href = 'organizer.css?v=8';
             document.head.appendChild(link);
         }
         
@@ -296,8 +296,8 @@ class PDFOrganizer {
         let newPages = [];
         for (let i = 0; i < pdfFiles.length; i++) {
             const f = pdfFiles[i];
-            const buffer = await f.arrayBuffer();
-            const pdf = await pdfjsLib.getDocument(buffer).promise;
+            if (!f.objUrl) f.objUrl = URL.createObjectURL(f);
+            const pdf = await pdfjsLib.getDocument(f.objUrl).promise;
             this.pdfDocs[startIndex + i] = pdf;
             
             try {
@@ -390,7 +390,13 @@ class PDFOrganizer {
         try {
             const pdf = this.pdfDocs[page.fileIndex];
             const pdfPage = await pdf.getPage(page.pageIndex + 1);
-            const vp = pdfPage.getViewport({ scale: 0.4 });
+            
+            const baseVp = pdfPage.getViewport({ scale: 1 });
+            const maxDim = 300;
+            let scale = Math.min(maxDim / baseVp.width, maxDim / baseVp.height);
+            if (scale > 1) scale = 1; // Don't upscale tiny pages too much
+            
+            const vp = pdfPage.getViewport({ scale });
             const cvs = document.createElement('canvas');
             const ctx = cvs.getContext('2d');
             cvs.width = vp.width; cvs.height = vp.height;
@@ -1101,6 +1107,10 @@ class PDFOrganizer {
         if (this.previewObjUrl) {
             URL.revokeObjectURL(this.previewObjUrl);
         }
+        
+        this.files.forEach(f => {
+            if (f.objUrl) URL.revokeObjectURL(f.objUrl);
+        });
         
         if (this.appNode) {
             this.appNode.remove();
