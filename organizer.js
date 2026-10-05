@@ -43,7 +43,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=14';
+            link.href = 'organizer.css?v=15';
             document.head.appendChild(link);
         }
         
@@ -88,6 +88,15 @@ class PDFOrganizer {
                         </div>
                         <div class="po-meta-changes" id="po-meta-changes"></div>
                         <div class="po-meta-deleted" id="po-meta-deleted">Lịch sử xóa: Không có</div>
+                        <div class="po-render-progress-container" id="po-render-progress-container" style="margin-top: 12px; display: none;">
+                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--po-text-muted); margin-bottom: 4px;">
+                                <span>Tiến trình tải trang:</span>
+                                <span id="po-render-progress-text">0%</span>
+                            </div>
+                            <div style="width: 100%; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;">
+                                <div id="po-render-progress-fill" style="width: 0%; height: 100%; background: var(--po-primary); transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
                     </div>
                     <div class="po-main-scroll" id="po-main-scroll">
                         <div class="po-grid" id="po-grid"></div>
@@ -399,8 +408,64 @@ class PDFOrganizer {
         }
     }
 
+    updateRenderProgress() {
+        if (!this.pages || this.pages.length === 0) return;
+        const total = this.pages.length;
+        const loaded = this.pages.filter(p => p.dataUrl || p.type === 'blank').length;
+        const pct = Math.floor((loaded / total) * 100);
+        
+        const container = document.getElementById('po-render-progress-container');
+        const fill = document.getElementById('po-render-progress-fill');
+        const text = document.getElementById('po-render-progress-text');
+        if (!container || !fill || !text) return;
+
+        if (total > 0 && loaded < total) {
+            container.style.display = 'block';
+            fill.style.width = `${pct}%`;
+            text.textContent = `${pct}%`;
+        } else if (loaded === total && total > 0) {
+            fill.style.width = `100%`;
+            text.textContent = `100%`;
+            setTimeout(() => {
+                if (document.getElementById('po-render-progress-text')?.textContent === '100%') {
+                    container.style.display = 'none';
+                }
+            }, 1500);
+        }
+    }
+
+    async idlePrefetch() {
+        if (this.previewTask || this.activeThumbRenders > 0 || this.thumbQueue.length > 0) return;
+        
+        const nextPage = this.pages.find(p => !p.dataUrl && p.type === 'pdf');
+        if (!nextPage) return; // All done
+
+        this.activeThumbRenders++;
+        try {
+            await this.renderThumbnail(nextPage.id, null);
+        } catch (e) {
+            if (e.name !== 'RenderingCancelledException' && e.message !== 'Rendering cancelled.') {
+                console.error('Idle prefetch error:', e);
+            }
+        } finally {
+            this.activeThumbTasks.delete(nextPage.id);
+            this.activeThumbRenders--;
+            this.updateRenderProgress();
+            
+            // Recursively prefetch next if idle
+            if (!this.previewTask && this.thumbQueue.length === 0) {
+                this.idlePrefetch();
+            }
+        }
+    }
+
     async processThumbQueue() {
-        if (this.previewTask || this.activeThumbRenders >= 3 || this.thumbQueue.length === 0) return;
+        if (this.previewTask || this.activeThumbRenders >= 3) return;
+        
+        if (this.thumbQueue.length === 0) {
+            this.idlePrefetch();
+            return;
+        }
         
         this.activeThumbRenders++;
         const { pageId, img } = this.thumbQueue.shift();
@@ -415,6 +480,7 @@ class PDFOrganizer {
         } finally {
             this.activeThumbTasks.delete(pageId);
             this.activeThumbRenders--;
+            this.updateRenderProgress();
             this.processThumbQueue();
         }
     }
@@ -427,12 +493,12 @@ class PDFOrganizer {
         
         if (this.thumbCache.has(cacheKey)) {
             page.dataUrl = this.thumbCache.get(cacheKey);
-            imgElement.src = page.dataUrl;
+            if (imgElement) imgElement.src = page.dataUrl;
             return;
         }
 
         if (page.type !== 'pdf' || page.dataUrl) {
-            if (page.dataUrl) imgElement.src = page.dataUrl;
+            if (page.dataUrl && imgElement) imgElement.src = page.dataUrl;
             return;
         }
         
@@ -463,8 +529,11 @@ class PDFOrganizer {
                 
                 this.thumbCache.set(cacheKey, url);
                 
-                if (imgElement.dataset.id === pageId) {
+                if (imgElement && imgElement.dataset.id === pageId) {
                     imgElement.src = url;
+                } else {
+                    const domImg = document.querySelector(`.po-card-preview img[data-id="${pageId}"]`);
+                    if (domImg) domImg.src = url;
                 }
                 
                 if (this.focusedPageId === pageId) {
@@ -828,6 +897,7 @@ class PDFOrganizer {
                                         
                                         // Gỡ khỏi hàng đợi render thumbnail
                                         this.thumbQueue = this.thumbQueue.filter(q => q.pageId !== id);
+                                        this.updateRenderProgress();
                                     }, 'image/jpeg', 0.8);
                                 }
                             }, 'image/jpeg', 0.9);
