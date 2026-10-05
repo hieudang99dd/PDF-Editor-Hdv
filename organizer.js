@@ -43,7 +43,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=12';
+            link.href = 'organizer.css?v=13';
             document.head.appendChild(link);
         }
         
@@ -665,7 +665,7 @@ class PDFOrganizer {
             card.innerHTML = `
                 <div class="po-card-num">${i + 1}</div>
                 <div class="po-card-preview">
-                    <img data-id="${p.id}" ${p.dataUrl ? `src="${p.dataUrl}"` : ''} style="transform: rotate(${p.rotation}deg); ${p.type==='blank'?'border:1px solid #e2e8f0':''}" loading="lazy">
+                    <img data-id="${p.id}" ${p.dataUrl ? `src="${p.dataUrl}"` : ''} style="transform: rotate(${p.rotation}deg); ${p.type==='blank'?'border:1px solid #e2e8f0':''}">
                 </div>
                 <div class="po-card-label">${p.type === 'blank' ? 'Trang trống' : 'Trang ' + (p.pageIndex + 1)}</div>
             `;
