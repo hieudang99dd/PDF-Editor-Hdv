@@ -42,7 +42,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=9';
+            link.href = 'organizer.css?v=10';
             document.head.appendChild(link);
         }
         
@@ -246,6 +246,28 @@ class PDFOrganizer {
                 if (!isNaN(val)) this.navigateToPage(val - 1);
             }
         };
+        
+        const pvCanvas = document.getElementById('po-preview-canvas');
+        let wheelTimeout;
+        pvCanvas.addEventListener('wheel', e => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                this.adjustZoom(e.deltaY < 0 ? 0.2 : -0.2);
+            } else {
+                const isScrollable = pvCanvas.scrollHeight > pvCanvas.clientHeight + 10 || pvCanvas.scrollWidth > pvCanvas.clientWidth + 10;
+                if (!isScrollable) {
+                    e.preventDefault();
+                    if (wheelTimeout) return;
+                    wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 150);
+                    
+                    if (e.deltaY > 0) {
+                        this.navigateRelative(1);
+                    } else if (e.deltaY < 0) {
+                        this.navigateRelative(-1);
+                    }
+                }
+            }
+        }, { passive: false });
     }
 
     async loadScripts() {
@@ -752,8 +774,20 @@ class PDFOrganizer {
             }
         }
         
+        if (this.zoomLevel === 1) {
+            img.style.width = 'auto';
+            img.style.height = '100%';
+            img.style.maxWidth = '100%';
+            img.style.maxHeight = '100%';
+        } else {
+            img.style.maxWidth = 'none';
+            img.style.maxHeight = 'none';
+            img.style.height = (100 * this.zoomLevel) + '%';
+            img.style.width = 'auto';
+        }
+        
         img.style.display = 'block';
-        img.style.transform = `scale(${this.zoomLevel}) rotate(${page.rotation}deg)`;
+        img.style.transform = `rotate(${page.rotation}deg)`;
     }
 
     navigateKeyboard(key) {
@@ -793,13 +827,14 @@ class PDFOrganizer {
     }
 
     adjustZoom(delta) {
-        this.zoomLevel = Math.max(0.2, Math.min(3, this.zoomLevel + delta));
+        this.zoomLevel = Math.max(0.2, Math.min(5, this.zoomLevel + delta));
         this.focusPage(this.focusedPageId);
     }
     
     setZoom(type) {
         const img = document.getElementById('po-preview-img');
-        const canvas = document.getElementById('po-preview-canvas');
+        img.style.maxWidth = '100%';
+        img.style.maxHeight = '100%';
         if (type === 'width') {
             img.style.width = '100%';
             img.style.height = 'auto';
