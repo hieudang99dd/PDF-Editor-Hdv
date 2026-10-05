@@ -14,6 +14,17 @@ class PDFOrganizer {
         this.focusedPageId = null;
         this.zoomLevel = 1;
         this.dirHandle = null;
+        
+        this.thumbObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const pageId = img.dataset.id;
+                    this.renderThumbnail(pageId, img);
+                    this.thumbObserver.unobserve(img);
+                }
+            });
+        }, { root: null, rootMargin: '100px' });
 
         this.initDOM();
     }
@@ -23,7 +34,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=3';
+            link.href = 'organizer.css?v=5';
             document.head.appendChild(link);
         }
         
@@ -290,31 +301,24 @@ class PDFOrganizer {
             this.pdfDocs[startIndex + i] = pdf;
             
             for (let p = 1; p <= pdf.numPages; p++) {
-                const page = await pdf.getPage(p);
-                const vp = page.getViewport({ scale: 0.4 }); // smaller for thumbnails
-                const cvs = document.createElement('canvas');
-                const ctx = cvs.getContext('2d');
-                cvs.width = vp.width; cvs.height = vp.height;
-                await page.render({ canvasContext: ctx, viewport: vp }).promise;
-                
                 const pageId = 'pg_' + (this.pageCounter++);
                 newPages.push({
                     id: pageId,
                     fileIndex: startIndex + i,
                     pageIndex: p - 1,
                     rotation: 0,
-                    dataUrl: cvs.toDataURL('image/jpeg', 0.8),
+                    dataUrl: null, // Render lazily
                     selected: false,
                     type: 'pdf',
-                    width: vp.width,
-                    height: vp.height
+                    width: 595,
+                    height: 842
                 });
                 
                 if (isFirstUpload) {
                     this.originalPages.push({ id: pageId, pageNum: p });
                 }
-                this.updateProgress(((i+1)/pdfFiles.length)*100);
             }
+            this.updateProgress(((i+1)/pdfFiles.length)*100);
         }
         
         this.pages.splice(insertAt, 0, ...newPages);
@@ -323,6 +327,43 @@ class PDFOrganizer {
         this.renderGrid();
         if (isFirstUpload && this.pages.length > 0) {
             this.focusPage(this.pages[0].id);
+        }
+    }
+
+    async renderThumbnail(pageId, imgElement) {
+        const page = this.pages.find(p => p.id === pageId);
+        if (!page || page.type !== 'pdf' || page.dataUrl) {
+            if (page && page.dataUrl) imgElement.src = page.dataUrl;
+            return;
+        }
+        
+        try {
+            const pdf = this.pdfDocs[page.fileIndex];
+            const pdfPage = await pdf.getPage(page.pageIndex + 1);
+            const vp = pdfPage.getViewport({ scale: 0.4 });
+            const cvs = document.createElement('canvas');
+            const ctx = cvs.getContext('2d');
+            cvs.width = vp.width; cvs.height = vp.height;
+            await pdfPage.render({ canvasContext: ctx, viewport: vp }).promise;
+            
+            page.dataUrl = cvs.toDataURL('image/jpeg', 0.8);
+            page.width = vp.width;
+            page.height = vp.height;
+            
+            // Update img element if it's still for this page
+            if (imgElement.dataset.id === pageId) {
+                imgElement.src = page.dataUrl;
+            }
+            
+            // If this is the focused page and it's waiting for thumbnail, update it
+            if (this.focusedPageId === pageId) {
+                const pvImg = document.getElementById('po-preview-img');
+                if (!pvImg.src || pvImg.src === window.location.href || pvImg.src.endsWith('null')) {
+                    pvImg.src = page.dataUrl;
+                }
+            }
+        } catch (e) {
+            console.error('Error rendering thumbnail', e);
         }
     }
 
@@ -472,7 +513,7 @@ class PDFOrganizer {
             card.innerHTML = `
                 <div class="po-card-num">${i + 1}</div>
                 <div class="po-card-preview">
-                    <img src="${p.dataUrl}" style="transform: rotate(${p.rotation}deg); ${p.type==='blank'?'border:1px solid #e2e8f0':''}" loading="lazy">
+                    <img data-id="${p.id}" ${p.dataUrl ? `src="${p.dataUrl}"` : ''} style="transform: rotate(${p.rotation}deg); ${p.type==='blank'?'border:1px solid #e2e8f0':''}" loading="lazy">
                 </div>
                 <div class="po-card-label">${p.type === 'blank' ? 'Trang trống' : 'Trang ' + (p.pageIndex + 1)}</div>
             `;
@@ -494,6 +535,12 @@ class PDFOrganizer {
 
             wrapper.appendChild(card);
             grid.appendChild(wrapper);
+            
+            // Lazy load thumbnail
+            if (!p.dataUrl && p.type === 'pdf') {
+                const img = card.querySelector('img');
+                this.thumbObserver.observe(img);
+            }
             
             // Following insertion point
             grid.appendChild(this.createInsertPoint(i + 1));
@@ -557,10 +604,16 @@ class PDFOrganizer {
         document.getElementById('pv-page-total').textContent = this.pages.length;
         
         const img = document.getElementById('po-preview-img');
+        img.dataset.id = id;
         
         if (pageChanged || forceRender) {
             // Hiển thị lập tức thumbnail (low-res) để tránh giật lag
-            img.src = page.dataUrl;
+            if (page.dataUrl) {
+                img.src = page.dataUrl;
+            } else {
+                img.removeAttribute('src');
+                this.renderThumbnail(page.id, img);
+            }
             
             // Xử lý render high-res bất đồng bộ
             if (page.type === 'pdf') {
