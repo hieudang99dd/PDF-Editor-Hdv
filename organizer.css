@@ -108,6 +108,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .po-progress-bar { width: 200px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 16px; }
 .po-progress-fill { width: 0%; height: 100%; background: var(--po-primary); transition: width 0.2s; }
 
+/* Navigation Input */
+.po-pv-input { width: 40px; text-align: center; border: 1px solid var(--po-border); border-radius: 4px; padding: 4px; font-size: 13px; outline: none; color: var(--po-text-main); }
+.po-pv-input:focus { border-color: var(--po-primary); }
+.po-pv-text { font-size: 13px; color: var(--po-text-muted); display: flex; align-items: center; white-space: nowrap; }
+.po-pv-toolbar-sep { width: 1px; height: 16px; background: var(--po-border); margin: 0 4px; align-self: center; }
+
 /* Upload Area */
 .po-upload-area { border: 2px dashed #cbd5e1; border-radius: 8px; padding: 40px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--po-surface); margin: 32px auto; max-width: 600px; }
 .po-upload-area:hover { border-color: var(--po-primary); background: var(--po-primary-light); }

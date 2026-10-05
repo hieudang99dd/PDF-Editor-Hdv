@@ -23,7 +23,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=2';
+            link.href = 'organizer.css?v=3';
             document.head.appendChild(link);
         }
         
@@ -80,6 +80,13 @@ class PDFOrganizer {
                         <img id="po-preview-img" src="" style="display:none;">
                     </div>
                     <div class="po-preview-toolbar" id="po-pv-tb" style="display:none;">
+                        <button class="po-pv-btn" id="pv-first" title="Trang đầu">|&lt;</button>
+                        <button class="po-pv-btn" id="pv-prev" title="Trang trước">&lt;</button>
+                        <input type="text" id="pv-page-input" class="po-pv-input" title="Nhập trang và nhấn Enter" value="1">
+                        <span class="po-pv-text"> / <span id="pv-page-total">1</span></span>
+                        <button class="po-pv-btn" id="pv-next" title="Trang sau">&gt;</button>
+                        <button class="po-pv-btn" id="pv-last" title="Trang cuối">&gt;|</button>
+                        <div class="po-pv-toolbar-sep"></div>
                         <button class="po-pv-btn" id="pv-zoom-out" title="Thu nhỏ">-</button>
                         <button class="po-pv-btn" id="pv-zoom-in" title="Phóng to">+</button>
                         <button class="po-pv-btn" id="pv-fit-w">Fit Width</button>
@@ -210,6 +217,17 @@ class PDFOrganizer {
         document.getElementById('pv-zoom-out').onclick = () => this.adjustZoom(-0.2);
         document.getElementById('pv-fit-w').onclick = () => this.setZoom('width');
         document.getElementById('pv-fit-p').onclick = () => this.setZoom('page');
+        document.getElementById('pv-first').onclick = () => this.navigateToPage(0);
+        document.getElementById('pv-prev').onclick = () => this.navigateRelative(-1);
+        document.getElementById('pv-next').onclick = () => this.navigateRelative(1);
+        document.getElementById('pv-last').onclick = () => this.navigateToPage(this.pages.length - 1);
+        document.getElementById('pv-page-input').onkeydown = e => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                let val = parseInt(e.target.value);
+                if (!isNaN(val)) this.navigateToPage(val - 1);
+            }
+        };
     }
 
     async loadScripts() {
@@ -532,6 +550,12 @@ class PDFOrganizer {
         document.getElementById('po-pv-empty').style.display = 'none';
         document.getElementById('po-pv-tb').style.display = 'flex';
         
+        const currIdx = this.pages.findIndex(p => p.id === id);
+        if (currIdx !== -1) {
+            document.getElementById('pv-page-input').value = currIdx + 1;
+        }
+        document.getElementById('pv-page-total').textContent = this.pages.length;
+        
         const img = document.getElementById('po-preview-img');
         
         if (pageChanged || forceRender) {
@@ -573,14 +597,28 @@ class PDFOrganizer {
             currIdx = Math.max(0, currIdx - 1);
         }
         
+        this.navigateToPage(currIdx);
+    }
+    
+    navigateRelative(delta) {
+        if (this.pages.length === 0) return;
+        let currIdx = this.pages.findIndex(p => p.id === this.focusedPageId);
+        if (currIdx === -1) currIdx = 0;
+        this.navigateToPage(currIdx + delta);
+    }
+    
+    navigateToPage(index) {
+        if (this.pages.length === 0) return;
+        index = Math.max(0, Math.min(this.pages.length - 1, index));
+        
         this.pages.forEach(p => p.selected = false);
-        this.pages[currIdx].selected = true;
-        this.lastSelectedId = this.pages[currIdx].id;
-        this.focusPage(this.pages[currIdx].id);
+        this.pages[index].selected = true;
+        this.lastSelectedId = this.pages[index].id;
+        this.focusPage(this.pages[index].id);
         this.renderGrid();
         
         // Scroll to view
-        const wrapper = document.querySelector(`.po-card-wrapper[data-id="${this.pages[currIdx].id}"]`);
+        const wrapper = document.querySelector(`.po-card-wrapper[data-id="${this.pages[index].id}"]`);
         if (wrapper) wrapper.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
