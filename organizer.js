@@ -43,7 +43,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=15';
+            link.href = 'organizer.css?v=16';
             document.head.appendChild(link);
         }
         
@@ -414,6 +414,37 @@ class PDFOrganizer {
         const loaded = this.pages.filter(p => p.dataUrl || p.type === 'blank').length;
         const pct = Math.floor((loaded / total) * 100);
         
+        // Theo dõi thời gian để tính ETA
+        if (!this.renderTimestamps) this.renderTimestamps = [];
+        if (this.lastLoadedCount === undefined) this.lastLoadedCount = 0;
+        
+        if (loaded > this.lastLoadedCount) {
+            this.renderTimestamps.push(Date.now());
+            if (this.renderTimestamps.length > 5) this.renderTimestamps.shift(); // Lấy trung bình 5 trang gần nhất
+            this.lastLoadedCount = loaded;
+        }
+
+        let etaStr = '';
+        if (this.renderTimestamps.length >= 2 && loaded < total) {
+            const timeDiff = this.renderTimestamps[this.renderTimestamps.length - 1] - this.renderTimestamps[0];
+            const pagesRendered = this.renderTimestamps.length - 1;
+            
+            if (timeDiff > 0 && pagesRendered > 0) {
+                const timePerPage = timeDiff / pagesRendered;
+                const remainingPages = total - loaded;
+                const remainingMs = remainingPages * timePerPage;
+                
+                const totalSeconds = Math.ceil(remainingMs / 1000);
+                if (totalSeconds < 60) {
+                    etaStr = ` (Còn ~${totalSeconds}s)`;
+                } else {
+                    const m = Math.floor(totalSeconds / 60);
+                    const s = totalSeconds % 60;
+                    etaStr = ` (Còn ~${m}p ${s}s)`;
+                }
+            }
+        }
+
         const container = document.getElementById('po-render-progress-container');
         const fill = document.getElementById('po-render-progress-fill');
         const text = document.getElementById('po-render-progress-text');
@@ -422,15 +453,15 @@ class PDFOrganizer {
         if (total > 0 && loaded < total) {
             container.style.display = 'block';
             fill.style.width = `${pct}%`;
-            text.textContent = `${pct}%`;
+            text.textContent = `${pct}%${etaStr}`;
         } else if (loaded === total && total > 0) {
             fill.style.width = `100%`;
-            text.textContent = `100%`;
+            text.textContent = `100% - Hoàn tất`;
             setTimeout(() => {
-                if (document.getElementById('po-render-progress-text')?.textContent === '100%') {
+                if (document.getElementById('po-render-progress-text')?.textContent.includes('Hoàn tất')) {
                     container.style.display = 'none';
                 }
-            }, 1500);
+            }, 2000);
         }
     }
 
