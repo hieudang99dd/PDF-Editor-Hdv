@@ -64,7 +64,7 @@ canvas{width:100%;height:150px;border:1px solid var(--line);border-radius:8px;ba
   <button class="logo" id="logo">PDF Hub</button>
   <nav id="nav"></nav>
   <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
-  <button class="btn" id="trial">Thử miễn phí</button>
+  <button class="btn" id="refresh-app" style="background:#4a5568">Làm mới</button>
 </header>
 
 <main id="home">
@@ -276,10 +276,10 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  if(b.dataset.m){const[k,d]=b.dataset.m.split(':').map(Number),j=k+d;if(files[j]){[files[k],files[j]]=[files[j],files[k]];render()}}
  if(b.id=='logo'||b.id=='back'){cat='Tất cả';back()}
  if(b.id=='theme'){const r=document.documentElement,dk=getComputedStyle(r).getPropertyValue('--bg').trim()=='#0f1220';r.dataset.theme=dk?'light':'dark'}
- if(b.id=='trial')toast('Dùng thử 7 ngày: chức năng đăng ký chưa được kết nối')});
+ if(b.id=='refresh-app')location.reload()});
 $('#q').oninput=home;home();
 </script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-<script src="organizer.js?v=3"></script>
+<script src="organizer.js?v=4"></script>
 </body>
 </html>
