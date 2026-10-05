@@ -42,7 +42,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=10';
+            link.href = 'organizer.css?v=11';
             document.head.appendChild(link);
         }
         
@@ -136,9 +136,20 @@ class PDFOrganizer {
                         <label class="po-form-label">Tên file</label>
                         <input type="text" id="po-save-filename" class="po-form-input">
                     </div>
+                    <div class="po-form-group" style="margin-top: 16px;">
+                        <label class="po-form-label">Phương thức lưu</label>
+                        <div style="display:flex; gap: 16px; margin-top: 8px;">
+                            <label style="display:flex; align-items:center; gap: 4px; font-size:14px; cursor:pointer;">
+                                <input type="radio" name="po-save-mode" value="download" checked> Tải xuống trực tiếp
+                            </label>
+                            <label style="display:flex; align-items:center; gap: 4px; font-size:14px; cursor:pointer;" id="po-save-mode-picker-lbl">
+                                <input type="radio" name="po-save-mode" value="picker"> Chọn vị trí lưu
+                            </label>
+                        </div>
+                    </div>
                     <div class="po-modal-footer">
                         <button class="po-tool-btn" id="po-save-cancel">Hủy</button>
-                        <button class="po-primary-btn" id="po-save-confirm">Tải xuống</button>
+                        <button class="po-primary-btn" id="po-save-confirm">Thực hiện</button>
                     </div>
                 </div>
             </div>
@@ -154,6 +165,11 @@ class PDFOrganizer {
     }
 
     bindEvents() {
+        if (!window.showSaveFilePicker) {
+            const pickerLbl = document.getElementById('po-save-mode-picker-lbl');
+            if (pickerLbl) pickerLbl.style.display = 'none';
+        }
+
         window.addEventListener('beforeunload', e => {
             if (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1) {
                 e.preventDefault();
@@ -1073,8 +1089,9 @@ class PDFOrganizer {
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
             
             const filename = document.getElementById('po-save-filename').value || 'organized.pdf';
+            const saveMode = document.querySelector('input[name="po-save-mode"]:checked')?.value || 'download';
             
-            if (window.showSaveFilePicker) {
+            if (saveMode === 'picker' && window.showSaveFilePicker) {
                 try {
                     const handle = await window.showSaveFilePicker({
                         suggestedName: filename,
@@ -1088,7 +1105,11 @@ class PDFOrganizer {
                     this.showSuccess();
                     return;
                 } catch (e) {
-                    if (e.name !== 'AbortError') console.error(e);
+                    if (e.name === 'AbortError') {
+                        this.hideLoading();
+                        return;
+                    }
+                    console.error(e);
                 }
             }
             
