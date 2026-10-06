@@ -1033,42 +1033,55 @@ class PDFOrganizer {
         items.forEach((item, index) => {
             if (!item.str || item.str.trim() === '') return;
             const t = Util.transform(transform, item.transform);
-            const fontH = item.height || Math.hypot(t[2], t[3]) || 10;
+            
+            const scaleX = Math.abs(transform[0]) || 1;
+            const scaleY = Math.abs(transform[3]) || 1;
+            
+            let fontH = Math.hypot(t[2], t[3]);
+            if (fontH < 1 && item.height) fontH = item.height * scaleY;
+            if (fontH < 1) fontH = 10;
+            
             const left = t[4];
             const top = t[5] - fontH;
-            const width = Math.max(item.width, fontH * 0.5);
+            
+            let width = item.width * scaleX;
+            if (width < 0.1) width = fontH * 0.5 * item.str.length;
+            
+            const right = left + width;
+            const bottom = top + fontH * 1.15;
+            
             const pdfX = item.transform[4];
             const pdfY = item.transform[5];
-            const pdfSize = item.height || Math.hypot(item.transform[2], item.transform[3]) || fontH;
-            const pdfWidth = item.width;
+            const pdfSize = fontH / scaleY;
+            const pdfWidth = width / scaleX;
             
             const box = {
-                items: [ { ...item, index, pdfX, pdfY, pdfSize, pdfWidth } ],
+                items: [ { ...item, index, left, top, right, bottom, width, fontH, pdfX, pdfY, pdfSize, pdfWidth } ],
+                left, top, right, bottom, fontH, pdfSize,
                 pdfMinX: pdfX, pdfMinY: pdfY, pdfMaxX: pdfX + pdfWidth, pdfMaxY: pdfY + pdfSize,
-                left, top, right: left + width, bottom: top + fontH * 1.15,
-                fontName: item.fontName, size: fontH, pdfSize
+                fontName: item.fontName, size: fontH
             };
             
             let merged = false;
             for (const l of lines) {
-                if (Math.abs(l.pdfSize - pdfSize) > 4) continue;
-                const vDist = Math.abs(l.pdfMinY - pdfY);
-                if (vDist < pdfSize * 0.5) { 
+                if (Math.abs(l.fontH - fontH) > fontH * 0.4) continue;
+                const vDist = Math.abs(l.top - top);
+                if (vDist < fontH * 0.5) { 
                     let hClose = false;
                     for (const ex of l.items) {
-                        const hGap = Math.max(0, Math.max(ex.pdfX - (pdfX + pdfWidth), pdfX - (ex.pdfX + ex.pdfWidth)));
-                        if (hGap < pdfSize * 2.5) { hClose = true; break; }
+                        const hGap = Math.max(0, Math.max(ex.left - right, left - ex.right));
+                        if (hGap < fontH * 2.5) { hClose = true; break; }
                     }
                     if (hClose) {
                         l.items.push(box.items[0]);
-                        l.pdfMinX = Math.min(l.pdfMinX, box.pdfMinX);
-                        l.pdfMinY = Math.min(l.pdfMinY, box.pdfMinY);
-                        l.pdfMaxX = Math.max(l.pdfMaxX, box.pdfMaxX);
-                        l.pdfMaxY = Math.max(l.pdfMaxY, box.pdfMaxY);
                         l.left = Math.min(l.left, box.left);
                         l.top = Math.min(l.top, box.top);
                         l.right = Math.max(l.right, box.right);
                         l.bottom = Math.max(l.bottom, box.bottom);
+                        l.pdfMinX = Math.min(l.pdfMinX, box.pdfMinX);
+                        l.pdfMinY = Math.min(l.pdfMinY, box.pdfMinY);
+                        l.pdfMaxX = Math.max(l.pdfMaxX, box.pdfMaxX);
+                        l.pdfMaxY = Math.max(l.pdfMaxY, box.pdfMaxY);
                         merged = true;
                         break;
                     }
@@ -1078,49 +1091,49 @@ class PDFOrganizer {
         });
 
         lines.forEach(l => {
-            l.items.sort((a, b) => a.pdfX - b.pdfX);
+            l.items.sort((a, b) => a.left - b.left);
             let lineStr = "";
             for (let i = 0; i < l.items.length; i++) {
                 if (i === 0) { lineStr += l.items[i].str; }
                 else {
-                    const gap = l.items[i].pdfX - (l.items[i-1].pdfX + l.items[i-1].pdfWidth);
-                    if (gap > l.pdfSize * 0.2) lineStr += " " + l.items[i].str;
+                    const gap = l.items[i].left - l.items[i-1].right;
+                    if (gap > l.fontH * 0.2) lineStr += " " + l.items[i].str;
                     else lineStr += l.items[i].str;
                 }
             }
             l.text = lineStr;
         });
 
-        lines.sort((a, b) => b.pdfMinY - a.pdfMinY);
+        lines.sort((a, b) => a.top - b.top);
         
         const blocks = [];
         lines.forEach(line => {
             let merged = false;
             for (const b of blocks) {
-                if (Math.abs(b.pdfSize - line.pdfSize) > 4) continue;
+                if (Math.abs(b.fontH - line.fontH) > line.fontH * 0.4) continue;
                 
                 const lastLine = b.lineObjects[b.lineObjects.length - 1];
-                const vDist = Math.abs(lastLine.pdfMinY - line.pdfMinY);
+                const vDist = Math.abs(line.top - lastLine.top);
                 
-                if (vDist > line.pdfSize * 0.2 && vDist < line.pdfSize * 3.0) {
-                    const leftAlign = Math.abs(lastLine.pdfMinX - line.pdfMinX) < line.pdfSize * 2.0;
-                    const rightAlign = Math.abs(lastLine.pdfMaxX - line.pdfMaxX) < line.pdfSize * 2.0;
-                    const centerAlign = Math.abs((lastLine.pdfMinX + lastLine.pdfMaxX)/2 - (line.pdfMinX + line.pdfMaxX)/2) < line.pdfSize * 2.0;
+                if (vDist > line.fontH * 0.2 && vDist < line.fontH * 3.0) {
+                    const leftAlign = Math.abs(lastLine.left - line.left) < line.fontH * 2.0;
+                    const rightAlign = Math.abs(lastLine.right - line.right) < line.fontH * 2.0;
+                    const centerAlign = Math.abs((lastLine.left + lastLine.right)/2 - (line.left + line.right)/2) < line.fontH * 2.0;
                     
-                    const hOverlap = Math.min(lastLine.pdfMaxX, line.pdfMaxX) - Math.max(lastLine.pdfMinX, line.pdfMinX);
-                    const isOverlapping = hOverlap > line.pdfSize * 2;
+                    const hOverlap = Math.min(lastLine.right, line.right) - Math.max(lastLine.left, line.left);
+                    const isOverlapping = hOverlap > line.fontH * 2;
                     
                     if (leftAlign || rightAlign || centerAlign || isOverlapping) {
                         b.lineObjects.push(line);
                         b.items.push(...line.items);
-                        b.pdfMinX = Math.min(b.pdfMinX, line.pdfMinX);
-                        b.pdfMinY = Math.min(b.pdfMinY, line.pdfMinY);
-                        b.pdfMaxX = Math.max(b.pdfMaxX, line.pdfMaxX);
-                        b.pdfMaxY = Math.max(b.pdfMaxY, line.pdfMaxY);
                         b.left = Math.min(b.left, line.left);
                         b.top = Math.min(b.top, line.top);
                         b.right = Math.max(b.right, line.right);
                         b.bottom = Math.max(b.bottom, line.bottom);
+                        b.pdfMinX = Math.min(b.pdfMinX, line.pdfMinX);
+                        b.pdfMinY = Math.min(b.pdfMinY, line.pdfMinY);
+                        b.pdfMaxX = Math.max(b.pdfMaxX, line.pdfMaxX);
+                        b.pdfMaxY = Math.max(b.pdfMaxY, line.pdfMaxY);
                         merged = true;
                         break;
                     }
@@ -1137,11 +1150,12 @@ class PDFOrganizer {
 
         blocks.forEach(b => {
             b.lineObjects.sort((a, c) => {
-                const vDist = c.pdfMinY - a.pdfMinY;
-                if (Math.abs(vDist) > a.pdfSize * 0.5) return vDist;
-                return a.pdfMinX - c.pdfMinX;
+                const vDist = a.top - c.top;
+                if (Math.abs(vDist) > a.fontH * 0.5) return vDist;
+                return a.left - c.left;
             });
             b.text = b.lineObjects.map(l => l.text).join('\n');
+            b.size = b.fontH; 
         });
         return blocks;
     }
