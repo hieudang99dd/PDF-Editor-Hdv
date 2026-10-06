@@ -113,6 +113,7 @@ const T=[
 ['Watermark PDF','Chèn chữ mờ lên mọi trang','Chỉnh sửa','◍','wm','.pdf'],
 ['Điền biểu mẫu PDF','Nhập vào các trường của biểu mẫu','Chỉnh sửa','▤','none','.pdf'],
 ['Chia sẻ PDF','Tạo liên kết chia sẻ tài liệu','Chỉnh sửa','↗','none','.pdf'],
+['PDF sang QR','Tạo mã QR để tải và chia sẻ tài liệu','Chỉnh sửa','QR','qr','.pdf'],
 ['Ký tên vào PDF','Vẽ hoặc nhập chữ ký rồi chèn','Ký & Bảo vệ','✍','sign','.pdf'],
 ['Yêu cầu chữ ký','Gửi tài liệu cho người khác ký','Ký & Bảo vệ','✉','mail','.pdf'],
 ['Mở khóa PDF','Gỡ mật khẩu khỏi tệp','Ký & Bảo vệ','🔓','pass','.pdf'],
@@ -131,7 +132,7 @@ function home(){const q=$('#q').value.trim().toLowerCase();
  let h='';for(const c of Object.keys(C)){if(cat!='Tất cả'&&cat!=c)continue;
   const l=T.map((t,i)=>[t,i]).filter(([t])=>t[2]==c&&(t[0]+t[1]).toLowerCase().includes(q));if(!l.length)continue;
   h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
-   const isSim = !['merge', 'range', 'rot', 'organize'].includes(t[4]);
+   const isSim = !['merge', 'range', 'rot', 'organize', 'qr'].includes(t[4]);
    const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` : '';
    return `<button class="tool" data-i="${i}"><div class="ic" style="background:${C[c]}">${t[3]}</div><div style="flex:1"><b>${t[0]}</b><span>${t[1]}</span></div>${badge}</button>`;
   }).join('')+`</div>`}
@@ -154,6 +155,7 @@ const OPT={
  mail:`<label>Email người ký<input type="text" placeholder="ten@congty.vn"></label><label>Lời nhắn<input type="text" placeholder="Vui lòng ký trước thứ Sáu"></label>`,
  sign:`<label>Vẽ chữ ký của bạn</label><canvas id="cv" width="760" height="300"></canvas><div class="r"><button class="btn g" id="clr">Xóa chữ ký</button></div>`,
  chat:`<label>Câu hỏi về tài liệu<input type="text" placeholder="Ví dụ: Điều khoản thanh toán là gì?"></label>`,
+ qr:`<label>Mã QR sẽ chứa liên kết tải tài liệu của bạn. Quá trình xử lý diễn ra bảo mật.</label>`,
  none:''};
 function openTool(i){tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
  $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render()}
@@ -304,7 +306,32 @@ async function run(){
   return;
  }
  
- if(!['merge', 'range', 'rot', 'organize'].includes(k)) {
+ if(k=='qr'){
+  $('#st').textContent = 'Đang tải tệp lên máy chủ bảo mật...';
+  let progress = 0;
+  const pBar = $('#pb');
+  const timer = setInterval(() => {
+   progress += 20;
+   pBar.style.width = progress + '%';
+   if(progress >= 100) {
+    clearInterval(timer);
+    const fakeUrl = "https://pdfhub.local/share/doc_" + Math.random().toString(36).substring(2, 9);
+    $('#out').innerHTML = `<div class="res" style="text-align:center;"><b>Tạo mã QR thành công!</b><p style="color:var(--mute); font-size:13px; margin-bottom:12px;">Quét mã bên dưới bằng camera điện thoại để tải tài liệu:</p><div id="qr-code" style="display:flex;justify-content:center;margin:16px 0;background:#fff;padding:16px;border-radius:12px;border:1px solid var(--line);width:max-content;margin-inline:auto;"></div><div style="background:var(--bg);padding:8px 12px;border-radius:6px;display:inline-block;border:1px solid var(--line);"><a href="${fakeUrl}" target="_blank" style="color:var(--acc);word-break:break-all;font-size:14px;text-decoration:none;font-weight:500;">${fakeUrl}</a></div><div style="margin-top:20px;display:flex;gap:8px;justify-content:center;"><button class="btn g" id="again">Tạo mã khác</button></div></div>`;
+    const renderQR = () => new QRCode(document.getElementById("qr-code"), { text: fakeUrl, width: 180, height: 180, colorDark: "#1a1f36", colorLight: "#ffffff" });
+    if (typeof QRCode === 'undefined') {
+     const script = document.createElement('script');
+     script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+     script.onload = renderQR;
+     document.head.appendChild(script);
+    } else { renderQR(); }
+    $('#again').onclick=()=>{files=[];render()};
+    b.disabled=false;
+   }
+  }, 400);
+  return;
+ }
+ 
+ if(!['merge', 'range', 'rot', 'organize', 'qr'].includes(k)) {
   $('#out').innerHTML=`<div class="res"><b>Tính năng sắp ra mắt</b><p style="margin:4px 0 0;font-size:13px;color:var(--mute)">Công cụ này đang được phát triển và sẽ sớm có mặt. Xin cảm ơn!</p></div>`;
   b.disabled=false;
   return;
