@@ -225,6 +225,10 @@ class PDFOrganizer {
         pData.textEdits.push({
             id: blockId,
             newText,
+            pdfMinX: parseFloat(div.dataset.pdfMinX),
+            pdfMaxX: parseFloat(div.dataset.pdfMaxX),
+            pdfMinY: parseFloat(div.dataset.pdfMinY),
+            pdfMaxY: parseFloat(div.dataset.pdfMaxY),
             x: parseFloat(div.dataset.pdfMinX),
             y: parseFloat(div.dataset.pdfMaxY),
             size: parseFloat(div.dataset.pdfSize) || 12,
@@ -732,38 +736,20 @@ class PDFOrganizer {
             this.activeThumbTasks.delete(pageId);
             
             if (page.textEdits && page.textEdits.length > 0) {
-                ctx.fillStyle = 'white';
-                page.textEdits.forEach(edit => {
-                    const rect = vp.convertToViewportRectangle([edit.x, edit.y - edit.height, edit.x + edit.width, edit.y]);
-                    const x = Math.min(rect[0], rect[2]);
-                    const y = Math.min(rect[1], rect[3]);
-                    const w = Math.abs(rect[2] - rect[0]);
-                    const h = Math.abs(rect[3] - rect[1]);
-                    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
-                });
-            }
-            
-            cvs.toBlob(blob => {
-                const url = URL.createObjectURL(blob);
-                page.dataUrl = url;
-                page.width = vp.width;
-                page.height = vp.height;
-                
-                this.thumbCache.set(cacheKey, url);
-                
-                if (imgElement && imgElement.dataset.id === pageId) {
-                    imgElement.src = url;
-                } else {
-                    const domImg = document.querySelector(`.po-card-preview img[data-id="${pageId}"]`);
-                    if (domImg) domImg.src = url;
-                }
-                
-                if (this.focusedPageId === pageId) {
-                    const pvImg = document.getElementById('po-preview-img');
-                    if (!pvImg.src || pvImg.src === window.location.href || pvImg.src.endsWith('null')) {
-                        pvImg.src = url;
-                    }
-                }
+                                ctx.fillStyle = 'white';
+                                page.textEdits.forEach(edit => {
+                                    const minX = edit.pdfMinX !== undefined ? edit.pdfMinX : edit.x;
+                                    const maxX = edit.pdfMaxX !== undefined ? edit.pdfMaxX : (edit.x + edit.width);
+                                    const minY = edit.pdfMinY !== undefined ? edit.pdfMinY : (edit.y - edit.height);
+                                    const maxY = edit.pdfMaxY !== undefined ? edit.pdfMaxY : edit.y;
+                                    const rect = vp.convertToViewportRectangle([minX, minY, maxX, maxY]);
+                                    const x = Math.min(rect[0], rect[2]);
+                                    const y = Math.min(rect[1], rect[3]);
+                                    const w = Math.abs(rect[2] - rect[0]);
+                                    const h = Math.abs(rect[3] - rect[1]);
+                                    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+                                });
+                            }
             }, 'image/jpeg', 0.8);
         } catch (e) {
             console.error('Error rendering thumbnail', e);
@@ -1028,7 +1014,7 @@ class PDFOrganizer {
     }
 
     
-    groupTextItems(items, styles, transform, Util, W, H) {
+    groupTextItems(items, styles, transform, Util, W, H, baseVp) {
         let processedItems = [];
         items.forEach((item, index) => {
             if (!item.str || item.str.trim() === '') return;
@@ -1093,7 +1079,7 @@ class PDFOrganizer {
                     // Horizontal gap check
                     const gap = Math.max(0, Math.max(l.minH - hEnd, hStart - l.maxH));
                     
-                    if (gap <= l.fontSize_vp * 2.5) { // Allow reasonable gaps for spaces
+                    if (gap <= l.fontSize_vp * 4.0) { // Allow reasonable gaps for spaces
                         l.items.push({ ...box, hStart, hEnd });
                         l.minH = Math.min(l.minH, hStart);
                         l.maxH = Math.max(l.maxH, hEnd);
@@ -1203,14 +1189,39 @@ class PDFOrganizer {
             b.cssHeight = b.maxV - b.minV;
             b.cssTransform = `rotate(${b.angle_vp * 180 / Math.PI}deg)`; // Use deg for better CSS compatibility
             
-            let pdfMinX = Infinity, pdfMaxX = -Infinity, pdfMinY = Infinity, pdfMaxY = -Infinity;
-            b.items.forEach(i => {
-                pdfMinX = Math.min(pdfMinX, i.pdfX);
-                pdfMaxX = Math.max(pdfMaxX, i.pdfX + (i.width_vp / (Math.abs(transform[0]) || 1)));
-                pdfMinY = Math.min(pdfMinY, i.pdfY);
-                pdfMaxY = Math.max(pdfMaxY, i.pdfY + i.pdfSize);
-            });
-            b.pdfMinX = pdfMinX; b.pdfMaxX = pdfMaxX; b.pdfMinY = pdfMinY; b.pdfMaxY = pdfMaxY;
+            // Standard coordinate properties for DOM & backwards-compatibility
+            b.left = b.cssLeft;
+            b.top = b.cssTop;
+            b.right = b.cssLeft + b.cssWidth;
+            b.bottom = b.cssTop + b.cssHeight;
+            b.width = b.cssWidth;
+            b.height = b.cssHeight;
+
+            // Calculate exact PDF User Space bounds using baseVp.convertToPdfPoint (handles any rotation /Rotate 0/90/180/270)
+            if (baseVp && typeof baseVp.convertToPdfPoint === 'function') {
+                const P2 = [ P1[0] + b.cssWidth * Math.cos(b.angle_vp), P1[1] + b.cssWidth * Math.sin(b.angle_vp) ];
+                const P3 = [ P2[0] - b.cssHeight * Math.sin(b.angle_vp), P2[1] + b.cssHeight * Math.cos(b.angle_vp) ];
+                const P4 = [ P1[0] - b.cssHeight * Math.sin(b.angle_vp), P1[1] + b.cssHeight * Math.cos(b.angle_vp) ];
+                const pts = [
+                    baseVp.convertToPdfPoint(P1[0], P1[1]),
+                    baseVp.convertToPdfPoint(P2[0], P2[1]),
+                    baseVp.convertToPdfPoint(P3[0], P3[1]),
+                    baseVp.convertToPdfPoint(P4[0], P4[1])
+                ];
+                b.pdfMinX = Math.min(...pts.map(p => p[0]));
+                b.pdfMaxX = Math.max(...pts.map(p => p[0]));
+                b.pdfMinY = Math.min(...pts.map(p => p[1]));
+                b.pdfMaxY = Math.max(...pts.map(p => p[1]));
+            } else {
+                let pdfMinX = Infinity, pdfMaxX = -Infinity, pdfMinY = Infinity, pdfMaxY = -Infinity;
+                b.items.forEach(i => {
+                    pdfMinX = Math.min(pdfMinX, i.pdfX);
+                    pdfMaxX = Math.max(pdfMaxX, i.pdfX + (i.width_vp / (Math.abs(transform[0]) || 1)));
+                    pdfMinY = Math.min(pdfMinY, i.pdfY);
+                    pdfMaxY = Math.max(pdfMaxY, i.pdfY + i.pdfSize);
+                });
+                b.pdfMinX = pdfMinX; b.pdfMaxX = pdfMaxX; b.pdfMinY = pdfMinY; b.pdfMaxY = pdfMaxY;
+            }
             b.pdfSize = b.items[0].pdfSize;
             b.size = b.fontSize_vp; 
         });
@@ -1227,18 +1238,20 @@ class PDFOrganizer {
             if (!pageData.textEdits) pageData.textEdits = [];
             const Util = window.pdfjsLib.Util;
             const W = baseVp.width, H = baseVp.height;
-            const blocks = this.groupTextItems(textContent.items, textContent.styles, baseVp.transform, Util, W, H);
+            const blocks = this.groupTextItems(textContent.items, textContent.styles, baseVp.transform, Util, W, H, baseVp);
             blocks.forEach((block, index) => {
                 const blockId = 'block_' + index;
                 const edited = pageData.textEdits.find(e => e.id === blockId);
                 const div = document.createElement('div');
                 div.className = 'po-text-box' + (edited ? ' edited' : '');
                 if (block.lineObjects && block.lineObjects.length === 1) div.classList.add('single-line');
-                div.style.left = `${(block.left / W) * 100}%`;
-                div.style.top = `${(block.top / H) * 100}%`;
-                div.style.width = `${((block.right - block.left) / W) * 100}%`;
+                div.style.left = `${(block.cssLeft / W) * 100}%`;
+                div.style.top = `${(block.cssTop / H) * 100}%`;
+                div.style.width = `${(block.cssWidth / W) * 100}%`;
                 div.style.height = 'auto'; 
-                div.style.minHeight = `${((block.bottom - block.top) / H) * 100}%`;
+                div.style.minHeight = `${(block.cssHeight / H) * 100}%`;
+                div.style.transformOrigin = '0 0';
+                div.style.transform = block.cssTransform || 'none';
                 div.style.fontSize = `${(block.size / H) * 100}cqh`;
                 div.style.lineHeight = '1.15';
                 const firstItem = block.items[0];
@@ -1897,11 +1910,15 @@ class PDFOrganizer {
                     const rectY = blockBottom - size * 0.28;
                     const rectH = edit.height + size * 0.5;
 console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
+                    const minX = edit.pdfMinX !== undefined ? edit.pdfMinX : edit.x;
+                    const maxX = edit.pdfMaxX !== undefined ? edit.pdfMaxX : (edit.x + edit.width);
+                    const minY = edit.pdfMinY !== undefined ? edit.pdfMinY : (edit.y - edit.height);
+                    const maxY = edit.pdfMaxY !== undefined ? edit.pdfMaxY : edit.y;
                     targetPage.drawRectangle({
-                        x: edit.x - 2,
-                        y: rectY,
-                        width: edit.width + 4,
-                        height: rectH,
+                        x: minX - 2,
+                        y: minY - 2,
+                        width: (maxX - minX) + 4,
+                        height: (maxY - minY) + 4,
                         color: window.PDFLib.rgb(1, 1, 1)
                     });
                     
@@ -1939,23 +1956,46 @@ console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
                         }
                         if (currentLine) wrappedLines.push(currentLine.trim());
 
-                        for (const line of wrappedLines) {
-                            const tw = editFont.widthOfTextAtSize(line, size);
-                            let drawX = edit.x;
-                            if (edit.align === 'center') {
-                                drawX = edit.x + (edit.width - tw) / 2;
-                            } else if (edit.align === 'right') {
-                                drawX = edit.x + edit.width - tw;
+                        const pageRot = targetPage.getRotation().angle || 0;
+                        if (pageRot === 90) {
+                            let currentX = minX + size;
+                            for (const line of wrappedLines) {
+                                const tw = editFont.widthOfTextAtSize(line, size);
+                                let drawY = minY;
+                                if (edit.align === 'center') {
+                                    drawY = minY + ((maxY - minY) - tw) / 2;
+                                } else if (edit.align === 'right') {
+                                    drawY = maxY - tw;
+                                }
+                                targetPage.drawText(line, {
+                                    x: currentX,
+                                    y: drawY,
+                                    size: size,
+                                    font: editFont,
+                                    color: window.PDFLib.rgb(r, g, b),
+                                    rotate: window.PDFLib.degrees(90)
+                                });
+                                currentX += lineHeight;
                             }
-                            
-                            targetPage.drawText(line, {
-                                x: drawX,
-                                y: currentY,
-                                size: size,
-                                font: editFont,
-                                color: window.PDFLib.rgb(r, g, b)
-                            });
-                            currentY -= lineHeight;
+                        } else {
+                            for (const line of wrappedLines) {
+                                const tw = editFont.widthOfTextAtSize(line, size);
+                                let drawX = edit.x;
+                                if (edit.align === 'center') {
+                                    drawX = edit.x + (edit.width - tw) / 2;
+                                } else if (edit.align === 'right') {
+                                    drawX = edit.x + edit.width - tw;
+                                }
+                                
+                                targetPage.drawText(line, {
+                                    x: drawX,
+                                    y: currentY,
+                                    size: size,
+                                    font: editFont,
+                                    color: window.PDFLib.rgb(r, g, b)
+                                });
+                                currentY -= lineHeight;
+                            }
                         }
                     }
                 }
