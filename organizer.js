@@ -1017,7 +1017,7 @@ class PDFOrganizer {
 
     
     groupTextItems(items, styles, transform, Util, W, H) {
-        const blocks = [];
+        let lines = [];
         items.forEach((item, index) => {
             if (!item.str || item.str.trim() === '') return;
             const t = Util.transform(transform, item.transform);
@@ -1029,75 +1029,105 @@ class PDFOrganizer {
             const pdfY = item.transform[5];
             const pdfSize = Math.hypot(item.transform[2], item.transform[3]) || fontH;
             const pdfWidth = item.width;
+            
             const box = {
                 items: [ { ...item, index, pdfX, pdfY, pdfSize, pdfWidth } ],
                 pdfMinX: pdfX, pdfMinY: pdfY, pdfMaxX: pdfX + pdfWidth, pdfMaxY: pdfY + pdfSize,
                 left, top, right: left + width, bottom: top + fontH * 1.15,
-                fontName: item.fontName, size: fontH, pdfSize, text: item.str
+                fontName: item.fontName, size: fontH, pdfSize
             };
+            
             let merged = false;
-            for (const b of blocks) {
-                if (Math.abs(b.pdfSize - pdfSize) > 4) continue;
-                
-                let isClose = false;
-                for (const existingItem of b.items) {
-                    const verticalDist = Math.abs(existingItem.pdfY - pdfY);
-                    if (verticalDist < pdfSize * 0.5) { // Same line
-                        const horizontalDist = pdfX - (existingItem.pdfX + existingItem.pdfWidth);
-                        if (horizontalDist > -pdfSize && horizontalDist < pdfSize * 3) {
-                            isClose = true;
-                            break;
-                        }
-                    } else if (verticalDist >= pdfSize * 0.5 && verticalDist < pdfSize * 2.5) { // Next line
-                        if (pdfX < existingItem.pdfX + existingItem.pdfWidth + pdfSize * 5 && (pdfX + pdfWidth) > existingItem.pdfX - pdfSize * 5) {
-                            isClose = true;
-                            break;
-                        }
+            for (const l of lines) {
+                if (Math.abs(l.pdfSize - pdfSize) > 4) continue;
+                const vDist = Math.abs(l.pdfMinY - pdfY);
+                if (vDist < pdfSize * 0.5) { 
+                    let hClose = false;
+                    for (const ex of l.items) {
+                        const hDist = pdfX - (ex.pdfX + ex.pdfWidth);
+                        const hDistRev = ex.pdfX - (pdfX + pdfWidth);
+                        if (hDist > -pdfSize && hDist < pdfSize * 2.5) { hClose = true; break; }
+                        if (hDistRev > -pdfSize && hDistRev < pdfSize * 2.5) { hClose = true; break; }
                     }
-                }
-
-                if (isClose) {
-                    b.items.push(box.items[0]);
-                    b.pdfMinX = Math.min(b.pdfMinX, box.pdfMinX);
-                    b.pdfMinY = Math.min(b.pdfMinY, box.pdfMinY);
-                    b.pdfMaxX = Math.max(b.pdfMaxX, box.pdfMaxX);
-                    b.pdfMaxY = Math.max(b.pdfMaxY, box.pdfMaxY);
-                    b.left = Math.min(b.left, box.left);
-                    b.top = Math.min(b.top, box.top);
-                    b.right = Math.max(b.right, box.right);
-                    b.bottom = Math.max(b.bottom, box.bottom);
-                    
-                    b.items.sort((a, c) => {
-                        if (Math.abs(a.pdfY - c.pdfY) > pdfSize * 0.5) return c.pdfY - a.pdfY;
-                        return a.pdfX - c.pdfX;
-                    });
-                    
-                    let reconstructedText = "";
-                    for (let i = 0; i < b.items.length; i++) {
-                        const curr = b.items[i];
-                        if (i === 0) {
-                            reconstructedText += curr.str;
-                        } else {
-                            const prev = b.items[i-1];
-                            const vDist = Math.abs(curr.pdfY - prev.pdfY);
-                            if (vDist > pdfSize * 0.5) {
-                                reconstructedText += "\n" + curr.str;
-                            } else {
-                                const hDist = curr.pdfX - (prev.pdfX + prev.pdfWidth);
-                                if (hDist > pdfSize * 0.2) {
-                                    reconstructedText += " " + curr.str;
-                                } else {
-                                    reconstructedText += curr.str;
-                                }
-                            }
-                        }
+                    if (hClose) {
+                        l.items.push(box.items[0]);
+                        l.pdfMinX = Math.min(l.pdfMinX, box.pdfMinX);
+                        l.pdfMinY = Math.min(l.pdfMinY, box.pdfMinY);
+                        l.pdfMaxX = Math.max(l.pdfMaxX, box.pdfMaxX);
+                        l.pdfMaxY = Math.max(l.pdfMaxY, box.pdfMaxY);
+                        l.left = Math.min(l.left, box.left);
+                        l.top = Math.min(l.top, box.top);
+                        l.right = Math.max(l.right, box.right);
+                        l.bottom = Math.max(l.bottom, box.bottom);
+                        merged = true;
+                        break;
                     }
-                    b.text = reconstructedText;
-                    merged = true;
-                    break;
                 }
             }
-            if (!merged) blocks.push(box);
+            if (!merged) lines.push(box);
+        });
+
+        lines.forEach(l => {
+            l.items.sort((a, b) => a.pdfX - b.pdfX);
+            let lineStr = "";
+            for (let i = 0; i < l.items.length; i++) {
+                if (i === 0) { lineStr += l.items[i].str; }
+                else {
+                    const gap = l.items[i].pdfX - (l.items[i-1].pdfX + l.items[i-1].pdfWidth);
+                    if (gap > l.pdfSize * 0.2) lineStr += " " + l.items[i].str;
+                    else lineStr += l.items[i].str;
+                }
+            }
+            l.text = lineStr;
+        });
+
+        lines.sort((a, b) => b.pdfMinY - a.pdfMinY);
+        
+        const blocks = [];
+        lines.forEach(line => {
+            let merged = false;
+            for (const b of blocks) {
+                if (Math.abs(b.pdfSize - line.pdfSize) > 4) continue;
+                
+                const lastLine = b.lineObjects[b.lineObjects.length - 1];
+                const vDist = Math.abs(lastLine.pdfMinY - line.pdfMinY);
+                
+                if (vDist > line.pdfSize * 0.2 && vDist < line.pdfSize * 3.0) {
+                    const leftAlign = Math.abs(lastLine.pdfMinX - line.pdfMinX) < line.pdfSize * 2.0;
+                    const rightAlign = Math.abs(lastLine.pdfMaxX - line.pdfMaxX) < line.pdfSize * 2.0;
+                    const centerAlign = Math.abs((lastLine.pdfMinX + lastLine.pdfMaxX)/2 - (line.pdfMinX + line.pdfMaxX)/2) < line.pdfSize * 2.0;
+                    
+                    const hOverlap = Math.min(lastLine.pdfMaxX, line.pdfMaxX) - Math.max(lastLine.pdfMinX, line.pdfMinX);
+                    const isOverlapping = hOverlap > line.pdfSize * 2;
+                    
+                    if (leftAlign || rightAlign || centerAlign || isOverlapping) {
+                        b.lineObjects.push(line);
+                        b.items.push(...line.items);
+                        b.pdfMinX = Math.min(b.pdfMinX, line.pdfMinX);
+                        b.pdfMinY = Math.min(b.pdfMinY, line.pdfMinY);
+                        b.pdfMaxX = Math.max(b.pdfMaxX, line.pdfMaxX);
+                        b.pdfMaxY = Math.max(b.pdfMaxY, line.pdfMaxY);
+                        b.left = Math.min(b.left, line.left);
+                        b.top = Math.min(b.top, line.top);
+                        b.right = Math.max(b.right, line.right);
+                        b.bottom = Math.max(b.bottom, line.bottom);
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+            if (!merged) {
+                blocks.push({
+                    ...line,
+                    lineObjects: [line],
+                    items: [...line.items]
+                });
+            }
+        });
+
+        blocks.forEach(b => {
+            b.lineObjects.sort((a, c) => c.pdfMinY - a.pdfMinY);
+            b.text = b.lineObjects.map(l => l.text).join('\n');
         });
         return blocks;
     }
