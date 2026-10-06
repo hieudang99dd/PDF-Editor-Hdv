@@ -1,4 +1,4 @@
-class PDFOrganizer {
+﻿class PDFOrganizer {
     constructor() {
         this.abort = new AbortController();
         this.files = [];
@@ -43,7 +43,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=16';
+            link.href = 'organizer.css?v=17';
             document.head.appendChild(link);
         }
         
