@@ -215,7 +215,7 @@ class PDFOrganizer {
         const newText = div.innerText.replace(/\n\s*\n/g, '\n').trim();
         const blockId = div.dataset.id;
         // find block
-        const pData = this.pages.find(p => p.pageIndex === this.focusedPageId);
+        const pData = this.pages.find(p => p.id === this.focusedPageId);
         if (!pData) return;
         
         pData.textEdits = pData.textEdits.filter(e => e.id !== blockId);
