@@ -16,8 +16,8 @@ class PDFOrganizer {
         
         this.lastSelectedId = null;
         this.focusedPageId = null;
-        this.zoomLevel = 1;
         this.dirHandle = null;
+        this.isTextMode = false;
         
         this.thumbQueue = [];
         this.activeThumbRenders = 0;
@@ -48,6 +48,14 @@ class PDFOrganizer {
         }
         
         const mainHTML = `
+        <style>
+            .po-text-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
+            .po-text-box { position: absolute; border: 1px dashed rgba(37,99,235,0.4); background: rgba(37,99,235,0.05); color: transparent; cursor: text; pointer-events: none; white-space: pre; display: none; }
+            .text-mode-active .po-text-box { pointer-events: auto; display: block; }
+            .po-text-box:hover { border-color: #2563eb; background: rgba(37,99,235,0.15); }
+            .po-text-box.editing { color: #0f172a; background: #fff; border: 2px solid #2563eb; outline: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 2px; }
+            #po-tb-edit-text.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; }
+        </style>
         <div class="po-container">
             <header class="po-header">
                 <div class="po-header-left">
@@ -73,6 +81,9 @@ class PDFOrganizer {
                 </div>
                 <div class="po-tool-group">
                     <button class="po-tool-btn" id="po-tb-reset">🔄 Làm mới</button>
+                </div>
+                <div class="po-tool-group">
+                    <button class="po-tool-btn" id="po-tb-edit-text">✏️ Chỉnh sửa văn bản</button>
                 </div>
                 <div class="po-selection-text" id="po-sel-text" style="display:none;"></div>
             </div>
@@ -108,7 +119,10 @@ class PDFOrganizer {
                 <div class="po-right-col">
                     <div class="po-preview-canvas" id="po-preview-canvas">
                         <div class="po-pv-empty" id="po-pv-empty">Chọn một trang để xem trước</div>
-                        <img id="po-preview-img" src="" style="display:none;">
+                        <div id="po-preview-wrapper" style="position: relative; display: inline-block;">
+                            <img id="po-preview-img" src="" style="display:none; vertical-align: top;">
+                            <div id="po-text-layer" class="po-text-layer"></div>
+                        </div>
                     </div>
                     <div class="po-preview-toolbar" id="po-pv-tb" style="display:none;">
                         <button class="po-pv-btn" id="pv-first" title="Trang đầu">|&lt;</button>
@@ -247,6 +261,23 @@ class PDFOrganizer {
                         this.focusPage(this.pages[0].id);
                     }
                 }
+            }
+        };
+        document.getElementById('po-tb-edit-text').onclick = (e) => {
+            this.isTextMode = !this.isTextMode;
+            e.target.classList.toggle('active', this.isTextMode);
+            const wrapper = document.getElementById('po-preview-wrapper');
+            if (wrapper) {
+                wrapper.classList.toggle('text-mode-active', this.isTextMode);
+            }
+            if (this.isTextMode) {
+                e.target.style.backgroundColor = '#eff6ff';
+                e.target.style.color = '#2563eb';
+                e.target.style.borderColor = '#2563eb';
+            } else {
+                e.target.style.backgroundColor = '';
+                e.target.style.color = '';
+                e.target.style.borderColor = '';
             }
         };
         document.getElementById('po-tb-add-pdf').onclick = () => { this.insertIndex = this.pages.length; document.getElementById('po-insert-file').click(); };
@@ -889,6 +920,84 @@ class PDFOrganizer {
         this.updateSelectionDOM();
     }
 
+    async renderTextLayer(pdfPage, baseVp, pageData) {
+        const layer = document.getElementById('po-text-layer');
+        if (!layer) return;
+        layer.innerHTML = '';
+        
+        try {
+            const textContent = await pdfPage.getTextContent();
+            if (!pageData.textEdits) pageData.textEdits = [];
+            
+            // Adjust wrapper aspect ratio
+            const wrapper = document.getElementById('po-preview-wrapper');
+            wrapper.style.aspectRatio = `${baseVp.width} / ${baseVp.height}`;
+
+            const transform2D = (transform) => {
+                const tx = transform[4];
+                const ty = transform[5];
+                return { x: tx, y: baseVp.height - ty }; // pdf.js origin is bottom-left
+            };
+
+            textContent.items.forEach((item, index) => {
+                if (item.str.trim() === '') return;
+                
+                const { x, y } = transform2D(item.transform);
+                const width = item.width;
+                const height = item.height || item.transform[0]; // approx
+                
+                // If this item was edited, replace it with edited version in UI
+                const edited = pageData.textEdits.find(e => e.index === index);
+                const str = edited ? edited.newText : item.str;
+
+                const leftPct = (x / baseVp.width) * 100;
+                const topPct = ((y - height) / baseVp.height) * 100;
+                const widthPct = (width / baseVp.width) * 100;
+                const heightPct = (height / baseVp.height) * 100;
+
+                const div = document.createElement('div');
+                div.className = 'po-text-box';
+                div.style.left = `${leftPct}%`;
+                div.style.top = `${topPct}%`;
+                div.style.width = `${widthPct}%`;
+                div.style.height = `${heightPct}%`;
+                div.style.fontSize = `${heightPct}cqh`; // Container Query Height
+                
+                div.textContent = str;
+                div.dataset.index = index;
+                
+                div.addEventListener('click', (e) => {
+                    if (!this.isTextMode) return;
+                    e.stopPropagation();
+                    div.contentEditable = true;
+                    div.classList.add('editing');
+                    div.focus();
+                });
+                
+                div.addEventListener('blur', () => {
+                    div.contentEditable = false;
+                    div.classList.remove('editing');
+                    const newText = div.textContent;
+                    if (newText !== item.str) {
+                        const existingEditIdx = pageData.textEdits.findIndex(e => e.index === index);
+                        const editData = { index, newText, x, y, width, height };
+                        if (existingEditIdx > -1) {
+                            pageData.textEdits[existingEditIdx] = editData;
+                        } else {
+                            pageData.textEdits.push(editData);
+                        }
+                    } else if (newText === item.str) {
+                         pageData.textEdits = pageData.textEdits.filter(e => e.index !== index);
+                    }
+                });
+                
+                layer.appendChild(div);
+            });
+        } catch(e) {
+            console.error('Error rendering text layer', e);
+        }
+    }
+
     focusPage(id, forceRender = false) {
         const pageChanged = (this.focusedPageId !== id);
         this.focusedPageId = id;
@@ -944,6 +1053,7 @@ class PDFOrganizer {
                         const cw = container.clientWidth || 800;
                         const ch = container.clientHeight || 800;
                         const baseVp = pdfPage.getViewport({ scale: 1 });
+                        this.renderTextLayer(pdfPage, baseVp, page);
                         
                         const fitScale = Math.min(cw / baseVp.width, ch / baseVp.height);
                         let targetScale = fitScale * (window.devicePixelRatio || 1) * Math.max(1, this.zoomLevel) * 2;
@@ -1388,6 +1498,35 @@ class PDFOrganizer {
                 }
             }
             
+            // Apply WYSIWYG Text Edits
+            const finalPages = finalDoc.getPages();
+            let helveticaFont = null;
+            for (let i = 0; i < this.pages.length; i++) {
+                const p = this.pages[i];
+                if (p.textEdits && p.textEdits.length > 0) {
+                    if (!helveticaFont) {
+                        helveticaFont = await finalDoc.embedFont(window.PDFLib.StandardFonts.Helvetica);
+                    }
+                    const targetPage = finalPages[i];
+                    for (const edit of p.textEdits) {
+                        targetPage.drawRectangle({
+                            x: edit.x,
+                            y: edit.y - (edit.height * 0.2), // descent approx
+                            width: edit.width + 10,
+                            height: edit.height + (edit.height * 0.4),
+                            color: window.PDFLib.rgb(1, 1, 1)
+                        });
+                        targetPage.drawText(edit.newText, {
+                            x: edit.x,
+                            y: edit.y,
+                            size: edit.height,
+                            font: helveticaFont,
+                            color: window.PDFLib.rgb(0, 0, 0)
+                        });
+                    }
+                }
+            }
+
             this.updateProgress(85);
             const pdfBytes = await finalDoc.save();
             const blob = new Blob([pdfBytes], { type: 'application/pdf' });
