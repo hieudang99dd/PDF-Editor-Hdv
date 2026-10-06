@@ -1033,13 +1033,13 @@ class PDFOrganizer {
         items.forEach((item, index) => {
             if (!item.str || item.str.trim() === '') return;
             const t = Util.transform(transform, item.transform);
-            const fontH = Math.hypot(t[2], t[3]) || item.height || 10;
+            const fontH = item.height || Math.hypot(t[2], t[3]) || 10;
             const left = t[4];
             const top = t[5] - fontH;
             const width = Math.max(item.width, fontH * 0.5);
             const pdfX = item.transform[4];
             const pdfY = item.transform[5];
-            const pdfSize = Math.hypot(item.transform[2], item.transform[3]) || fontH;
+            const pdfSize = item.height || Math.hypot(item.transform[2], item.transform[3]) || fontH;
             const pdfWidth = item.width;
             
             const box = {
