@@ -100,7 +100,7 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 ## Giai đoạn 3 — UX chuyên nghiệp
 
-### [ ] P3-1. Zoom/pan thật cho xem trước
+### [x] P3-1. Zoom/pan thật cho xem trước
 - Render ảnh với kích thước thật theo zoom (không dùng `transform: scale`), để khung chứa `overflow: auto` cuộn được.
 - Ctrl + lăn chuột để zoom quanh vị trí con trỏ; kéo bằng chuột giữa hoặc Space+kéo để di chuyển; hiện `%` zoom; Fit Width/Fit Page là các mức zoom được tính toán.
 - Xoay bằng viewport của pdf.js (xem bẫy số 4 trong architecture.md).
@@ -137,7 +137,8 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 > Xong 2026-10-06: Đổi showSuccess thành toast, cập nhật baseFilename để versioning
 - Bỏ `location.reload()` trong `showSuccess`. Hiện toast thành công, đặt `savedHistoryIndex`, tăng hậu tố `_vN` cho lần lưu sau.
 
-### [ ] P3-9. Chế độ tối và mobile
+### [x] P3-9. Chế độ tối và mobile
+> Xong 2026-10-06: Đã thêm dark mode CSS variables, cập nhật Sortable delayOnTouchOnly, và layout mobile.
 - `organizer.css` đọc `data-theme` / `prefers-color-scheme` giống index.html.
 - Sortable trên cảm ứng: `delay: 200, delayOnTouchOnly: true`; thanh công cụ cuộn ngang; thanh xem trước gọn lại trên màn hình hẹp.
 

@@ -10,6 +10,66 @@
   --po-success: #22c55e;
   --po-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
   --po-card-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --po-meta-bg: #fafafa;
+  --po-badge-bg: #e2e8f0;
+  --po-badge-add-bg: #dcfce7;
+  --po-badge-add-text: #166534;
+  --po-badge-del-bg: #fee2e2;
+  --po-badge-del-text: #991b1b;
+  --po-disabled-text: #cbd5e1;
+  --po-right-col-bg: #e2e8f0;
+  --po-preview-toolbar-bg: rgba(255,255,255,0.95);
+  --po-loading-bg: rgba(255,255,255,0.9);
+}
+
+@media(prefers-color-scheme:dark) {
+  :root:not([data-theme="light"]) {
+    --po-primary: #3b82f6;
+    --po-primary-light: #1e3a8a;
+    --po-surface: #1e293b;
+    --po-background: #0f172a;
+    --po-border: #334155;
+    --po-text-main: #f8fafc;
+    --po-text-muted: #94a3b8;
+    --po-danger: #f87171;
+    --po-success: #4ade80;
+    --po-shadow: 0 4px 6px -1px rgba(0,0,0,0.5), 0 2px 4px -1px rgba(0,0,0,0.3);
+    --po-card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --po-meta-bg: #161f2e;
+    --po-badge-bg: #334155;
+    --po-badge-add-bg: #064e3b;
+    --po-badge-add-text: #34d399;
+    --po-badge-del-bg: #7f1d1d;
+    --po-badge-del-text: #f87171;
+    --po-disabled-text: #475569;
+    --po-right-col-bg: #090e17;
+    --po-preview-toolbar-bg: rgba(30,41,59,0.95);
+    --po-loading-bg: rgba(15,23,42,0.9);
+  }
+}
+
+:root[data-theme="dark"] {
+    --po-primary: #3b82f6;
+    --po-primary-light: #1e3a8a;
+    --po-surface: #1e293b;
+    --po-background: #0f172a;
+    --po-border: #334155;
+    --po-text-main: #f8fafc;
+    --po-text-muted: #94a3b8;
+    --po-danger: #f87171;
+    --po-success: #4ade80;
+    --po-shadow: 0 4px 6px -1px rgba(0,0,0,0.5), 0 2px 4px -1px rgba(0,0,0,0.3);
+    --po-card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --po-meta-bg: #161f2e;
+    --po-badge-bg: #334155;
+    --po-badge-add-bg: #064e3b;
+    --po-badge-add-text: #34d399;
+    --po-badge-del-bg: #7f1d1d;
+    --po-badge-del-text: #f87171;
+    --po-disabled-text: #475569;
+    --po-right-col-bg: #090e17;
+    --po-preview-toolbar-bg: rgba(30,41,59,0.95);
+    --po-loading-bg: rgba(15,23,42,0.9);
 }
 
 * { box-sizing: border-box; }
@@ -24,7 +84,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .po-header-right { display: flex; align-items: center; gap: 8px; }
 .po-icon-btn { background: none; border: 1px solid transparent; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; color: var(--po-text-main); font-size: 16px; }
 .po-icon-btn:hover:not(:disabled) { background: var(--po-border); }
-.po-icon-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
+.po-icon-btn:disabled { color: var(--po-disabled-text); cursor: not-allowed; }
 .po-primary-btn { background: var(--po-primary); color: #fff; border: none; padding: 6px 16px; border-radius: 6px; font-weight: 500; font-size: 14px; cursor: pointer; }
 .po-primary-btn:hover { filter: brightness(1.1); }
 .po-primary-btn:disabled { background: #94a3b8; cursor: not-allowed; }
@@ -35,7 +95,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .po-tool-group:last-child { border-right: none; }
 .po-tool-btn { background: none; border: none; padding: 6px 10px; border-radius: 6px; color: var(--po-text-main); font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; }
 .po-tool-btn:hover:not(:disabled) { background: var(--po-border); }
-.po-tool-btn:disabled { color: #cbd5e1; cursor: not-allowed; }
+.po-tool-btn:disabled { color: var(--po-disabled-text); cursor: not-allowed; }
 .po-selection-text { font-size: 13px; font-weight: 600; color: var(--po-primary); margin-left: auto; }
 
 /* Master-Detail Workspace */
@@ -45,13 +105,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .po-left-col { width: 350px; background: var(--po-surface); border-right: 1px solid var(--po-border); display: flex; flex-direction: column; overflow: hidden; flex-shrink: 0; z-index: 2; box-shadow: 2px 0 8px rgba(0,0,0,0.05); }
 
 /* Metadata Card (Sticky) */
-.po-meta-card { padding: 16px; background: #fafafa; border-bottom: 1px solid var(--po-border); flex-shrink: 0; }
+.po-meta-card { padding: 16px; background: var(--po-meta-bg); border-bottom: 1px solid var(--po-border); flex-shrink: 0; }
 .po-meta-title { font-weight: 600; font-size: 14px; color: var(--po-text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
 .po-meta-info { font-size: 12px; color: var(--po-text-muted); margin-bottom: 12px; }
 .po-meta-stats { display: flex; flex-wrap: wrap; gap: 8px; font-size: 11px; }
-.po-meta-badge { background: #e2e8f0; color: var(--po-text-main); padding: 2px 6px; border-radius: 4px; font-weight: 500; }
-.po-meta-badge.add { background: #dcfce7; color: #166534; }
-.po-meta-badge.del { background: #fee2e2; color: #991b1b; }
+.po-meta-badge { background: var(--po-badge-bg); color: var(--po-text-main); padding: 2px 6px; border-radius: 4px; font-weight: 500; }
+.po-meta-badge.add { background: var(--po-badge-add-bg); color: var(--po-badge-add-text); }
+.po-meta-badge.del { background: var(--po-badge-del-bg); color: var(--po-badge-del-text); }
 .po-meta-changes { margin-top: 8px; font-size: 11px; color: var(--po-primary); font-weight: 500; }
 .po-meta-deleted { margin-top: 4px; font-size: 11px; color: var(--po-danger); }
 
@@ -69,7 +129,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 /* Thumbnail Card */
 .po-card-wrapper { margin-bottom: 16px; position: relative; }
 .po-card { width: 130px; height: 184px; background: var(--po-surface); border: 2px solid transparent; border-radius: 6px; box-shadow: var(--po-card-shadow); display: flex; flex-direction: column; position: relative; cursor: pointer; transition: all 0.2s; user-select: none; }
-.po-card:hover { border-color: #cbd5e1; box-shadow: var(--po-shadow); }
+.po-card:hover { border-color: var(--po-disabled-text); box-shadow: var(--po-shadow); }
 .po-card.selected { border-color: var(--po-primary); }
 .po-card.selected::after { content: '✓'; position: absolute; top: 6px; left: 6px; width: 20px; height: 20px; background: var(--po-primary); color: #fff; border-radius: 50%; font-size: 12px; display: flex; justify-content: center; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.2); z-index: 10; }
 .po-card.selected .po-card-preview::before { content: ''; position: absolute; inset: 0; background: rgba(37, 99, 235, 0.05); pointer-events: none; }
@@ -77,22 +137,22 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 
 .po-card-preview { flex: 1; padding: 8px; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; }
 .po-card-preview img { max-width: 100%; max-height: 100%; object-fit: contain; box-shadow: 0 0 2px rgba(0,0,0,0.1); transition: transform 0.3s ease; }
-.po-card-label { text-align: center; font-size: 11px; color: var(--po-text-muted); padding: 6px 0; border-top: 1px solid var(--po-border); background: #fafafa; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
+.po-card-label { text-align: center; font-size: 11px; color: var(--po-text-muted); padding: 6px 0; border-top: 1px solid var(--po-border); background: var(--po-meta-bg); border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
 .po-card-num { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,0.4); color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 10px; z-index: 5; }
 
 /* Right Column - Detail/Preview */
-.po-right-col { flex: 1; background: #e2e8f0; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-.po-preview-toolbar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: rgba(255,255,255,0.95); backdrop-filter: blur(4px); padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; gap: 8px; z-index: 10; border: 1px solid var(--po-border); }
+.po-right-col { flex: 1; background: var(--po-badge-bg); display: flex; flex-direction: column; position: relative; overflow: hidden; }
+.po-preview-toolbar { position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--po-preview-toolbar-bg); backdrop-filter: blur(4px); padding: 8px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); display: flex; gap: 8px; z-index: 10; border: 1px solid var(--po-border); }
 .po-pv-btn { background: none; border: none; padding: 6px 12px; border-radius: 6px; color: var(--po-text-main); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
 .po-pv-btn:hover { background: var(--po-border); }
 .po-preview-canvas { flex: 1; overflow: auto; display: block; position: relative; padding: 24px 24px 80px 24px; text-align: center; }
-.po-preview-canvas img { max-width: none; max-height: none; object-fit: contain; box-shadow: var(--po-shadow); background: #fff; transform-origin: top left; }
+.po-preview-canvas img { max-width: none; max-height: none; object-fit: contain; box-shadow: var(--po-shadow); background: var(--po-surface); transform-origin: top left; }
 .po-pv-empty { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: var(--po-text-muted); font-size: 14px; font-weight: 500; }
 
 /* Modals */
 .po-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
 .po-modal-overlay.active { opacity: 1; pointer-events: auto; }
-.po-modal { background: #fff; border-radius: 12px; width: 440px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); padding: 24px; transform: translateY(20px); transition: transform 0.2s; }
+.po-modal { background: var(--po-surface); border-radius: 12px; width: 440px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); padding: 24px; transform: translateY(20px); transition: transform 0.2s; }
 .po-modal-overlay.active .po-modal { transform: translateY(0); }
 .po-modal-title { margin: 0 0 16px 0; font-size: 18px; color: var(--po-text-main); }
 .po-form-group { margin-bottom: 16px; }
@@ -105,7 +165,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 
 /* Loading */
 .po-loading { display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.8); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
-.po-progress-bar { width: 200px; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin-top: 16px; }
+.po-progress-bar { width: 200px; height: 6px; background: var(--po-badge-bg); border-radius: 3px; overflow: hidden; margin-top: 16px; }
 .po-progress-fill { width: 0%; height: 100%; background: var(--po-primary); transition: width 0.2s; }
 
 /* Navigation Input */
@@ -133,7 +193,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .po-text-box.single-line { white-space: nowrap; word-break: normal; }
 .text-mode-active .po-text-box { pointer-events: auto; display: block; }
 .po-text-box:hover { border-color: #2563eb; background: rgba(37,99,235,0.15); }
-.po-text-box.editing { color: #0f172a; background: #fff; border: 2px solid #2563eb; outline: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.12); min-width: 100%; width: max-content; padding-right: 8px; }
+.po-text-box.editing { color: #0f172a; background: var(--po-surface); border: 2px solid #2563eb; outline: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.12); min-width: 100%; width: max-content; padding-right: 8px; }
 .po-text-box.edited { color: #0f172a; background: transparent; display: block; }
 #po-tb-edit-text.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; }
 
@@ -142,7 +202,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #po-format-toolbar {
     position: absolute;
     z-index: 1000;
-    background: #ffffff;
+    background: var(--po-surface)fff;
     border: 1px solid #e2e8f0;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     border-radius: 6px;
@@ -153,7 +213,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 #po-format-toolbar button, #po-format-toolbar select, #po-format-toolbar input {
-    background: #fff;
+    background: var(--po-surface);
     border: 1px solid #cbd5e1;
     border-radius: 4px;
     padding: 4px 8px;
@@ -163,7 +223,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
     outline: none;
 }
 #po-format-toolbar button:hover, #po-format-toolbar select:hover {
-    background: #f1f5f9;
+    background: var(--po-background);
 }
 #po-format-toolbar input[type="color"] {
     padding: 0;
@@ -175,7 +235,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 #po-format-toolbar .toolbar-sep {
     width: 1px;
     height: 20px;
-    background: #e2e8f0;
+    background: var(--po-badge-bg);
     margin: 0 4px;
 }
 #po-format-toolbar .btn-active {
@@ -197,5 +257,18 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .po-card-actions { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; gap: 8px; opacity: 0; transition: opacity 0.2s; z-index: 20; border-radius: 4px; pointer-events: none; }
 .po-card:hover .po-card-actions { opacity: 1; pointer-events: auto; }
 @media (hover: none) { .po-card.selected .po-card-actions { opacity: 1; pointer-events: auto; } }
-.po-ca-btn { background: #fff; border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; color: var(--po-text); pointer-events: auto; font-size: 16px; }
+.po-ca-btn { background: var(--po-surface); border: none; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2); transition: transform 0.1s; color: var(--po-text); pointer-events: auto; font-size: 16px; }
 .po-ca-btn:hover { transform: scale(1.1); }
+
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .po-workspace { flex-direction: column; }
+  .po-left-col { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid var(--po-border); }
+  .po-right-col { height: 50%; }
+  .po-preview-toolbar { width: 95%; flex-wrap: wrap; justify-content: center; bottom: 8px; padding: 4px; gap: 4px; }
+  .po-pv-btn { padding: 4px 8px; font-size: 11px; }
+  .po-toolbar { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 4px; }
+  .po-tool-group { padding-right: 6px; }
+  .po-tool-btn { padding: 4px 6px; font-size: 12px; }
+}

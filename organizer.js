@@ -44,7 +44,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=32';
+            link.href = 'organizer.css?v=33';
             document.head.appendChild(link);
         }
         
@@ -1806,6 +1806,8 @@ class PDFOrganizer {
         const grid = document.getElementById('po-grid');
         this.sortable = new Sortable(grid, {
             animation: 150,
+            delay: 200,
+            delayOnTouchOnly: true,
             draggable: '.po-card-wrapper',
             ghostClass: 'sortable-ghost',
             onEnd: e => {
