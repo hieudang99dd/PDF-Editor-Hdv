@@ -44,7 +44,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=29';
+            link.href = 'organizer.css?v=30';
             document.head.appendChild(link);
         }
         
@@ -76,7 +76,15 @@ class PDFOrganizer {
                     <button class="po-tool-btn" id="po-tb-reset">🔄 Làm mới</button>
                 </div>
                 <div class="po-tool-group">
-                    <button class="po-tool-btn" id="po-tb-edit-text">✏️ Chỉnh sửa văn bản</button>
+                    <button class="po-tool-btn" id="po-tb-edit-text">? Ch?nh s?a van b?n</button>
+                </div>
+                <div class="po-tool-group" style="display: flex; align-items: center; padding: 0 8px;">
+                    <span style="font-size: 12px; color: var(--po-text-muted); margin-right: 4px;">C? th?:</span>
+                    <select id="po-tb-thumb-size" style="padding: 2px 4px; font-size: 12px; border: 1px solid var(--po-border); border-radius: 4px; outline: none; background: #fff;">
+                        <option value="S">Nh?</option>
+                        <option value="M">V?a</option>
+                        <option value="L">L?n</option>
+                    </select>
                 </div>
                 <div class="po-selection-text" id="po-sel-text" style="display:none;"></div>
             </div>
@@ -248,6 +256,15 @@ class PDFOrganizer {
 
 
     bindEvents() {
+        const thumbSelect = document.getElementById('po-tb-thumb-size');
+        if (thumbSelect) {
+            thumbSelect.value = this.thumbSize;
+            thumbSelect.addEventListener('change', e => {
+                this.thumbSize = e.target.value;
+                localStorage.setItem('poThumbSize', this.thumbSize);
+                this.renderGrid();
+            });
+        }
         if (!window.showSaveFilePicker) {
             const pickerLbl = document.getElementById('po-save-mode-picker-lbl');
             if (pickerLbl) pickerLbl.style.display = 'none';
@@ -748,6 +765,29 @@ class PDFOrganizer {
             const pdfPage = await pdf.getPage(page.pageIndex + 1);
             
             const baseVp = pdfPage.getViewport({ scale: 1 });
+            
+            const oldW = page.width;
+            const oldH = page.height;
+            page.width = baseVp.width;
+            page.height = baseVp.height;
+            
+            if (oldW !== page.width || oldH !== page.height) {
+                const card = document.querySelector(`.po-card-wrapper[data-id="${page.id}"] .po-card`);
+                if (card) {
+                    let baseH = 184;
+                    if (this.thumbSize === 'S') baseH = 120;
+                    if (this.thumbSize === 'L') baseH = 260;
+                    const rot = ((page.rotation || 0) % 360 + 360) % 360;
+                    const sideways = rot === 90 || rot === 270;
+                    const boxW = sideways ? page.height : page.width;
+                    const boxH = sideways ? page.width : page.height;
+                    let cardW = Math.round(baseH * (boxW / boxH));
+                    const maxW = baseH * 2;
+                    if (cardW > maxW) cardW = maxW;
+                    if (cardW < baseH * 0.5) cardW = Math.round(baseH * 0.5);
+                    card.style.width = cardW + 'px';
+                }
+            }
             const maxDim = 300;
             let scale = Math.min(maxDim / baseVp.width, maxDim / baseVp.height);
             if (scale > 1) scale = 1; // Don't upscale tiny pages too much
@@ -975,8 +1015,26 @@ class PDFOrganizer {
             wrapper.className = 'po-card-wrapper';
             wrapper.dataset.id = p.id;
             
+            let baseH = 184;
+            if (this.thumbSize === 'S') baseH = 120;
+            if (this.thumbSize === 'L') baseH = 260;
+            
+            let pw = p.width || 595;
+            let ph = p.height || 842;
+            const rot = ((p.rotation || 0) % 360 + 360) % 360;
+            const sideways = rot === 90 || rot === 270;
+            const boxW = sideways ? ph : pw;
+            const boxH = sideways ? pw : ph;
+            
+            const maxW = baseH * 2;
+            let cardW = Math.round(baseH * (boxW / boxH));
+            if (cardW > maxW) cardW = maxW;
+            if (cardW < baseH * 0.5) cardW = Math.round(baseH * 0.5); // Min width
+            
             const card = document.createElement('div');
             card.className = `po-card ${p.selected ? 'selected' : ''}`;
+            card.style.width = cardW + 'px';
+            card.style.height = baseH + 'px';
             
             card.innerHTML = `
                 <div class="po-card-num">${i + 1}</div>
@@ -984,10 +1042,24 @@ class PDFOrganizer {
                     <img data-id="${p.id}" ${p.dataUrl ? `src="${p.dataUrl}"` : ''} style="transform: rotate(${p.rotation}deg); ${p.type==='blank'?'border:1px solid #e2e8f0':''}">
                 </div>
                 <div class="po-card-label">${p.type === 'blank' ? 'Trang trống' : 'Trang ' + (p.pageIndex + 1)}</div>
+            
+                <div class="po-card-actions">
+                    <button class="po-ca-btn po-ca-rot-l" title="Xoay tr�i">?</button>
+                    <button class="po-ca-btn po-ca-rot-r" title="Xoay ph?i">?</button>
+                    <button class="po-ca-btn po-ca-del" title="X�a" style="color:var(--po-danger);">?</button>
+                </div>
             `;
             
             // Interaction
             card.onclick = e => this.handleCardClick(e, p, i);
+            
+            const btnRotL = card.querySelector('.po-ca-rot-l');
+            const btnRotR = card.querySelector('.po-ca-rot-r');
+            const btnDel = card.querySelector('.po-ca-del');
+            
+            if (btnRotL) btnRotL.onclick = (e) => { e.stopPropagation(); p.rotation -= 90; this.pushHistory(); this.renderGrid(); if (this.focusedPageId === p.id) this.layoutPreview(); };
+            if (btnRotR) btnRotR.onclick = (e) => { e.stopPropagation(); p.rotation += 90; this.pushHistory(); this.renderGrid(); if (this.focusedPageId === p.id) this.layoutPreview(); };
+            if (btnDel) btnDel.onclick = (e) => { e.stopPropagation(); this.pages.splice(i, 1); this.pushHistory(); this.renderGrid(); if (this.focusedPageId === p.id && this.pages.length > 0) this.focusPage(this.pages[Math.min(i, this.pages.length - 1)].id); };
             
             // Long press for mobile
             let touchTimer;
@@ -1706,7 +1778,9 @@ class PDFOrganizer {
         const menu = document.createElement('div');
         menu.className = 'po-context-menu';
         menu.innerHTML = `
-            <div class="po-menu-item" id="menu-add-pdf">📑 Chèn từ file PDF</div>
+            <div class="po-menu-item" id="menu-add-blank">? Trang tr?ng</div>
+            <div class="po-menu-item" id="menu-add-pdf">?? T? file PDF</div>
+            <div class="po-menu-item" id="menu-add-img">??? T? ?nh (JPG/PNG)</div>
         `;
         menu.style.position = 'absolute';
         menu.style.left = e.pageX + 'px';
@@ -1719,10 +1793,24 @@ class PDFOrganizer {
         
         document.body.appendChild(menu);
         
+        
+        menu.querySelector('#menu-add-blank').onclick = () => {
+            menu.remove();
+            this.addBlankPage(index);
+        };
         menu.querySelector('#menu-add-pdf').onclick = () => {
             menu.remove();
             this.insertIndex = index;
             document.getElementById('po-insert-file').click();
+        };
+        menu.querySelector('#menu-add-img').onclick = () => {
+            menu.remove();
+            const fi = document.createElement('input');
+            fi.type = 'file';
+            fi.accept = 'image/jpeg, image/png';
+            fi.multiple = true;
+            fi.onchange = ev => this.handleImages(ev.target.files, index);
+            fi.click();
         };
         
         setTimeout(() => {
@@ -1841,6 +1929,16 @@ class PDFOrganizer {
                     const p = this.pages[i];
                     if (p.type === 'blank') {
                         finalDoc.addPage([p.width || 595, p.height || 842]);
+                    } else if (p.type === 'image') {
+                        let imgEmbed;
+                        if (p.imgFormat === 'png') {
+                            imgEmbed = await finalDoc.embedPng(p.imgDataUrl);
+                        } else {
+                            imgEmbed = await finalDoc.embedJpg(p.imgDataUrl);
+                        }
+                        const newPage = finalDoc.addPage([p.width, p.height]);
+                        newPage.drawImage(imgEmbed, { x: 0, y: 0, width: p.width, height: p.height });
+                        if (p.rotation !== 0) newPage.setRotation(window.PDFLib.degrees(p.rotation));
                     } else {
                         if (!processedIndices.has(p.pageIndex)) {
                             finalDoc.addPage(origPages[p.pageIndex]);
@@ -1930,6 +2028,16 @@ class PDFOrganizer {
                     const p = this.pages[i];
                     if (p.type === 'blank') {
                         finalDoc.addPage([p.width || 595, p.height || 842]);
+                    } else if (p.type === 'image') {
+                        let imgEmbed;
+                        if (p.imgFormat === 'png') {
+                            imgEmbed = await finalDoc.embedPng(p.imgDataUrl);
+                        } else {
+                            imgEmbed = await finalDoc.embedJpg(p.imgDataUrl);
+                        }
+                        const newPage = finalDoc.addPage([p.width, p.height]);
+                        newPage.drawImage(imgEmbed, { x: 0, y: 0, width: p.width, height: p.height });
+                        if (p.rotation !== 0) newPage.setRotation(window.PDFLib.degrees(p.rotation));
                     } else {
                         if (this.encrypted[p.fileIndex]) {
                             // Render as image using pdf.js

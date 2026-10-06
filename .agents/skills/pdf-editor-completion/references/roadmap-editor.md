@@ -105,14 +105,20 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 - Ctrl + lăn chuột để zoom quanh vị trí con trỏ; kéo bằng chuột giữa hoặc Space+kéo để di chuyển; hiện `%` zoom; Fit Width/Fit Page là các mức zoom được tính toán.
 - Xoay bằng viewport của pdf.js (xem bẫy số 4 trong architecture.md).
 
-### [ ] P3-2. Thumbnail đúng tỷ lệ và chỉnh được kích thước
+### [x] P3-2. Thumbnail đúng tỷ lệ và chỉnh được kích thước
 - Thẻ theo tỷ lệ thật của trang (lấy từ `getViewport({ scale: 1 })` khi render lười); thanh trượt S/M/L lưu vào `localStorage`.
 
-### [ ] P3-3. Nút thao tác nhanh trên thẻ
+> Xong 2026-10-06: T�nh t? l? d?a tr�n k�ch thu?c th?t; th�m thanh ch?n S/M/L tr�n toolbar, luu tr?ng th�i b?ng localStorage.
+
+### [x] P3-3. Nút thao tác nhanh trên thẻ
 - Khi rê chuột: xoay trái, xoay phải, xóa. Trên mobile: hiện khi thẻ đang được chọn.
 
-### [ ] P3-4. Menu chèn
+> Xong 2026-10-06: Th�m c�c n�t overlay (xoay tr�i/ph?i, x�a) v�o th?, d�ng media hover:none d? h? tr? mobile.
+
+### [x] P3-4. Menu chèn
 - Nút "+" mở menu: Trang trống (kích thước theo trang liền kề) / Từ PDF / Từ ảnh (JPG/PNG → trang mới qua `embedJpg/embedPng`).
+
+> Xong 2026-10-06: Menu ch�n t? PDF, trang tr?ng, v� ?nh (JPG/PNG). X? l� ?nh luu th�nh base64 v�o memory v� v? ra trang PDF m?i khi luu.
 
 ### [ ] P3-5. Chọn nâng cao và thao tác hàng loạt
 - Ô chọn theo khoảng ("1-5, 8, 10-12"); chọn trang chẵn/lẻ; đảo vùng chọn; đảo ngược thứ tự trang.
