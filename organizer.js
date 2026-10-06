@@ -63,14 +63,16 @@ class PDFOrganizer {
             
             <div class="po-toolbar">
                 <div class="po-tool-group">
-                    <button class="po-tool-btn" id="po-tb-add-blank">📄 Trang trống</button>
                     <button class="po-tool-btn" id="po-tb-add-pdf">📑 Chèn từ PDF</button>
+                    <button class="po-tool-btn" id="po-tb-dup" disabled>⧉ Nhân đôi</button>
                 </div>
                 <div class="po-tool-group">
                     <button class="po-tool-btn" id="po-tb-rot-l" disabled>↶ Xoay trái</button>
                     <button class="po-tool-btn" id="po-tb-rot-r" disabled>↷ Xoay phải</button>
-                    <button class="po-tool-btn" id="po-tb-dup" disabled>⧉ Nhân đôi</button>
                     <button class="po-tool-btn" id="po-tb-del" disabled style="color:var(--po-danger)">🗑 Xóa</button>
+                </div>
+                <div class="po-tool-group">
+                    <button class="po-tool-btn" id="po-tb-reset">🔄 Làm mới</button>
                 </div>
                 <div class="po-selection-text" id="po-sel-text" style="display:none;"></div>
             </div>
@@ -215,7 +217,13 @@ class PDFOrganizer {
         initUpload.ondrop = e => { e.preventDefault(); this.handleFiles(e.dataTransfer.files, 0); };
         fileIn.onchange = e => this.handleFiles(e.target.files, 0);
 
-        document.getElementById('po-tb-add-blank').onclick = () => this.addBlankPage(this.pages.length);
+        document.getElementById('po-tb-reset').onclick = () => {
+            if (confirm('Bạn có chắc chắn muốn làm mới (khôi phục tài liệu về trạng thái ban đầu)?')) {
+                this.historyIndex = 0;
+                this.restoreState();
+                this.pushHistory(); // push the reset as a new state so it can be undone
+            }
+        };
         document.getElementById('po-tb-add-pdf').onclick = () => { this.insertIndex = this.pages.length; document.getElementById('po-insert-file').click(); };
         document.getElementById('po-insert-file').onchange = e => this.handleFiles(e.target.files, this.insertIndex);
 
@@ -1092,7 +1100,6 @@ class PDFOrganizer {
         const menu = document.createElement('div');
         menu.className = 'po-context-menu';
         menu.innerHTML = `
-            <div class="po-menu-item" id="menu-add-blank">📄 Chèn trang trắng</div>
             <div class="po-menu-item" id="menu-add-pdf">📑 Chèn từ file PDF</div>
         `;
         menu.style.position = 'absolute';
@@ -1106,10 +1113,6 @@ class PDFOrganizer {
         
         document.body.appendChild(menu);
         
-        menu.querySelector('#menu-add-blank').onclick = () => {
-            menu.remove();
-            this.addBlankPage(index);
-        };
         menu.querySelector('#menu-add-pdf').onclick = () => {
             menu.remove();
             this.insertIndex = index;
