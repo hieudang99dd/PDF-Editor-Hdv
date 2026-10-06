@@ -44,7 +44,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=31';
+            link.href = 'organizer.css?v=32';
             document.head.appendChild(link);
         }
         
@@ -58,6 +58,7 @@ class PDFOrganizer {
                 <div class="po-header-right">
                     <button class="po-icon-btn" id="po-undo" title="Hoàn tác (Ctrl+Z)" disabled>↶</button>
                     <button class="po-icon-btn" id="po-redo" title="Làm lại (Ctrl+Y)" disabled>↷</button>
+                    <button class="po-primary-btn" id="po-export-sel" style="display:none; margin-right:8px; background:var(--po-primary-light); color:var(--po-primary); border:1px solid var(--po-primary);">Xuất trang chọn</button>
                     <button class="po-primary-btn" id="po-save" disabled>Lưu tài liệu</button>
                 </div>
             </header>
@@ -491,7 +492,9 @@ class PDFOrganizer {
         }, { signal: this.abort.signal });
 
         // Save Flow
-        document.getElementById('po-save').onclick = () => this.showSaveModal();
+        document.getElementById('po-save').onclick = () => this.showSaveModal(false);
+        const btnExpSel = document.getElementById('po-export-sel');
+        if(btnExpSel) btnExpSel.onclick = () => this.showSaveModal(true);
         document.getElementById('po-save-cancel').onclick = () => document.getElementById('po-save-modal').classList.remove('active');
         document.getElementById('po-save-confirm').onclick = () => this.executeSave();
         
@@ -1030,6 +1033,11 @@ class PDFOrganizer {
             txt.style.display = 'block';
         }
         
+        const exportBtn = document.getElementById('po-export-sel');
+        if (exportBtn) {
+            exportBtn.style.display = selCount > 0 ? 'inline-block' : 'none';
+        }
+        
         ['po-tb-rot-l', 'po-tb-rot-r', 'po-tb-dup', 'po-tb-del'].forEach(id => {
             document.getElementById(id).disabled = selCount === 0;
         });
@@ -1114,7 +1122,7 @@ class PDFOrganizer {
             
             if (btnRotL) btnRotL.onclick = (e) => { e.stopPropagation(); p.rotation -= 90; this.pushHistory(); this.renderGrid(); if (this.focusedPageId === p.id) this.layoutPreview(); };
             if (btnRotR) btnRotR.onclick = (e) => { e.stopPropagation(); p.rotation += 90; this.pushHistory(); this.renderGrid(); if (this.focusedPageId === p.id) this.layoutPreview(); };
-            if (btnDel) btnDel.onclick = (e) => { e.stopPropagation(); this.pages.splice(i, 1); this.pushHistory(); this.renderGrid(); if (this.focusedPageId === p.id && this.pages.length > 0) this.focusPage(this.pages[Math.min(i, this.pages.length - 1)].id); };
+            if (btnDel) btnDel.onclick = (e) => { e.stopPropagation(); this.pages.splice(i, 1); this.pushHistory(); this.renderGrid(); this.showUndoToast('Đã xóa 1 trang'); if (this.focusedPageId === p.id && this.pages.length > 0) this.focusPage(this.pages[Math.min(i, this.pages.length - 1)].id); };
             
             // Long press for mobile
             let touchTimer;
@@ -1921,7 +1929,8 @@ class PDFOrganizer {
         }
     }
 
-    async showSaveModal() {
+    async showSaveModal(exportSelected = false) {
+        this.exportSelectedMode = exportSelected;
         let name = this.baseFilename;
         // Auto versioning regex logic
         let match = name.match(/_v(\d+)$/);
@@ -1942,7 +1951,11 @@ class PDFOrganizer {
     async executeSave() {
         document.getElementById('po-save-modal').classList.remove('active');
         
-        const hasEncrypted = this.pages.some(p => p.type === 'pdf' && this.encrypted[p.fileIndex]);
+        const exportSelected = this.exportSelectedMode;
+        const targetPages = exportSelected ? this.pages.filter(p => p.selected) : this.pages;
+        if (targetPages.length === 0) return;
+        
+        const hasEncrypted = targetPages.some(p => p.type === 'pdf' && this.encrypted[p.fileIndex]);
         if (hasEncrypted) {
             if (!confirm('Tài liệu có chứa trang từ tệp được bảo vệ quyền. Các trang này sẽ được lưu dưới dạng ảnh (không thể chọn chữ). Tiếp tục?')) {
                 return;
@@ -1980,8 +1993,8 @@ class PDFOrganizer {
                 }
                 
                 const processedIndices = new Set();
-                for (let i = 0; i < this.pages.length; i++) {
-                    const p = this.pages[i];
+                for (let i = 0; i < targetPages.length; i++) {
+                    const p = targetPages[i];
                     if (p.type === 'blank') {
                         finalDoc.addPage([p.width || 595, p.height || 842]);
                     } else if (p.type === 'image') {
@@ -2014,7 +2027,7 @@ class PDFOrganizer {
                             }
                         }
                     }
-                    this.updateProgress(30 + (50 * i / this.pages.length));
+                    this.updateProgress(30 + (50 * i / targetPages.length));
                 }
             } else {
                 // Chiến lược B: Nhiều file hoặc có file mã hóa
@@ -2059,12 +2072,12 @@ class PDFOrganizer {
                 
                 this.updateProgress(30);
                 
-                const totalOps = this.pages.length;
+                const totalOps = targetPages.length;
                 
                 // P2-1: Gom copyPages
                 const fileIndicesMap = {};
                 for (let i = 0; i < totalOps; i++) {
-                    const p = this.pages[i];
+                    const p = targetPages[i];
                     if (p.type === 'pdf' && !this.encrypted[p.fileIndex]) {
                         if (!fileIndicesMap[p.fileIndex]) fileIndicesMap[p.fileIndex] = [];
                         fileIndicesMap[p.fileIndex].push(p.pageIndex);
@@ -2080,7 +2093,7 @@ class PDFOrganizer {
                 }
 
                 for (let i = 0; i < totalOps; i++) {
-                    const p = this.pages[i];
+                    const p = targetPages[i];
                     if (p.type === 'blank') {
                         finalDoc.addPage([p.width || 595, p.height || 842]);
                     } else if (p.type === 'image') {
@@ -2135,8 +2148,8 @@ class PDFOrganizer {
             // Apply WYSIWYG Text Edits
             const finalPages = finalDoc.getPages();
             let editFont = null;
-            for (let i = 0; i < this.pages.length; i++) {
-                const p = this.pages[i];
+            for (let i = 0; i < targetPages.length; i++) {
+                const p = targetPages[i];
                 if (!p.textEdits || p.textEdits.length === 0) continue;
                 if (p.type !== 'pdf' || (!isSingleFile && this.encrypted[p.fileIndex])) continue;
                 if (!editFont) editFont = await this.getUnicodeFont(finalDoc);
@@ -2286,14 +2299,16 @@ console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
     }
 
     showSuccess() {
-        document.getElementById('po-ws').innerHTML = `
-            <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; background:#fff;">
-                <div style="font-size:48px; color:var(--po-success); margin-bottom:16px;">✓</div>
-                <h2 style="margin:0 0 8px">Lưu thành công!</h2>
-                <p style="color:var(--po-text-muted); margin-bottom:24px">Tài liệu đã được lưu an toàn.</p>
-                <button class="po-primary-btn" onclick="location.reload()">Tiếp tục làm việc</button>
-            </div>
-        `;
+        if (typeof toast === 'function') {
+            toast('Lưu thành công!');
+        }
+        
+        let match = this.baseFilename.match(/_v(\d+)$/);
+        if (match) {
+            this.baseFilename = this.baseFilename.replace(/_v\d+$/, '') + '_v' + (parseInt(match[1]) + 1);
+        } else {
+            this.baseFilename = this.baseFilename + '_v1';
+        }
     }
 
     destroy() {

@@ -125,13 +125,16 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 > Xong 2026-10-06: Thêm thanh công cụ chọn nâng cao vào organizer.js, bao gồm chọn theo khoảng, chẵn lẻ, đảo vùng chọn và đảo thứ tự trang.
 
-### [ ] P3-6. Xuất trang đã chọn thành file riêng
+### [x] P3-6. Xuất trang đã chọn thành file riêng
+> Xong 2026-10-06: Thêm nút Xuất trang chọn, tái sử dụng hàm executeSave
 - Nút "Xuất trang đã chọn" để tải file PDF chỉ gồm các trang đó (dùng chung hàm lưu với tham số danh sách trang).
 
-### [ ] P3-7. Thông báo kèm nút Hoàn tác
+### [x] P3-7. Thông báo kèm nút Hoàn tác
+> Xong 2026-10-06: Thêm showUndoToast với nút Hoàn tác
 - Sau khi xóa: toast "Đã xóa N trang · Hoàn tác" tồn tại khoảng 5 giây.
 
-### [ ] P3-8. Lưu xong vẫn làm việc tiếp
+### [x] P3-8. Lưu xong vẫn làm việc tiếp
+> Xong 2026-10-06: Đổi showSuccess thành toast, cập nhật baseFilename để versioning
 - Bỏ `location.reload()` trong `showSuccess`. Hiện toast thành công, đặt `savedHistoryIndex`, tăng hậu tố `_vN` cho lần lưu sau.
 
 ### [ ] P3-9. Chế độ tối và mobile
