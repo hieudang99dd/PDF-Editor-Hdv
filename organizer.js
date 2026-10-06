@@ -731,6 +731,18 @@ class PDFOrganizer {
             await renderTask.promise;
             this.activeThumbTasks.delete(pageId);
             
+            if (page.textEdits && page.textEdits.length > 0) {
+                ctx.fillStyle = 'white';
+                page.textEdits.forEach(edit => {
+                    const rect = vp.convertToViewportRectangle([edit.x, edit.y - edit.height, edit.x + edit.width, edit.y]);
+                    const x = Math.min(rect[0], rect[2]);
+                    const y = Math.min(rect[1], rect[3]);
+                    const w = Math.abs(rect[2] - rect[0]);
+                    const h = Math.abs(rect[3] - rect[1]);
+                    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+                });
+            }
+            
             cvs.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
                 page.dataUrl = url;
@@ -1044,10 +1056,8 @@ class PDFOrganizer {
                 if (vDist < pdfSize * 0.5) { 
                     let hClose = false;
                     for (const ex of l.items) {
-                        const hDist = pdfX - (ex.pdfX + ex.pdfWidth);
-                        const hDistRev = ex.pdfX - (pdfX + pdfWidth);
-                        if (hDist > -pdfSize && hDist < pdfSize * 2.5) { hClose = true; break; }
-                        if (hDistRev > -pdfSize && hDistRev < pdfSize * 2.5) { hClose = true; break; }
+                        const hGap = Math.max(0, Math.max(ex.pdfX - (pdfX + pdfWidth), pdfX - (ex.pdfX + ex.pdfWidth)));
+                        if (hGap < pdfSize * 2.5) { hClose = true; break; }
                     }
                     if (hClose) {
                         l.items.push(box.items[0]);
@@ -1126,7 +1136,11 @@ class PDFOrganizer {
         });
 
         blocks.forEach(b => {
-            b.lineObjects.sort((a, c) => c.pdfMinY - a.pdfMinY);
+            b.lineObjects.sort((a, c) => {
+                const vDist = c.pdfMinY - a.pdfMinY;
+                if (Math.abs(vDist) > a.pdfSize * 0.5) return vDist;
+                return a.pdfMinX - c.pdfMinX;
+            });
             b.text = b.lineObjects.map(l => l.text).join('\n');
         });
         return blocks;
@@ -1149,12 +1163,14 @@ class PDFOrganizer {
                 const edited = pageData.textEdits.find(e => e.id === blockId);
                 const div = document.createElement('div');
                 div.className = 'po-text-box' + (edited ? ' edited' : '');
+                if (block.lineObjects && block.lineObjects.length === 1) div.classList.add('single-line');
                 div.style.left = `${(block.left / W) * 100}%`;
                 div.style.top = `${(block.top / H) * 100}%`;
                 div.style.width = `${((block.right - block.left) / W) * 100}%`;
                 div.style.height = 'auto'; 
                 div.style.minHeight = `${((block.bottom - block.top) / H) * 100}%`;
                 div.style.fontSize = `${(block.size / H) * 100}cqh`;
+                div.style.lineHeight = '1.15';
                 const firstItem = block.items[0];
                 div.style.fontFamily = firstItem.fontName && textContent.styles[firstItem.fontName] ? textContent.styles[firstItem.fontName].fontFamily : 'sans-serif';
                 div.textContent = edited ? edited.newText : block.text;
@@ -1333,6 +1349,19 @@ class PDFOrganizer {
 
                         return renderTask.promise.then(() => {
                             if (taskObj.cancelled || this.focusedPageId !== id) return;
+                            
+                            if (page.textEdits && page.textEdits.length > 0) {
+                                ctx.fillStyle = 'white';
+                                page.textEdits.forEach(edit => {
+                                    const rect = vp.convertToViewportRectangle([edit.x, edit.y - edit.height, edit.x + edit.width, edit.y]);
+                                    const x = Math.min(rect[0], rect[2]);
+                                    const y = Math.min(rect[1], rect[3]);
+                                    const w = Math.abs(rect[2] - rect[0]);
+                                    const h = Math.abs(rect[3] - rect[1]);
+                                    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
+                                });
+                            }
+                            
                             cvs.toBlob(blob => {
                                 if (taskObj.cancelled || this.focusedPageId !== id) return;
                                 if (this.previewObjUrl) URL.revokeObjectURL(this.previewObjUrl);
