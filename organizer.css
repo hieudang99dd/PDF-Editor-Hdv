@@ -124,3 +124,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
   .po-left-col { width: 100%; height: 50%; border-right: none; border-bottom: 1px solid var(--po-border); }
   .po-right-col { height: 50%; }
 }
+
+/* Direct text editing */
+#po-preview-wrapper { position: relative; display: inline-block; line-height: 0; }
+#po-preview-wrapper img { display: block; }
+.po-text-layer { position: absolute; inset: 0; pointer-events: none; z-index: 10; container-type: size; line-height: 1; }
+.po-text-box { position: absolute; border: 1px dashed rgba(37,99,235,0.45); background: rgba(37,99,235,0.05); color: transparent; cursor: text; pointer-events: none; white-space: pre; display: none; overflow: visible; box-sizing: border-box; }
+.text-mode-active .po-text-box { pointer-events: auto; display: block; }
+.po-text-box:hover { border-color: #2563eb; background: rgba(37,99,235,0.15); }
+.po-text-box.editing { color: #0f172a; background: #fff; border: 2px solid #2563eb; outline: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.12); min-width: max-content; }
+.po-text-box.edited { color: #0f172a; background: #fff; display: block; }
+#po-tb-edit-text.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; }

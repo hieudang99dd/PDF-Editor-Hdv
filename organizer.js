@@ -1,4 +1,4 @@
-﻿class PDFOrganizer {
+class PDFOrganizer {
     constructor() {
         this.abort = new AbortController();
         this.files = [];
@@ -16,6 +16,7 @@
         
         this.lastSelectedId = null;
         this.focusedPageId = null;
+        this.zoomLevel = 1;
         this.dirHandle = null;
         this.isTextMode = false;
         
@@ -48,14 +49,6 @@
         }
         
         const mainHTML = `
-        <style>
-            .po-text-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-            .po-text-box { position: absolute; border: 1px dashed rgba(37,99,235,0.4); background: rgba(37,99,235,0.05); color: transparent; cursor: text; pointer-events: none; white-space: pre; display: none; }
-            .text-mode-active .po-text-box { pointer-events: auto; display: block; }
-            .po-text-box:hover { border-color: #2563eb; background: rgba(37,99,235,0.15); }
-            .po-text-box.editing { color: #0f172a; background: #fff; border: 2px solid #2563eb; outline: none; z-index: 100; box-shadow: 0 4px 12px rgba(0,0,0,0.1); padding: 2px; }
-            #po-tb-edit-text.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; }
-        </style>
         <div class="po-container">
             <header class="po-header">
                 <div class="po-header-left">
@@ -205,6 +198,12 @@
             if (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1) {
                 e.preventDefault();
                 e.returnValue = '';
+            }
+        }, { signal: this.abort.signal });
+
+        window.addEventListener('resize', () => {
+            if (this.focusedPageId) {
+                this.layoutPreview();
             }
         }, { signal: this.abort.signal });
 
@@ -923,72 +922,68 @@
     async renderTextLayer(pdfPage, baseVp, pageData) {
         const layer = document.getElementById('po-text-layer');
         if (!layer) return;
+        const token = (this._textLayerToken = (this._textLayerToken || 0) + 1);
         layer.innerHTML = '';
         
         try {
             const textContent = await pdfPage.getTextContent();
+            if (token !== this._textLayerToken) return; // trang khác đã được chọn
             if (!pageData.textEdits) pageData.textEdits = [];
-            
-            // Adjust wrapper aspect ratio
-            const wrapper = document.getElementById('po-preview-wrapper');
-            wrapper.style.aspectRatio = `${baseVp.width} / ${baseVp.height}`;
-
-            const transform2D = (transform) => {
-                const tx = transform[4];
-                const ty = transform[5];
-                return { x: tx, y: baseVp.height - ty }; // pdf.js origin is bottom-left
-            };
+            const Util = window.pdfjsLib.Util;
+            const W = baseVp.width, H = baseVp.height;
 
             textContent.items.forEach((item, index) => {
-                if (item.str.trim() === '') return;
+                if (!item.str || item.str.trim() === '') return;
                 
-                const { x, y } = transform2D(item.transform);
-                const width = item.width;
-                const height = item.height || item.transform[0]; // approx
+                // Tọa độ hiển thị (gốc trên-trái, đơn vị viewport scale=1)
+                const t = Util.transform(baseVp.transform, item.transform);
+                const fontH = Math.hypot(t[2], t[3]) || item.height || 10;
+                const left = t[4];
+                const top = t[5] - fontH;
+                const width = Math.max(item.width, fontH * 0.5);
                 
-                // If this item was edited, replace it with edited version in UI
+                // Tọa độ gốc trong không gian PDF (dùng khi lưu bằng pdf-lib)
+                const pdfX = item.transform[4];
+                const pdfY = item.transform[5];
+                const pdfSize = Math.hypot(item.transform[2], item.transform[3]) || fontH;
+                
                 const edited = pageData.textEdits.find(e => e.index === index);
-                const str = edited ? edited.newText : item.str;
-
-                const leftPct = (x / baseVp.width) * 100;
-                const topPct = ((y - height) / baseVp.height) * 100;
-                const widthPct = (width / baseVp.width) * 100;
-                const heightPct = (height / baseVp.height) * 100;
-
                 const div = document.createElement('div');
-                div.className = 'po-text-box';
-                div.style.left = `${leftPct}%`;
-                div.style.top = `${topPct}%`;
-                div.style.width = `${widthPct}%`;
-                div.style.height = `${heightPct}%`;
-                div.style.fontSize = `${heightPct}cqh`; // Container Query Height
-                
-                div.textContent = str;
+                div.className = 'po-text-box' + (edited ? ' edited' : '');
+                div.style.left = `${(left / W) * 100}%`;
+                div.style.top = `${(top / H) * 100}%`;
+                div.style.width = `${(width / W) * 100}%`;
+                div.style.height = `${(fontH * 1.15 / H) * 100}%`;
+                div.style.fontSize = `${(fontH / H) * 100}cqh`;
+                div.style.fontFamily = item.fontName && textContent.styles[item.fontName] ? textContent.styles[item.fontName].fontFamily : 'sans-serif';
+                div.textContent = edited ? edited.newText : item.str;
                 div.dataset.index = index;
+                div.spellcheck = false;
                 
+                div.addEventListener('mousedown', e => { if (this.isTextMode) e.stopPropagation(); });
                 div.addEventListener('click', (e) => {
                     if (!this.isTextMode) return;
                     e.stopPropagation();
-                    div.contentEditable = true;
+                    div.contentEditable = 'true';
                     div.classList.add('editing');
                     div.focus();
                 });
-                
+                div.addEventListener('keydown', (e) => {
+                    e.stopPropagation(); // không để phím Delete/mũi tên xóa trang
+                    if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); div.blur(); }
+                });
                 div.addEventListener('blur', () => {
-                    div.contentEditable = false;
+                    div.contentEditable = 'false';
                     div.classList.remove('editing');
-                    const newText = div.textContent;
+                    const newText = div.textContent.replace(/\n/g, ' ');
+                    pageData.textEdits = pageData.textEdits.filter(e => e.index !== index);
                     if (newText !== item.str) {
-                        const existingEditIdx = pageData.textEdits.findIndex(e => e.index === index);
-                        const editData = { index, newText, x, y, width, height };
-                        if (existingEditIdx > -1) {
-                            pageData.textEdits[existingEditIdx] = editData;
-                        } else {
-                            pageData.textEdits.push(editData);
-                        }
-                    } else if (newText === item.str) {
-                         pageData.textEdits = pageData.textEdits.filter(e => e.index !== index);
+                        pageData.textEdits.push({ index, newText, x: pdfX, y: pdfY, size: pdfSize, width: item.width });
+                        div.classList.add('edited');
+                    } else {
+                        div.classList.remove('edited');
                     }
+                    this.updateTextEditState();
                 });
                 
                 layer.appendChild(div);
@@ -998,6 +993,36 @@
         }
     }
 
+    updateTextEditState() {
+        const n = this.pages.reduce((a, p) => a + (p.textEdits ? p.textEdits.length : 0), 0);
+        this.hasTextEdits = n > 0;
+        const save = document.getElementById('po-save');
+        if (save && n > 0) save.disabled = false;
+        const changesEl = document.getElementById('po-meta-changes');
+        if (changesEl && n > 0) {
+            const base = changesEl.textContent.replace(/\s*\|?\s*Sửa \d+ đoạn văn bản$/, '');
+            changesEl.textContent = (base ? base + ' | ' : '') + `Sửa ${n} đoạn văn bản`;
+            changesEl.style.display = 'block';
+        }
+    }
+
+    async getUnicodeFont(doc) {
+        if (!window.fontkit) {
+            await new Promise((res, rej) => {
+                const s = document.createElement('script');
+                s.src = 'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
+                s.onload = res; s.onerror = () => rej(new Error('Không tải được fontkit'));
+                document.head.appendChild(s);
+            });
+        }
+        if (!this._fontBytes) {
+            const r = await fetch('https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf');
+            if (!r.ok) throw new Error('Không tải được font tiếng Việt');
+            this._fontBytes = await r.arrayBuffer();
+        }
+        doc.registerFontkit(window.fontkit);
+        return doc.embedFont(this._fontBytes, { subset: true });
+    }
     focusPage(id, forceRender = false) {
         const pageChanged = (this.focusedPageId !== id);
         this.focusedPageId = id;
@@ -1122,20 +1147,45 @@
             }
         }
         
-        if (this.zoomLevel === 1) {
-            img.style.width = 'auto';
-            img.style.height = '100%';
-            img.style.maxWidth = '100%';
-            img.style.maxHeight = '100%';
-        } else {
-            img.style.maxWidth = 'none';
-            img.style.maxHeight = 'none';
-            img.style.height = (100 * this.zoomLevel) + '%';
-            img.style.width = 'auto';
-        }
-        
+        img.onload = () => this.layoutPreview();
         img.style.display = 'block';
-        img.style.transform = `rotate(${page.rotation}deg)`;
+        this.layoutPreview();
+    }
+
+    layoutPreview() {
+        const img = document.getElementById('po-preview-img');
+        const wrapper = document.getElementById('po-preview-wrapper');
+        const container = document.getElementById('po-preview-canvas');
+        const layer = document.getElementById('po-text-layer');
+        if (!img || !wrapper || !container) return;
+        const page = this.pages.find(p => p.id === this.focusedPageId);
+        if (!page) return;
+
+        let pw = page.width, ph = page.height;
+        if (!pw || !ph) { pw = img.naturalWidth || 595; ph = img.naturalHeight || 842; }
+        const rot = ((page.rotation % 360) + 360) % 360;
+        const sideways = rot === 90 || rot === 270;
+        const boxW = sideways ? ph : pw, boxH = sideways ? pw : ph;
+
+        const cs = getComputedStyle(container);
+        const aw = Math.max(50, container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+        const ah = Math.max(50, container.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom));
+        const base = this.fitMode === 'width' ? aw / boxW : Math.min(aw / boxW, ah / boxH);
+        const s = base * (this.zoomLevel || 1);
+        const W = Math.round(boxW * s), H = Math.round(boxH * s);
+
+        wrapper.style.width = W + 'px';
+        wrapper.style.height = H + 'px';
+        wrapper.style.margin = 'auto';
+        wrapper.style.flex = 'none';
+        Object.assign(img.style, {
+            position: 'absolute', maxWidth: 'none', maxHeight: 'none',
+            width: (sideways ? H : W) + 'px', height: (sideways ? W : H) + 'px',
+            left: sideways ? ((W - H) / 2) + 'px' : '0', top: sideways ? ((H - W) / 2) + 'px' : '0',
+            transform: `rotate(${rot}deg)`
+        });
+        // Lớp text chỉ khớp tọa độ khi trang không bị xoay
+        if (layer) layer.style.display = rot === 0 ? '' : 'none';
     }
 
     navigateKeyboard(key) {
@@ -1176,23 +1226,13 @@
 
     adjustZoom(delta) {
         this.zoomLevel = Math.max(0.2, Math.min(5, this.zoomLevel + delta));
-        this.focusPage(this.focusedPageId);
+        this.focusPage(this.focusedPageId, delta > 0);
     }
     
     setZoom(type) {
-        const img = document.getElementById('po-preview-img');
-        img.style.maxWidth = '100%';
-        img.style.maxHeight = '100%';
-        if (type === 'width') {
-            img.style.width = '100%';
-            img.style.height = 'auto';
-            this.zoomLevel = 1;
-        } else {
-            img.style.width = 'auto';
-            img.style.height = '100%';
-            this.zoomLevel = 1;
-        }
-        img.style.transform = `rotate(${this.pages.find(p => p.id === this.focusedPageId)?.rotation || 0}deg)`;
+        this.fitMode = type === 'width' ? 'width' : 'page';
+        this.zoomLevel = 1;
+        this.layoutPreview();
     }
 
     initSortable() {
@@ -1500,27 +1540,27 @@
             
             // Apply WYSIWYG Text Edits
             const finalPages = finalDoc.getPages();
-            let helveticaFont = null;
+            let editFont = null;
             for (let i = 0; i < this.pages.length; i++) {
                 const p = this.pages[i];
-                if (p.textEdits && p.textEdits.length > 0) {
-                    if (!helveticaFont) {
-                        helveticaFont = await finalDoc.embedFont(window.PDFLib.StandardFonts.Helvetica);
-                    }
-                    const targetPage = finalPages[i];
-                    for (const edit of p.textEdits) {
-                        targetPage.drawRectangle({
-                            x: edit.x,
-                            y: edit.y - (edit.height * 0.2), // descent approx
-                            width: edit.width + 10,
-                            height: edit.height + (edit.height * 0.4),
-                            color: window.PDFLib.rgb(1, 1, 1)
-                        });
+                if (!p.textEdits || p.textEdits.length === 0) continue;
+                if (p.type !== 'pdf' || (!isSingleFile && this.encrypted[p.fileIndex])) continue;
+                if (!editFont) editFont = await this.getUnicodeFont(finalDoc);
+                const targetPage = finalPages[i];
+                if (!targetPage) continue;
+                for (const edit of p.textEdits) {
+                    const size = edit.size || 12;
+                    const newW = edit.newText ? editFont.widthOfTextAtSize(edit.newText, size) : 0;
+                    targetPage.drawRectangle({
+                        x: edit.x - 1,
+                        y: edit.y - size * 0.28,
+                        width: Math.max(edit.width || 0, newW) + 2,
+                        height: size * 1.25,
+                        color: window.PDFLib.rgb(1, 1, 1)
+                    });
+                    if (edit.newText) {
                         targetPage.drawText(edit.newText, {
-                            x: edit.x,
-                            y: edit.y,
-                            size: edit.height,
-                            font: helveticaFont,
+                            x: edit.x, y: edit.y, size, font: editFont,
                             color: window.PDFLib.rgb(0, 0, 0)
                         });
                     }
