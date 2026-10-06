@@ -1037,8 +1037,15 @@ class PDFOrganizer {
             const scaleX = Math.abs(transform[0]) || 1;
             const scaleY = Math.abs(transform[3]) || 1;
             
+            // FONT HEIGHT CALCULATION (30 Years Experience Fix)
+            // t_vp[2] and t_vp[3] represent the Y-axis vector in Viewport space.
             let fontH = Math.hypot(t_vp[2], t_vp[3]);
-            if (fontH < scaleY * 1.5 && item.height) fontH = item.height * scaleY;
+            
+            // If fontH is tiny (e.g. text matrix is unscaled or scaled down to 0.01),
+            // we must use item.height (unscaled glyph height) and multiply it by the matrix scale!
+            if (fontH < 2 && item.height) {
+                fontH = item.height * scaleY; 
+            }
             if (fontH < 1) fontH = 10;
             
             const origin_vp = [t_vp[4], t_vp[5]];
@@ -1051,7 +1058,10 @@ class PDFOrganizer {
             const normal_vp = [-Math.sin(angle_vp), Math.cos(angle_vp)];
             
             const lenX_user = Math.hypot(item.transform[0], item.transform[1]) || 1;
-            const width_vp = (item.width / lenX_user) * advanceScale_vp;
+            let width_vp = (item.width / lenX_user) * advanceScale_vp;
+            
+            // Fallback for missing or zero-width items (e.g. big titles in some CAD PDFs)
+            if (width_vp < 0.1) width_vp = fontH * 0.5 * item.str.length;
             
             if (fontH < 0.1 || width_vp < 0.1) return;
             
@@ -1062,23 +1072,28 @@ class PDFOrganizer {
             });
         });
 
+        // PASS 1: Group into single lines based on baseline collinearity
         let lines = [];
         processedItems.forEach(box => {
             let merged = false;
             for (const l of lines) {
-                if (Math.abs(box.angle_vp - l.angle_vp) > 0.05) continue;
-                if (Math.abs(box.fontSize_vp - l.fontSize_vp) > l.fontSize_vp * 0.3) continue;
+                if (Math.abs(box.angle_vp - l.angle_vp) > 0.05) continue; // Must have same rotation
+                if (Math.abs(box.fontSize_vp - l.fontSize_vp) > l.fontSize_vp * 0.3) continue; // Must be similar size
                 
                 const dx = box.origin_vp[0] - l.origin_vp[0];
                 const dy = box.origin_vp[1] - l.origin_vp[1];
+                
+                // Vertical distance from line's baseline
                 const vDist = Math.abs(dx * l.normal_vp[0] + dy * l.normal_vp[1]);
                 
-                if (vDist <= l.fontSize_vp * 0.35) {
+                if (vDist <= l.fontSize_vp * 0.35) { // Highly collinear
                     const hStart = dx * l.dir_vp[0] + dy * l.dir_vp[1];
                     const hEnd = hStart + box.width_vp;
+                    
+                    // Horizontal gap check
                     const gap = Math.max(0, Math.max(l.minH - hEnd, hStart - l.maxH));
                     
-                    if (gap <= l.fontSize_vp * 3.0) {
+                    if (gap <= l.fontSize_vp * 2.5) { // Allow reasonable gaps for spaces
                         l.items.push({ ...box, hStart, hEnd });
                         l.minH = Math.min(l.minH, hStart);
                         l.maxH = Math.max(l.maxH, hEnd);
@@ -1097,6 +1112,7 @@ class PDFOrganizer {
             }
         });
 
+        // Format text inside each line
         lines.forEach(l => {
             l.items.sort((a, b) => a.hStart - b.hStart);
             let lineStr = "";
@@ -1111,6 +1127,10 @@ class PDFOrganizer {
             l.text = lineStr;
         });
 
+        // SORT LINES TOP-TO-BOTTOM BEFORE MULTI-LINE MERGE
+        lines.sort((a, b) => a.origin_vp[1] - b.origin_vp[1]);
+
+        // PASS 2: Group adjacent lines into Blocks (Paragraphs)
         let blocks = [];
         lines.forEach(line => {
             let merged = false;
@@ -1127,6 +1147,7 @@ class PDFOrganizer {
                 const dy_last = line.origin_vp[1] - lastLine.origin_vp[1];
                 const vDist = Math.abs(dx_last * b.normal_vp[0] + dy_last * b.normal_vp[1]);
                 
+                // Only merge if the next line is directly below (0.5 to 3.0 font sizes away)
                 if (vDist > b.fontSize_vp * 0.5 && vDist < b.fontSize_vp * 3.0) {
                     const hOffset = dx_block * b.dir_vp[0] + dy_block * b.dir_vp[1];
                     const lineMinH = line.minH + hOffset;
@@ -1144,7 +1165,7 @@ class PDFOrganizer {
                         b.minH = Math.min(b.minH, lineMinH);
                         b.maxH = Math.max(b.maxH, lineMaxH);
                         b.minV = Math.min(b.minV, vOffset - line.fontSize_vp);
-                        b.maxV = Math.max(b.maxV, vOffset + line.fontSize_vp * 0.2);
+                        b.maxV = Math.max(b.maxV, vOffset + line.fontSize_vp * 0.2); // descent
                         merged = true;
                         break;
                     }
@@ -1161,6 +1182,7 @@ class PDFOrganizer {
             }
         });
 
+        // CALCULATE FINAL CSS TRANSFORMS
         blocks.forEach(b => {
             b.lineObjects.sort((a, c) => {
                 const dxA = a.origin_vp[0] - b.origin_vp[0]; const dyA = a.origin_vp[1] - b.origin_vp[1];
@@ -1172,11 +1194,14 @@ class PDFOrganizer {
             b.text = b.lineObjects.map(l => l.text).join('\n');
             
             const O = b.origin_vp;
+            // P1 is the Top-Left corner of the rotated box
             const P1 = [ O[0] + b.minH * b.dir_vp[0] + b.minV * b.normal_vp[0], O[1] + b.minH * b.dir_vp[1] + b.minV * b.normal_vp[1] ];
             
-            b.cssLeft = P1[0]; b.cssTop = P1[1];
-            b.cssWidth = b.maxH - b.minH; b.cssHeight = b.maxV - b.minV;
-            b.cssTransform = `rotate(${b.angle_vp}rad)`;
+            b.cssLeft = P1[0]; 
+            b.cssTop = P1[1];
+            b.cssWidth = b.maxH - b.minH; 
+            b.cssHeight = b.maxV - b.minV;
+            b.cssTransform = `rotate(${b.angle_vp * 180 / Math.PI}deg)`; // Use deg for better CSS compatibility
             
             let pdfMinX = Infinity, pdfMaxX = -Infinity, pdfMinY = Infinity, pdfMaxY = -Infinity;
             b.items.forEach(i => {
