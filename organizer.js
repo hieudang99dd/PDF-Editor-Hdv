@@ -94,7 +94,7 @@ class PDFOrganizer {
                         </div>
                         <div class="po-meta-changes" id="po-meta-changes"></div>
                         <div class="po-meta-deleted" id="po-meta-deleted">Lịch sử xóa: Không có</div>
-                        <div class="po-render-progress-container" id="po-render-progress-container" style="margin-top: 12px; display: none;">
+                        <div class="po-render-progress-container" id="po-render-progress-container" style="position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: 320px; background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; z-index: 9999; display: none;">
                             <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--po-text-muted); margin-bottom: 4px;">
                                 <span>Tiến trình tải trang:</span>
                                 <span id="po-render-progress-text">0%</span>
