@@ -919,47 +919,86 @@ class PDFOrganizer {
         this.updateSelectionDOM();
     }
 
+    
+    groupTextItems(items, styles, transform, Util, W, H) {
+        const blocks = [];
+        items.forEach((item, index) => {
+            if (!item.str || item.str.trim() === '') return;
+            const t = Util.transform(transform, item.transform);
+            const fontH = Math.hypot(t[2], t[3]) || item.height || 10;
+            const left = t[4];
+            const top = t[5] - fontH;
+            const width = Math.max(item.width, fontH * 0.5);
+            const pdfX = item.transform[4];
+            const pdfY = item.transform[5];
+            const pdfSize = Math.hypot(item.transform[2], item.transform[3]) || fontH;
+            const pdfWidth = item.width;
+            const box = {
+                items: [ { ...item, index, pdfX, pdfY, pdfSize, pdfWidth } ],
+                pdfMinX: pdfX, pdfMinY: pdfY, pdfMaxX: pdfX + pdfWidth, pdfMaxY: pdfY + pdfSize,
+                left, top, right: left + width, bottom: top + fontH * 1.15,
+                fontName: item.fontName, size: fontH, pdfSize, text: item.str
+            };
+            let merged = false;
+            for (const b of blocks) {
+                if (Math.abs(b.pdfSize - pdfSize) > 4) continue;
+                const verticalDist = Math.abs(b.pdfMinY - pdfY);
+                if (verticalDist < pdfSize * 2.5) {
+                    const isSameLine = verticalDist < pdfSize * 0.5;
+                    const isNextLine = verticalDist >= pdfSize * 0.5 && verticalDist < pdfSize * 2.5;
+                    if (isSameLine || isNextLine) {
+                        b.items.push(box.items[0]);
+                        b.pdfMinX = Math.min(b.pdfMinX, box.pdfMinX);
+                        b.pdfMinY = Math.min(b.pdfMinY, box.pdfMinY);
+                        b.pdfMaxX = Math.max(b.pdfMaxX, box.pdfMaxX);
+                        b.pdfMaxY = Math.max(b.pdfMaxY, box.pdfMaxY);
+                        b.left = Math.min(b.left, box.left);
+                        b.top = Math.min(b.top, box.top);
+                        b.right = Math.max(b.right, box.right);
+                        b.bottom = Math.max(b.bottom, box.bottom);
+                        b.items.sort((a, c) => {
+                            if (Math.abs(a.pdfY - c.pdfY) > pdfSize * 0.5) return c.pdfY - a.pdfY;
+                            return a.pdfX - c.pdfX;
+                        });
+                        b.text = b.items.map(i => i.str).join(' ').replace(/\s+/g, ' ');
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+            if (!merged) blocks.push(box);
+        });
+        return blocks;
+    }
+
     async renderTextLayer(pdfPage, baseVp, pageData) {
         const layer = document.getElementById('po-text-layer');
         if (!layer) return;
         const token = (this._textLayerToken = (this._textLayerToken || 0) + 1);
         layer.innerHTML = '';
-        
         try {
             const textContent = await pdfPage.getTextContent();
-            if (token !== this._textLayerToken) return; // trang khác đã được chọn
+            if (token !== this._textLayerToken) return;
             if (!pageData.textEdits) pageData.textEdits = [];
             const Util = window.pdfjsLib.Util;
             const W = baseVp.width, H = baseVp.height;
-
-            textContent.items.forEach((item, index) => {
-                if (!item.str || item.str.trim() === '') return;
-                
-                // Tọa độ hiển thị (gốc trên-trái, đơn vị viewport scale=1)
-                const t = Util.transform(baseVp.transform, item.transform);
-                const fontH = Math.hypot(t[2], t[3]) || item.height || 10;
-                const left = t[4];
-                const top = t[5] - fontH;
-                const width = Math.max(item.width, fontH * 0.5);
-                
-                // Tọa độ gốc trong không gian PDF (dùng khi lưu bằng pdf-lib)
-                const pdfX = item.transform[4];
-                const pdfY = item.transform[5];
-                const pdfSize = Math.hypot(item.transform[2], item.transform[3]) || fontH;
-                
-                const edited = pageData.textEdits.find(e => e.index === index);
+            const blocks = this.groupTextItems(textContent.items, textContent.styles, baseVp.transform, Util, W, H);
+            blocks.forEach((block, index) => {
+                const blockId = 'block_' + index;
+                const edited = pageData.textEdits.find(e => e.id === blockId);
                 const div = document.createElement('div');
                 div.className = 'po-text-box' + (edited ? ' edited' : '');
-                div.style.left = `${(left / W) * 100}%`;
-                div.style.top = `${(top / H) * 100}%`;
-                div.style.width = `${(width / W) * 100}%`;
-                div.style.height = `${(fontH * 1.15 / H) * 100}%`;
-                div.style.fontSize = `${(fontH / H) * 100}cqh`;
-                div.style.fontFamily = item.fontName && textContent.styles[item.fontName] ? textContent.styles[item.fontName].fontFamily : 'sans-serif';
-                div.textContent = edited ? edited.newText : item.str;
-                div.dataset.index = index;
+                div.style.left = `${(block.left / W) * 100}%`;
+                div.style.top = `${(block.top / H) * 100}%`;
+                div.style.width = `${((block.right - block.left) / W) * 100}%`;
+                div.style.height = 'auto'; 
+                div.style.minHeight = `${((block.bottom - block.top) / H) * 100}%`;
+                div.style.fontSize = `${(block.size / H) * 100}cqh`;
+                const firstItem = block.items[0];
+                div.style.fontFamily = firstItem.fontName && textContent.styles[firstItem.fontName] ? textContent.styles[firstItem.fontName].fontFamily : 'sans-serif';
+                div.textContent = edited ? edited.newText : block.text;
+                div.dataset.id = blockId;
                 div.spellcheck = false;
-                
                 div.addEventListener('mousedown', e => { if (this.isTextMode) e.stopPropagation(); });
                 div.addEventListener('click', (e) => {
                     if (!this.isTextMode) return;
@@ -969,23 +1008,26 @@ class PDFOrganizer {
                     div.focus();
                 });
                 div.addEventListener('keydown', (e) => {
-                    e.stopPropagation(); // không để phím Delete/mũi tên xóa trang
-                    if (e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); div.blur(); }
+                    e.stopPropagation();
+                    if (e.key === 'Escape') { e.preventDefault(); div.blur(); }
                 });
                 div.addEventListener('blur', () => {
                     div.contentEditable = 'false';
                     div.classList.remove('editing');
-                    const newText = div.textContent.replace(/\n/g, ' ');
-                    pageData.textEdits = pageData.textEdits.filter(e => e.index !== index);
-                    if (newText !== item.str) {
-                        pageData.textEdits.push({ index, newText, x: pdfX, y: pdfY, size: pdfSize, width: item.width });
+                    const newText = div.innerText.replace(/\n\s*\n/g, '\n').trim();
+                    pageData.textEdits = pageData.textEdits.filter(e => e.id !== blockId);
+                    if (newText !== block.text) {
+                        pageData.textEdits.push({ 
+                            id: blockId, newText, 
+                            x: block.pdfMinX, y: block.pdfMaxY, size: block.pdfSize, 
+                            width: block.pdfMaxX - block.pdfMinX, height: block.pdfMaxY - block.pdfMinY
+                        });
                         div.classList.add('edited');
                     } else {
                         div.classList.remove('edited');
                     }
                     this.updateTextEditState();
                 });
-                
                 layer.appendChild(div);
             });
         } catch(e) {
@@ -1550,18 +1592,29 @@ class PDFOrganizer {
                 if (!targetPage) continue;
                 for (const edit of p.textEdits) {
                     const size = edit.size || 12;
-                    const newW = edit.newText ? editFont.widthOfTextAtSize(edit.newText, size) : 0;
+                    // Xóa vùng cũ (Block Masking)
+                    // edit.y là top, edit.x là left, edit.width và edit.height của block
+                    const blockTop = edit.y;
+                    const blockBottom = edit.y - edit.height;
+                    const rectY = blockBottom - size * 0.28;
+                    const rectH = edit.height + size * 0.5;
                     targetPage.drawRectangle({
-                        x: edit.x - 1,
-                        y: edit.y - size * 0.28,
-                        width: Math.max(edit.width || 0, newW) + 2,
-                        height: size * 1.25,
+                        x: edit.x - 2,
+                        y: rectY,
+                        width: edit.width + 4,
+                        height: rectH,
                         color: window.PDFLib.rgb(1, 1, 1)
                     });
+                    
                     if (edit.newText) {
                         targetPage.drawText(edit.newText, {
-                            x: edit.x, y: edit.y, size, font: editFont,
-                            color: window.PDFLib.rgb(0, 0, 0)
+                            x: edit.x, 
+                            y: blockTop - size, // baseline dòng đầu
+                            size: size, 
+                            font: editFont,
+                            color: window.PDFLib.rgb(0, 0, 0),
+                            maxWidth: edit.width + 10,
+                            lineHeight: size * 1.2
                         });
                     }
                 }
