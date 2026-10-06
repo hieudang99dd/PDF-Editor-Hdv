@@ -235,6 +235,11 @@ class PDFOrganizer {
         });
         div.classList.add('edited');
         this.updateTextEditState();
+        
+        // Bắt buộc re-render lại để cập nhật Canvas che đi text gốc
+        if (this.focusedPageId) {
+            this.focusPage(this.focusedPageId, true);
+        }
     }
 
 
