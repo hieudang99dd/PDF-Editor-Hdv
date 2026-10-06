@@ -120,8 +120,10 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 > Xong 2026-10-06: Menu ch�n t? PDF, trang tr?ng, v� ?nh (JPG/PNG). X? l� ?nh luu th�nh base64 v�o memory v� v? ra trang PDF m?i khi luu.
 
-### [ ] P3-5. Chọn nâng cao và thao tác hàng loạt
+### [x] P3-5. Chọn nâng cao và thao tác hàng loạt
 - Ô chọn theo khoảng ("1-5, 8, 10-12"); chọn trang chẵn/lẻ; đảo vùng chọn; đảo ngược thứ tự trang.
+
+> Xong 2026-10-06: Thêm thanh công cụ chọn nâng cao vào organizer.js, bao gồm chọn theo khoảng, chẵn lẻ, đảo vùng chọn và đảo thứ tự trang.
 
 ### [ ] P3-6. Xuất trang đã chọn thành file riêng
 - Nút "Xuất trang đã chọn" để tải file PDF chỉ gồm các trang đó (dùng chung hàm lưu với tham số danh sách trang).

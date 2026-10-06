@@ -44,7 +44,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=30';
+            link.href = 'organizer.css?v=31';
             document.head.appendChild(link);
         }
         
@@ -71,6 +71,14 @@ class PDFOrganizer {
                     <button class="po-tool-btn" id="po-tb-rot-l" disabled>↶ Xoay trái</button>
                     <button class="po-tool-btn" id="po-tb-rot-r" disabled>↷ Xoay phải</button>
                     <button class="po-tool-btn" id="po-tb-del" disabled style="color:var(--po-danger)">🗑 Xóa</button>
+                </div>
+                <div class="po-tool-group" style="display: flex; gap: 2px; align-items: center; padding: 0 4px;">
+                    <input type="text" id="po-tb-sel-range" placeholder="1-5, 8" title="Chọn theo khoảng" style="width: 65px; padding: 4px 6px; font-size: 12px; border: 1px solid var(--po-border); border-radius: 4px; outline: none;">
+                    <button class="po-tool-btn" id="po-tb-sel-apply" style="padding: 4px 6px; min-width: 0;" title="Chọn">✓</button>
+                    <button class="po-tool-btn" id="po-tb-sel-even" style="padding: 4px 6px;" title="Chọn trang chẵn">Chẵn</button>
+                    <button class="po-tool-btn" id="po-tb-sel-odd" style="padding: 4px 6px;" title="Chọn trang lẻ">Lẻ</button>
+                    <button class="po-tool-btn" id="po-tb-sel-inv" style="padding: 4px 6px;" title="Đảo vùng chọn">Đảo</button>
+                    <button class="po-tool-btn" id="po-tb-rev-order" style="padding: 4px 6px;" title="Đảo ngược thứ tự">⇅</button>
                 </div>
                 <div class="po-tool-group">
                     <button class="po-tool-btn" id="po-tb-reset">🔄 Làm mới</button>
@@ -346,6 +354,53 @@ class PDFOrganizer {
         initUpload.ondrop = e => { e.preventDefault(); this.handleFiles(e.dataTransfer.files, 0); };
         fileIn.onchange = e => this.handleFiles(e.target.files, 0);
 
+        document.getElementById('po-tb-sel-apply').onclick = () => {
+            const val = document.getElementById('po-tb-sel-range').value.replace(/ /g,'');
+            if(!val) return;
+            const ranges = val.split(',');
+            const toSelect = new Set();
+            for(let r of ranges) {
+                if(r.includes('-')) {
+                    let [s, e] = r.split('-').map(Number);
+                    if(!isNaN(s) && !isNaN(e)) {
+                        for(let i=Math.min(s,e); i<=Math.max(s,e); i++) toSelect.add(i);
+                    }
+                } else {
+                    let n = Number(r);
+                    if(!isNaN(n)) toSelect.add(n);
+                }
+            }
+            this.pages.forEach((p, i) => p.selected = toSelect.has(i + 1));
+            this.updateSelection();
+            this.renderGrid();
+        };
+        document.getElementById('po-tb-sel-even').onclick = () => {
+            this.pages.forEach((p, i) => p.selected = ((i + 1) % 2 === 0));
+            this.updateSelection();
+            this.renderGrid();
+        };
+        document.getElementById('po-tb-sel-odd').onclick = () => {
+            this.pages.forEach((p, i) => p.selected = ((i + 1) % 2 !== 0));
+            this.updateSelection();
+            this.renderGrid();
+        };
+        document.getElementById('po-tb-sel-inv').onclick = () => {
+            this.pages.forEach(p => p.selected = !p.selected);
+            this.updateSelection();
+            this.renderGrid();
+        };
+        document.getElementById('po-tb-rev-order').onclick = () => {
+            const selIndices = this.pages.map((p, i) => p.selected ? i : -1).filter(i => i !== -1);
+            if (selIndices.length < 2) return;
+            const selPages = selIndices.map(i => this.pages[i]);
+            selPages.reverse();
+            selIndices.forEach((origIdx, arrIdx) => {
+                this.pages[origIdx] = selPages[arrIdx];
+            });
+            this.pushHistory();
+            this.renderGrid();
+        };
+        
         document.getElementById('po-tb-reset').onclick = () => {
             if (confirm('Bạn có chắc chắn muốn làm mới (khôi phục tài liệu về trạng thái ban đầu)?')) {
                 if (this.history.length > 0) {
