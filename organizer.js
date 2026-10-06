@@ -44,7 +44,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=17';
+            link.href = 'organizer.css?v=18';
             document.head.appendChild(link);
         }
         
@@ -206,14 +206,15 @@ class PDFOrganizer {
 
     
     commitEdit(div) {
+        if (!div || div.contentEditable === 'false') return;
+        const newText = div.innerText.replace(/\n\s*\n/g, '\n').trim();
+        const blockId = div.dataset.id;
+        
         div.contentEditable = 'false';
         div.classList.remove('editing');
         const tb = document.getElementById('po-format-toolbar');
         if (tb) tb.style.display = 'none';
         this.activeEditDiv = null;
-        
-        const newText = div.innerText.replace(/\n\s*\n/g, '\n').trim();
-        const blockId = div.dataset.id;
         // find block
         const pData = this.pages.find(p => p.id === this.focusedPageId);
         if (!pData) return;
