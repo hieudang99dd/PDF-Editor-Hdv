@@ -61,18 +61,31 @@ canvas{width:100%;height:150px;border:1px solid var(--line);border-radius:8px;ba
 </head>
 <body>
 <header>
-  <button class="logo" id="logo">PDF Editor</button>
-  <div style="flex:1"></div>
+  <button class="logo" id="logo">PDF Hub</button>
+  <nav id="nav"></nav>
   <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
   <button class="btn" id="refresh-app" style="background:#4a5568">Làm mới</button>
 </header>
 
 <main id="home">
-  <section class="hero" style="padding-bottom:20px;text-align:center;">
-    <h1>Trình Chỉnh Sửa PDF</h1>
-    <p>Nén, gộp, cắt, chỉnh sửa nội dung tài liệu chuyên nghiệp.</p>
+  <section class="hero">
+    <h1>Xử lý PDF dễ hơn, chỉ vài thao tác.</h1>
+    <p>Nén, chuyển đổi, ghép, chỉnh sửa, ký tên và bảo vệ tài liệu ở cùng một nơi.</p>
+    <div class="search"><input id="q" type="search" placeholder="Tìm công cụ, ví dụ: nén, Word, ký…" aria-label="Tìm công cụ"></div>
   </section>
-  <div class="wrap"><div id="tools" style="max-width: 400px; margin: auto;"></div></div>
+  <div class="wrap"><div class="chips" id="chips"></div><div id="tools"></div></div>
+  <section class="band"><div class="in">
+    <div><h3>Làm việc trực tiếp trên tệp</h3><p>Thêm chữ, hình, hình dạng và chú thích tay vào tài liệu.</p></div>
+    <div><h3>Chữ ký điện tử dễ dàng</h3><p>Điền biểu mẫu, ký hợp đồng và theo dõi tiến trình ký.</p></div>
+    <div><h3>Tạo tài liệu hoàn chỉnh</h3><p>Nén tệp nặng, đổi định dạng, ghép, cắt và xóa trang thừa.</p></div>
+    <div><h3>File không rời khỏi máy bạn</h3><p>Xử lý ngay trong trình duyệt. Tài liệu của bạn là an toàn tuyệt đối.</p></div>
+  </div></section>
+  <section class="plans">
+    <div class="plan"><h3>Miễn phí</h3><ul><li>Dùng thử các công cụ cơ bản</li><li>Giới hạn số tác vụ mỗi ngày</li></ul></div>
+    <div class="plan"><h3>Pro</h3><ul><li>Không giới hạn tác vụ</li><li>Tệp lớn, OCR, xử lý hàng loạt</li></ul></div>
+    <div class="plan"><h3>Nhóm</h3><ul><li>Từ 2 đến 100 thành viên</li><li>Quản lý và chia sẻ tệp chung</li></ul></div>
+  </section>
+  <footer>Toàn bộ quá trình xử lý PDF diễn ra ngay trên trình duyệt của bạn. Các tính năng gắn nhãn "Sắp ra mắt" đang được phát triển.</footer>
 </main>
 
 <main id="ws">
@@ -82,54 +95,197 @@ canvas{width:100%;height:150px;border:1px solid var(--line);border-radius:8px;ba
 </main>
 <div id="toast" role="status"></div>
 <script>
-const $=s=>document.querySelector(s),C={'Chỉnh sửa':'#0f9d8a'};
+const $=s=>document.querySelector(s),C={'Nén':'#e8453c','Chuyển đổi':'#2f6fed','Sắp xếp':'#7a4fd6','Chỉnh sửa':'#0f9d8a','Ký & Bảo vệ':'#d98a00','AI PDF':'#c2388f','Quét':'#4a5568'};
+// [tên, mô tả, nhóm, biểu tượng, kiểu tùy chọn, loại tệp]
 const T=[
-['Chỉnh sửa PDF','Đọc, Xoay, Xóa, Sắp xếp, Chèn trang, Thêm chữ, Trích xuất, Gộp file PDF chuyên nghiệp.','Chỉnh sửa','✎','organize','.pdf']
-];
+['Giảm dung lượng PDF','Giảm kích cỡ tệp mà vẫn giữ chất lượng','Nén','⇲','compress','.pdf'],
+['Chuyển đổi PDF','Đổi PDF sang nhiều định dạng khác','Chuyển đổi','⇄','fmt','.pdf'],
+['PDF OCR','Nhận dạng chữ trên bản quét thành văn bản','Chuyển đổi','OCR','lang','.pdf'],
+['PDF sang PDF/A','Chuẩn lưu trữ lâu dài','Chuyển đổi','A','none','.pdf'],
+['PDF sang JPG','Tách mỗi trang thành ảnh JPG','Chuyển đổi','JPG','none','.pdf'],
+['PDF sang PNG','Tách mỗi trang thành ảnh PNG','Chuyển đổi','PNG','none','.pdf'],
+['JPG sang PDF','Đổi JPG, PNG, BMP, GIF, TIFF sang PDF','Chuyển đổi','▣','img','image/*'],
+['PDF sang Word','Tạo tài liệu Word có thể sửa','Chuyển đổi','W','none','.pdf'],
+['PDF sang Excel','Trích bảng thành bảng tính','Chuyển đổi','X','none','.pdf'],
+['PDF sang PPT','Đổi trang thành slide','Chuyển đổi','P','none','.pdf'],
+['Word sang PDF','Đổi DOC, DOCX sang PDF','Chuyển đổi','W','none','.doc,.docx'],
+['Excel sang PDF','Đổi XLS, XLSX sang PDF','Chuyển đổi','X','none','.xls,.xlsx'],
+['PPT sang PDF','Đổi PPT, PPTX sang PDF','Chuyển đổi','P','none','.ppt,.pptx'],
+['TXT, RTF, HTML, EPUB, CSV sang PDF','Đổi nhiều định dạng văn bản sang PDF','Chuyển đổi','T','none','.txt,.rtf,.html,.epub,.csv'],
+['Ghép PDF','Gộp nhiều tệp thành một','Sắp xếp','⊕','merge','.pdf'],
+['Cắt PDF','Tách tệp theo khoảng trang','Sắp xếp','✂','range','.pdf'],
+['Xoay PDF','Xoay toàn bộ hoặc từng trang','Sắp xếp','⟳','rot','.pdf'],
+['Xóa trang PDF','Bỏ các trang không cần','Sắp xếp','🗑','range','.pdf'],
+['Trích xuất trang','Lấy riêng một số trang','Sắp xếp','⇥','range','.pdf'],
+['Sắp xếp PDF','Kéo thả để đổi thứ tự trang','Sắp xếp','☰','organize','.pdf'],
+['Chỉnh sửa PDF','Sắp xếp, xoay, xóa, chèn trang (Thêm chữ/ảnh sắp ra mắt)','Chỉnh sửa','✎','organize','.pdf'],
+['Trình chú thích PDF','Tô sáng, gạch chân, vẽ tay','Chỉnh sửa','▬','none','.pdf'],
+['Trình đọc PDF','Xem và tìm kiếm trong tài liệu','Chỉnh sửa','👁','none','.pdf'],
+['Đánh số trang','Thêm số trang vào chân trang','Chỉnh sửa','#','pnum','.pdf'],
+['Cắt lề PDF','Cắt bớt viền trang','Chỉnh sửa','⌗','none','.pdf'],
+['Biên tập lại (che thông tin)','Che vĩnh viễn nội dung nhạy cảm','Chỉnh sửa','█','none','.pdf'],
+['Watermark PDF','Chèn chữ mờ lên mọi trang','Chỉnh sửa','◍','wm','.pdf'],
+['Điền biểu mẫu PDF','Nhập vào các trường của biểu mẫu','Chỉnh sửa','▤','none','.pdf'],
+['Chia sẻ PDF','Tạo liên kết chia sẻ tài liệu','Chỉnh sửa','↗','none','.pdf'],
+['Ký tên vào PDF','Vẽ hoặc nhập chữ ký rồi chèn','Ký & Bảo vệ','✍','sign','.pdf'],
+['Yêu cầu chữ ký','Gửi tài liệu cho người khác ký','Ký & Bảo vệ','✉','mail','.pdf'],
+['Mở khóa PDF','Gỡ mật khẩu khỏi tệp','Ký & Bảo vệ','🔓','pass','.pdf'],
+['Bảo vệ PDF','Đặt mật khẩu cho tệp','Ký & Bảo vệ','🔒','pass2','.pdf'],
+['Làm phẳng PDF','Gộp chú thích và biểu mẫu vào trang','Ký & Bảo vệ','▭','none','.pdf'],
+['Trò chuyện với PDF','Hỏi đáp về nội dung tài liệu','AI PDF','AI','chat','.pdf'],
+['Tóm tắt PDF','Rút gọn tài liệu dài','AI PDF','Σ','none','.pdf'],
+['Dịch PDF','Dịch tài liệu sang ngôn ngữ khác','AI PDF','文','lang2','.pdf'],
+['Tạo câu hỏi','Sinh câu hỏi ôn tập từ tài liệu','AI PDF','?','none','.pdf'],
+['Trình quét PDF','Chụp giấy tờ thành PDF','Quét','⎙','img','image/*']];
 let cat='Tất cả',tool=null,files=[];
 const cats=['Tất cả',...Object.keys(C)];
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2200)}
-
-function home(){
- $('#chips').innerHTML='';
- let h=`<h2 class="cat">Chỉnh sửa PDF</h2><div class="grid"><button class="tool" data-i="0"><div class="ic" style="background:#0f9d8a">✎</div><div style="flex:1"><b>Chỉnh sửa PDF</b><span>Đọc, Xoay, Xóa, Sắp xếp, Chèn trang, Thêm chữ, Trích xuất, Gộp file PDF chuyên nghiệp.</span></div></button></div>`;
- $('#tools').innerHTML=h;
-}
-
+function home(){const q=$('#q').value.trim().toLowerCase();
+ $('#chips').innerHTML=cats.map(c=>`<button class="chip ${c==cat?'on':''}" data-c="${c}">${c}</button>`).join('');
+ let h='';for(const c of Object.keys(C)){if(cat!='Tất cả'&&cat!=c)continue;
+  const l=T.map((t,i)=>[t,i]).filter(([t])=>t[2]==c&&(t[0]+t[1]).toLowerCase().includes(q));if(!l.length)continue;
+  h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
+   const isSim = !['merge', 'range', 'rot', 'organize'].includes(t[4]);
+   const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` : '';
+   return `<button class="tool" data-i="${i}"><div class="ic" style="background:${C[c]}">${t[3]}</div><div style="flex:1"><b>${t[0]}</b><span>${t[1]}</span></div>${badge}</button>`;
+  }).join('')+`</div>`}
+ $('#tools').innerHTML=h||'<p style="color:var(--mute)">Không tìm thấy công cụ phù hợp. Thử từ khóa khác.</p>'}
+$('#nav').innerHTML=['Nén','Chuyển đổi','Sắp xếp','Chỉnh sửa','Ký & Bảo vệ','AI PDF'].map(c=>`<button data-nav="${c}">${c}</button>`).join('');
 const sz=b=>b>1e6?(b/1e6).toFixed(1)+' MB':Math.max(1,Math.round(b/1e3))+' KB';
-
+const OPT={
+ compress:`<label>Mức nén</label><div class="r"><label><input type="radio" name="lv" checked> Cơ bản (giữ chất lượng cao)</label><label><input type="radio" name="lv"> Mạnh (nhỏ nhất)</label></div>`,
+ fmt:`<label>Định dạng đầu ra<select><option>Word (.docx)</option><option>Excel (.xlsx)</option><option>PowerPoint (.pptx)</option><option>JPG</option><option>PNG</option><option>PDF/A</option></select></label>`,
+ lang:`<label>Ngôn ngữ trong tài liệu<select><option>Tiếng Việt</option><option>English</option><option>日本語</option></select></label>`,
+ lang2:`<label>Dịch sang<select><option>Tiếng Việt</option><option>English</option><option>Français</option><option>中文</option></select></label>`,
+ img:`<div class="r"><label>Khổ giấy<select><option>A4</option><option>Letter</option><option>Vừa với ảnh</option></select></label><label>Hướng<select><option>Dọc</option><option>Ngang</option></select></label></div>`,
+ merge:`<label>Kéo bằng nút ↑ ↓ trong danh sách để đổi thứ tự tệp. Cần ít nhất 2 tệp.</label>`,
+ range:`<label>Trang cần xử lý (ví dụ: 1-3, 5, 8-10)<input type="text" id="rg" placeholder="1-3, 5"></label>`,
+ rot:`<div class="r"><label><input type="radio" name="r" checked> 90° phải</label><label><input type="radio" name="r"> 90° trái</label><label><input type="radio" name="r"> 180°</label></div>`,
+ pnum:`<div class="r"><label>Vị trí<select><option>Giữa, dưới</option><option>Phải, dưới</option><option>Trái, dưới</option></select></label><label>Bắt đầu từ<input type="text" value="1" style="width:70px"></label></div>`,
+ wm:`<label>Nội dung hình mờ<input type="text" value="BẢN NHÁP"></label><label>Độ mờ<input type="range" min="10" max="90" value="30"></label>`,
+ pass:`<label>Mật khẩu hiện tại<input type="password" id="pw"></label>`,
+ pass2:`<label>Mật khẩu mới<input type="password" id="pw"></label><label>Nhập lại mật khẩu<input type="password" id="pw2"></label>`,
+ mail:`<label>Email người ký<input type="text" placeholder="ten@congty.vn"></label><label>Lời nhắn<input type="text" placeholder="Vui lòng ký trước thứ Sáu"></label>`,
+ sign:`<label>Vẽ chữ ký của bạn</label><canvas id="cv" width="760" height="300"></canvas><div class="r"><button class="btn g" id="clr">Xóa chữ ký</button></div>`,
+ chat:`<label>Câu hỏi về tài liệu<input type="text" placeholder="Ví dụ: Điều khoản thanh toán là gì?"></label>`,
+ none:''};
 function openTool(i){tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
- $('#wt').textContent=tool[0];$('#wd').textContent='';render()}
-
-function render(){
- let h=`<div class="drop" id="dz"><button class="btn" id="pick">Chọn tệp</button><p>hoặc kéo thả tệp vào đây (${tool[5]})</p><input type="file" id="fi" hidden accept="${tool[5]}" multiple></div>`;
+ $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render()}
+function render(){const o=OPT[tool[4]]||'',multi=tool[4]=='merge'||tool[5].includes('image');
+ let h=`<div class="drop" id="dz"><button class="btn" id="pick">Chọn tệp</button><p>hoặc kéo thả tệp vào đây (${tool[5].replace(/,/g,', ')})</p><input type="file" id="fi" hidden accept="${tool[5]}" ${multi||tool[4]=='merge'?'multiple':''}></div>`;
  if(files.length){h+=`<ul class="files">`+files.map((f,k)=>`<li><span class="n">${f.name}</span><span class="s">${sz(f.size)}</span>${files.length>1?`<button data-m="${k}:-1" aria-label="Lên">↑</button><button data-m="${k}:1" aria-label="Xuống">↓</button>`:''}<button data-x="${k}" aria-label="Xóa">✕</button></li>`).join('')+`</ul>`;
-  h+=`<button class="btn" id="go">Mở Trình Chỉnh Sửa</button><div id="out"></div>`}
+  if(o)h+=`<div class="opts">${o}</div>`;
+  h+=`<button class="btn" id="go">${tool[0]}</button><div id="out"></div>`}
  $('#stage').innerHTML=h;
  const dz=$('#dz'),fi=$('#fi');$('#pick').onclick=()=>fi.click();fi.onchange=()=>add(fi.files);
  dz.ondragover=e=>{e.preventDefault();dz.classList.add('hov')};dz.ondragleave=()=>dz.classList.remove('hov');
  dz.ondrop=e=>{e.preventDefault();dz.classList.remove('hov');add(e.dataTransfer.files)};
- if($('#go'))$('#go').onclick=run;}
-
-function add(fl){files=[...files,...fl];render()}
-
+ if($('#go'))$('#go').onclick=run;if($('#cv'))canvas();}
+function add(fl){const m=tool[4]=='merge'||tool[5].includes('image');files=m?[...files,...fl]:[fl[0]];render()}
+function canvas(){const c=$('#cv'),x=c.getContext('2d');x.lineWidth=4;x.lineCap='round';x.strokeStyle='#1b2a6b';let d=0;
+ const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+ c.onpointerdown=e=>{d=1;c.setPointerCapture(e.pointerId);x.beginPath();x.moveTo(...p(e))};
+ c.onpointermove=e=>{if(d){x.lineTo(...p(e));x.stroke()}};c.onpointerup=()=>d=0;
+ $('#clr').onclick=()=>x.clearRect(0,0,c.width,c.height)}
 async function run(){
- if(typeof initOrganizer!=='function') return toast('Đang tải công cụ, vui lòng đợi...');
- $('#go').style.display='none';
- initOrganizer(files);
+ const k=tool[4];
+ if(k=='merge'&&files.length<2)return toast('Cần ít nhất 2 tệp để ghép');
+ if(k=='range'&&!$('#rg').value.trim())return toast('Nhập khoảng trang cần xử lý');
+ if(k=='pass2'&&(!$('#pw').value||$('#pw').value!=$('#pw2').value))return toast('Mật khẩu chưa khớp');
+ if(k=='pass'&&!$('#pw').value)return toast('Nhập mật khẩu hiện tại');
+ 
+ if(k=='organize'){
+  if(typeof initOrganizer!=='function') return toast('Đang tải công cụ, vui lòng đợi...');
+  $('#go').style.display='none';
+  initOrganizer(files);
+  return;
+ }
+ 
+ const b=$('#go');b.disabled=true;
+ $('#out').innerHTML=`<div class="bar"><i id="pb"></i></div><span style="color:var(--mute);font-size:13px" id="st">Đang xử lý trên trình duyệt...</span>`;
+ 
+ if(k=='merge'||k=='range'||k=='rot'){
+  try {
+   const { PDFDocument } = window.PDFLib;
+   let resultPdf = await PDFDocument.create();
+   
+   if(k=='merge') {
+    for(let f of files) {
+     const doc = await PDFDocument.load(await f.arrayBuffer());
+     const pages = await resultPdf.copyPages(doc, doc.getPageIndices());
+     pages.forEach(p => resultPdf.addPage(p));
+    }
+   } else if(k=='rot') {
+    const doc = await PDFDocument.load(await files[0].arrayBuffer());
+    const r = $('input[name="r"]:checked');
+    const angleText = r ? r.nextSibling.textContent.trim() : '90° phải';
+    let angle = 90;
+    if(angleText.includes('trái')) angle = -90;
+    else if(angleText.includes('180')) angle = 180;
+    
+    doc.getPages().forEach(p => {
+     p.setRotation(window.PDFLib.degrees(p.getRotation().angle + angle));
+    });
+    resultPdf = doc;
+   } else if(k=='range') {
+    const doc = await PDFDocument.load(await files[0].arrayBuffer());
+    const val = $('#rg').value.replace(/ /g,'').split(',');
+    const pagesToProcess = new Set();
+    for(let v of val) {
+     if(v.includes('-')) {
+      let [s, e] = v.split('-').map(Number);
+      for(let i=s; i<=e; i++) pagesToProcess.add(i);
+     } else pagesToProcess.add(Number(v));
+    }
+    const isDelete = tool[0].includes('Xóa');
+    const indicesToCopy = [];
+    doc.getPageIndices().forEach(i => {
+     const pageNum = i + 1;
+     if((!isDelete && pagesToProcess.has(pageNum)) || (isDelete && !pagesToProcess.has(pageNum))) {
+      indicesToCopy.push(i);
+     }
+    });
+    if(indicesToCopy.length === 0) throw new Error("Không còn trang nào sau khi xử lý");
+    const copied = await resultPdf.copyPages(doc, indicesToCopy);
+    copied.forEach(p => resultPdf.addPage(p));
+   }
+   
+   $('#pb').style.width = '80%';
+   const pdfBytes = await resultPdf.save();
+   const blob = new Blob([pdfBytes], {type: 'application/pdf'});
+   const url = URL.createObjectURL(blob);
+   
+   $('#pb').style.width = '100%';
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="processed.pdf">Tải xuống</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
+ 
+ if(!['merge', 'range', 'rot', 'organize'].includes(k)) {
+  $('#out').innerHTML=`<div class="res"><b>Tính năng sắp ra mắt</b><p style="margin:4px 0 0;font-size:13px;color:var(--mute)">Công cụ này đang được phát triển và sẽ sớm có mặt. Xin cảm ơn!</p></div>`;
+  b.disabled=false;
+  return;
+ }
 }
-
+function done(){const tot=files.reduce((a,f)=>a+f.size,0),k=tool[4];
+ const extra=k=='compress'?`Dung lượng giảm từ ${sz(tot)} còn khoảng ${sz(tot*.42)} (ước tính mô phỏng).`:`${files.length} tệp đã được xử lý.`;
+ $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> ${extra}<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="dl">Tải xuống</button><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+ $('#dl').onclick=()=>toast('Đây là giao diện mẫu, chưa tạo tệp thật');$('#again').onclick=()=>{files=[];render()};$('#go').disabled=false}
 function back(){$('#ws').style.display='none';$('#home').style.display='block';home()}
-
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.c){cat=b.dataset.c;home()}
+ if(b.dataset.nav){back();cat=b.dataset.nav;home();$('#tools').scrollIntoView()}
  if(b.dataset.i!=null&&b.classList.contains('tool'))openTool(+b.dataset.i);
  if(b.dataset.x!=null){files.splice(+b.dataset.x,1);render()}
  if(b.dataset.m){const[k,d]=b.dataset.m.split(':').map(Number),j=k+d;if(files[j]){[files[k],files[j]]=[files[j],files[k]];render()}}
- if(b.id=='logo'||b.id=='back'){back()}
+ if(b.id=='logo'||b.id=='back'){cat='Tất cả';back()}
  if(b.id=='theme'){const r=document.documentElement,dk=getComputedStyle(r).getPropertyValue('--bg').trim()=='#0f1220';r.dataset.theme=dk?'light':'dark'}
  if(b.id=='refresh-app')location.reload()});
-
-home();
+$('#q').oninput=home;home();
 </script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="organizer.js?v=18"></script>
