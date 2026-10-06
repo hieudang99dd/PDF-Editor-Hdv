@@ -1029,137 +1029,168 @@ class PDFOrganizer {
 
     
     groupTextItems(items, styles, transform, Util, W, H) {
-        let lines = [];
+        let processedItems = [];
         items.forEach((item, index) => {
             if (!item.str || item.str.trim() === '') return;
-            const t = Util.transform(transform, item.transform);
+            const t_vp = Util.transform(transform, item.transform);
             
             const scaleX = Math.abs(transform[0]) || 1;
             const scaleY = Math.abs(transform[3]) || 1;
             
-            let fontH = Math.hypot(t[2], t[3]);
-            if (fontH < 1 && item.height) fontH = item.height * scaleY;
+            let fontH = Math.hypot(t_vp[2], t_vp[3]);
+            if (fontH < scaleY * 1.5 && item.height) fontH = item.height * scaleY;
             if (fontH < 1) fontH = 10;
             
-            const left = t[4];
-            const top = t[5] - fontH;
+            const origin_vp = [t_vp[4], t_vp[5]];
+            const vecX_vp = [t_vp[0], t_vp[1]];
             
-            let width = item.width * scaleX;
-            if (width < 0.1) width = fontH * 0.5 * item.str.length;
+            const advanceScale_vp = Math.hypot(vecX_vp[0], vecX_vp[1]) || scaleX;
+            const angle_vp = Math.atan2(t_vp[1], t_vp[0]);
             
-            const right = left + width;
-            const bottom = top + fontH * 1.15;
+            const dir_vp = [Math.cos(angle_vp), Math.sin(angle_vp)];
+            const normal_vp = [-Math.sin(angle_vp), Math.cos(angle_vp)];
             
-            const pdfX = item.transform[4];
-            const pdfY = item.transform[5];
-            const pdfSize = fontH / scaleY;
-            const pdfWidth = width / scaleX;
+            const lenX_user = Math.hypot(item.transform[0], item.transform[1]) || 1;
+            const width_vp = (item.width / lenX_user) * advanceScale_vp;
             
-            const box = {
-                items: [ { ...item, index, left, top, right, bottom, width, fontH, pdfX, pdfY, pdfSize, pdfWidth } ],
-                left, top, right, bottom, fontH, pdfSize,
-                pdfMinX: pdfX, pdfMinY: pdfY, pdfMaxX: pdfX + pdfWidth, pdfMaxY: pdfY + pdfSize,
-                fontName: item.fontName, size: fontH
-            };
+            if (fontH < 0.1 || width_vp < 0.1) return;
             
+            processedItems.push({
+                ...item, index, t_vp, origin_vp, fontSize_vp: fontH, angle_vp, dir_vp, normal_vp, width_vp,
+                pdfX: item.transform[4], pdfY: item.transform[5],
+                pdfSize: Math.hypot(item.transform[2], item.transform[3]) || item.height || (fontH / scaleY)
+            });
+        });
+
+        let lines = [];
+        processedItems.forEach(box => {
             let merged = false;
             for (const l of lines) {
-                if (Math.abs(l.fontH - fontH) > fontH * 0.4) continue;
-                const vDist = Math.abs(l.top - top);
-                if (vDist < fontH * 0.5) { 
-                    let hClose = false;
-                    for (const ex of l.items) {
-                        const hGap = Math.max(0, Math.max(ex.left - right, left - ex.right));
-                        if (hGap < fontH * 2.5) { hClose = true; break; }
-                    }
-                    if (hClose) {
-                        l.items.push(box.items[0]);
-                        l.left = Math.min(l.left, box.left);
-                        l.top = Math.min(l.top, box.top);
-                        l.right = Math.max(l.right, box.right);
-                        l.bottom = Math.max(l.bottom, box.bottom);
-                        l.pdfMinX = Math.min(l.pdfMinX, box.pdfMinX);
-                        l.pdfMinY = Math.min(l.pdfMinY, box.pdfMinY);
-                        l.pdfMaxX = Math.max(l.pdfMaxX, box.pdfMaxX);
-                        l.pdfMaxY = Math.max(l.pdfMaxY, box.pdfMaxY);
-                        merged = true;
-                        break;
-                    }
-                }
-            }
-            if (!merged) lines.push(box);
-        });
-
-        lines.forEach(l => {
-            l.items.sort((a, b) => a.left - b.left);
-            let lineStr = "";
-            for (let i = 0; i < l.items.length; i++) {
-                if (i === 0) { lineStr += l.items[i].str; }
-                else {
-                    const gap = l.items[i].left - l.items[i-1].right;
-                    if (gap > l.fontH * 0.2) lineStr += " " + l.items[i].str;
-                    else lineStr += l.items[i].str;
-                }
-            }
-            l.text = lineStr;
-        });
-
-        lines.sort((a, b) => a.top - b.top);
-        
-        const blocks = [];
-        lines.forEach(line => {
-            let merged = false;
-            for (const b of blocks) {
-                if (Math.abs(b.fontH - line.fontH) > line.fontH * 0.4) continue;
+                if (Math.abs(box.angle_vp - l.angle_vp) > 0.05) continue;
+                if (Math.abs(box.fontSize_vp - l.fontSize_vp) > l.fontSize_vp * 0.3) continue;
                 
-                const lastLine = b.lineObjects[b.lineObjects.length - 1];
-                const vDist = Math.abs(line.top - lastLine.top);
+                const dx = box.origin_vp[0] - l.origin_vp[0];
+                const dy = box.origin_vp[1] - l.origin_vp[1];
+                const vDist = Math.abs(dx * l.normal_vp[0] + dy * l.normal_vp[1]);
                 
-                if (vDist > line.fontH * 0.2 && vDist < line.fontH * 3.0) {
-                    const leftAlign = Math.abs(lastLine.left - line.left) < line.fontH * 2.0;
-                    const rightAlign = Math.abs(lastLine.right - line.right) < line.fontH * 2.0;
-                    const centerAlign = Math.abs((lastLine.left + lastLine.right)/2 - (line.left + line.right)/2) < line.fontH * 2.0;
+                if (vDist <= l.fontSize_vp * 0.35) {
+                    const hStart = dx * l.dir_vp[0] + dy * l.dir_vp[1];
+                    const hEnd = hStart + box.width_vp;
+                    const gap = Math.max(0, Math.max(l.minH - hEnd, hStart - l.maxH));
                     
-                    const hOverlap = Math.min(lastLine.right, line.right) - Math.max(lastLine.left, line.left);
-                    const isOverlapping = hOverlap > line.fontH * 2;
-                    
-                    if (leftAlign || rightAlign || centerAlign || isOverlapping) {
-                        b.lineObjects.push(line);
-                        b.items.push(...line.items);
-                        b.left = Math.min(b.left, line.left);
-                        b.top = Math.min(b.top, line.top);
-                        b.right = Math.max(b.right, line.right);
-                        b.bottom = Math.max(b.bottom, line.bottom);
-                        b.pdfMinX = Math.min(b.pdfMinX, line.pdfMinX);
-                        b.pdfMinY = Math.min(b.pdfMinY, line.pdfMinY);
-                        b.pdfMaxX = Math.max(b.pdfMaxX, line.pdfMaxX);
-                        b.pdfMaxY = Math.max(b.pdfMaxY, line.pdfMaxY);
+                    if (gap <= l.fontSize_vp * 3.0) {
+                        l.items.push({ ...box, hStart, hEnd });
+                        l.minH = Math.min(l.minH, hStart);
+                        l.maxH = Math.max(l.maxH, hEnd);
                         merged = true;
                         break;
                     }
                 }
             }
             if (!merged) {
+                lines.push({
+                    items: [{ ...box, hStart: 0, hEnd: box.width_vp }],
+                    origin_vp: box.origin_vp, angle_vp: box.angle_vp, dir_vp: box.dir_vp, normal_vp: box.normal_vp,
+                    fontSize_vp: box.fontSize_vp, minH: 0, maxH: box.width_vp,
+                    pdfMinY: box.pdfY
+                });
+            }
+        });
+
+        lines.forEach(l => {
+            l.items.sort((a, b) => a.hStart - b.hStart);
+            let lineStr = "";
+            for (let i = 0; i < l.items.length; i++) {
+                if (i === 0) { lineStr += l.items[i].str; }
+                else {
+                    const gap = l.items[i].hStart - l.items[i-1].hEnd;
+                    if (gap > l.fontSize_vp * 0.2) lineStr += " " + l.items[i].str;
+                    else lineStr += l.items[i].str;
+                }
+            }
+            l.text = lineStr;
+        });
+
+        let blocks = [];
+        lines.forEach(line => {
+            let merged = false;
+            for (const b of blocks) {
+                if (Math.abs(b.angle_vp - line.angle_vp) > 0.05) continue;
+                if (Math.abs(b.fontSize_vp - line.fontSize_vp) > b.fontSize_vp * 0.3) continue;
+                
+                const dx_block = line.origin_vp[0] - b.origin_vp[0];
+                const dy_block = line.origin_vp[1] - b.origin_vp[1];
+                const vOffset = dx_block * b.normal_vp[0] + dy_block * b.normal_vp[1];
+                
+                const lastLine = b.lineObjects[b.lineObjects.length - 1];
+                const dx_last = line.origin_vp[0] - lastLine.origin_vp[0];
+                const dy_last = line.origin_vp[1] - lastLine.origin_vp[1];
+                const vDist = Math.abs(dx_last * b.normal_vp[0] + dy_last * b.normal_vp[1]);
+                
+                if (vDist > b.fontSize_vp * 0.5 && vDist < b.fontSize_vp * 3.0) {
+                    const hOffset = dx_block * b.dir_vp[0] + dy_block * b.dir_vp[1];
+                    const lineMinH = line.minH + hOffset;
+                    const lineMaxH = line.maxH + hOffset;
+                    
+                    const leftAlign = Math.abs(lastLine.minH_block - lineMinH) < b.fontSize_vp * 2.0;
+                    const rightAlign = Math.abs(lastLine.maxH_block - lineMaxH) < b.fontSize_vp * 2.0;
+                    const centerAlign = Math.abs((lastLine.minH_block + lastLine.maxH_block)/2 - (lineMinH + lineMaxH)/2) < b.fontSize_vp * 2.0;
+                    const hOverlap = Math.min(lastLine.maxH_block, lineMaxH) - Math.max(lastLine.minH_block, lineMinH);
+                    
+                    if (leftAlign || rightAlign || centerAlign || hOverlap > b.fontSize_vp * 2) {
+                        line.minH_block = lineMinH; line.maxH_block = lineMaxH;
+                        b.lineObjects.push(line);
+                        b.items.push(...line.items);
+                        b.minH = Math.min(b.minH, lineMinH);
+                        b.maxH = Math.max(b.maxH, lineMaxH);
+                        b.minV = Math.min(b.minV, vOffset - line.fontSize_vp);
+                        b.maxV = Math.max(b.maxV, vOffset + line.fontSize_vp * 0.2);
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+            if (!merged) {
+                line.minH_block = line.minH; line.maxH_block = line.maxH;
                 blocks.push({
-                    ...line,
-                    lineObjects: [line],
-                    items: [...line.items]
+                    lineObjects: [line], items: [...line.items],
+                    origin_vp: line.origin_vp, angle_vp: line.angle_vp, dir_vp: line.dir_vp, normal_vp: line.normal_vp,
+                    fontSize_vp: line.fontSize_vp,
+                    minH: line.minH, maxH: line.maxH, minV: -line.fontSize_vp, maxV: line.fontSize_vp * 0.2
                 });
             }
         });
 
         blocks.forEach(b => {
             b.lineObjects.sort((a, c) => {
-                const vDist = a.top - c.top;
-                if (Math.abs(vDist) > a.fontH * 0.5) return vDist;
-                return a.left - c.left;
+                const dxA = a.origin_vp[0] - b.origin_vp[0]; const dyA = a.origin_vp[1] - b.origin_vp[1];
+                const vA = dxA * b.normal_vp[0] + dyA * b.normal_vp[1];
+                const dxC = c.origin_vp[0] - b.origin_vp[0]; const dyC = c.origin_vp[1] - b.origin_vp[1];
+                const vC = dxC * b.normal_vp[0] + dyC * b.normal_vp[1];
+                return vA - vC;
             });
             b.text = b.lineObjects.map(l => l.text).join('\n');
-            b.size = b.fontH; 
+            
+            const O = b.origin_vp;
+            const P1 = [ O[0] + b.minH * b.dir_vp[0] + b.minV * b.normal_vp[0], O[1] + b.minH * b.dir_vp[1] + b.minV * b.normal_vp[1] ];
+            
+            b.cssLeft = P1[0]; b.cssTop = P1[1];
+            b.cssWidth = b.maxH - b.minH; b.cssHeight = b.maxV - b.minV;
+            b.cssTransform = `rotate(${b.angle_vp}rad)`;
+            
+            let pdfMinX = Infinity, pdfMaxX = -Infinity, pdfMinY = Infinity, pdfMaxY = -Infinity;
+            b.items.forEach(i => {
+                pdfMinX = Math.min(pdfMinX, i.pdfX);
+                pdfMaxX = Math.max(pdfMaxX, i.pdfX + (i.width_vp / (Math.abs(transform[0]) || 1)));
+                pdfMinY = Math.min(pdfMinY, i.pdfY);
+                pdfMaxY = Math.max(pdfMaxY, i.pdfY + i.pdfSize);
+            });
+            b.pdfMinX = pdfMinX; b.pdfMaxX = pdfMaxX; b.pdfMinY = pdfMinY; b.pdfMaxY = pdfMaxY;
+            b.pdfSize = b.items[0].pdfSize;
+            b.size = b.fontSize_vp; 
         });
         return blocks;
     }
-
     async renderTextLayer(pdfPage, baseVp, pageData) {
         const layer = document.getElementById('po-text-layer');
         if (!layer) return;
