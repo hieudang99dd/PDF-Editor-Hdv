@@ -115,6 +115,22 @@ class PDFOrganizer {
                         <div id="po-preview-wrapper" style="position: relative; display: inline-block;">
                             <img id="po-preview-img" src="" style="display:none; vertical-align: top;">
                             <div id="po-text-layer" class="po-text-layer"></div>
+                            <div id="po-format-toolbar" style="display:none;">
+                                <select id="po-ft-font" title="Phông chữ">
+                                    <option value="sans-serif">Mặc định</option>
+                                    <option value="Arial, sans-serif">Arial</option>
+                                    <option value="'Times New Roman', serif">Times New Roman</option>
+                                    <option value="'Courier New', monospace">Courier New</option>
+                                </select>
+                                <input type="number" id="po-ft-size" style="width:45px" title="Cỡ chữ" />
+                                <input type="color" id="po-ft-color" title="Màu chữ" value="#000000" />
+                                <div class="toolbar-sep"></div>
+                                <button id="po-ft-align-left" title="Căn trái">⬅️</button>
+                                <button id="po-ft-align-center" title="Căn giữa">↔️</button>
+                                <button id="po-ft-align-right" title="Căn phải">➡️</button>
+                                <div class="toolbar-sep"></div>
+                                <button class="btn-primary" id="po-ft-done" title="Lưu thay đổi">✔ Xong</button>
+                            </div>
                         </div>
                     </div>
                     <div class="po-preview-toolbar" id="po-pv-tb" style="display:none;">
@@ -188,10 +204,84 @@ class PDFOrganizer {
         this.bindEvents();
     }
 
+    
+    commitEdit(div) {
+        div.contentEditable = 'false';
+        div.classList.remove('editing');
+        const tb = document.getElementById('po-format-toolbar');
+        if (tb) tb.style.display = 'none';
+        this.activeEditDiv = null;
+        
+        const newText = div.innerText.replace(/\n\s*\n/g, '\n').trim();
+        const blockId = div.dataset.id;
+        // find block
+        const pData = this.pages.find(p => p.pageIndex === this.focusedPageId);
+        if (!pData) return;
+        
+        pData.textEdits = pData.textEdits.filter(e => e.id !== blockId);
+        // Compare with original block text? It's stored in div initially but hard to retrieve here.
+        // We just always save if it was edited.
+        pData.textEdits.push({
+            id: blockId,
+            newText,
+            x: parseFloat(div.dataset.pdfMinX),
+            y: parseFloat(div.dataset.pdfMaxY),
+            size: parseFloat(div.dataset.pdfSize) || 12,
+            width: parseFloat(div.dataset.pdfMaxX) - parseFloat(div.dataset.pdfMinX),
+            height: parseFloat(div.dataset.pdfMaxY) - parseFloat(div.dataset.pdfMinY),
+            align: div.dataset.align || 'left',
+            color: div.dataset.color || '#000000',
+            fontFamily: div.dataset.fontFamily || 'sans-serif'
+        });
+        div.classList.add('edited');
+        this.updateTextEditState();
+    }
+
+
     bindEvents() {
         if (!window.showSaveFilePicker) {
             const pickerLbl = document.getElementById('po-save-mode-picker-lbl');
             if (pickerLbl) pickerLbl.style.display = 'none';
+        }
+
+        
+        const tb = document.getElementById('po-format-toolbar');
+        if (tb) {
+            document.getElementById('po-ft-size').addEventListener('input', e => {
+                if (this.activeEditDiv) {
+                    this.activeEditDiv.dataset.pdfSize = e.target.value;
+                    // Tạm thời ko đổi fontSize UI vì nó theo % của viewport, phức tạp. Chỉ lưu data để save.
+                }
+            });
+            document.getElementById('po-ft-color').addEventListener('input', e => {
+                if (this.activeEditDiv) {
+                    this.activeEditDiv.dataset.color = e.target.value;
+                    this.activeEditDiv.style.color = e.target.value;
+                }
+            });
+            document.getElementById('po-ft-font').addEventListener('change', e => {
+                if (this.activeEditDiv) {
+                    this.activeEditDiv.dataset.fontFamily = e.target.value;
+                    this.activeEditDiv.style.fontFamily = e.target.value;
+                }
+            });
+            ['left', 'center', 'right'].forEach(a => {
+                document.getElementById('po-ft-align-' + a).addEventListener('click', () => {
+                    if (this.activeEditDiv) {
+                        this.activeEditDiv.dataset.align = a;
+                        this.activeEditDiv.style.textAlign = a;
+                        ['left', 'center', 'right'].forEach(x => document.getElementById('po-ft-align-' + x).classList.remove('btn-active'));
+                        document.getElementById('po-ft-align-' + a).classList.add('btn-active');
+                    }
+                });
+            });
+            document.getElementById('po-ft-done').addEventListener('click', () => {
+                if (this.activeEditDiv) {
+                    const div = this.activeEditDiv;
+                    div.blur(); // this will trigger commit if not handled
+                    this.commitEdit(div);
+                }
+            });
         }
 
         window.addEventListener('beforeunload', e => {
@@ -997,37 +1087,69 @@ class PDFOrganizer {
                 const firstItem = block.items[0];
                 div.style.fontFamily = firstItem.fontName && textContent.styles[firstItem.fontName] ? textContent.styles[firstItem.fontName].fontFamily : 'sans-serif';
                 div.textContent = edited ? edited.newText : block.text;
+                
                 div.dataset.id = blockId;
+                div.dataset.pdfMinX = block.pdfMinX;
+                div.dataset.pdfMaxY = block.pdfMaxY;
+                div.dataset.pdfMinY = block.pdfMinY;
+                div.dataset.pdfMaxX = block.pdfMaxX;
+                div.dataset.pdfSize = edited ? edited.size : block.pdfSize;
+                div.dataset.align = edited ? edited.align : 'left'; // Basic extraction can be added later
+                div.dataset.color = edited ? edited.color : '#000000';
+                div.dataset.fontFamily = edited ? edited.fontFamily : 'sans-serif';
+                if (edited) {
+                    div.style.textAlign = edited.align;
+                    div.style.color = edited.color;
+                    div.style.fontFamily = edited.fontFamily;
+                }
                 div.spellcheck = false;
+
                 div.addEventListener('mousedown', e => { if (this.isTextMode) e.stopPropagation(); });
+                
                 div.addEventListener('click', (e) => {
                     if (!this.isTextMode) return;
                     e.stopPropagation();
                     div.contentEditable = 'true';
                     div.classList.add('editing');
                     div.focus();
+                    
+                    const tb = document.getElementById('po-format-toolbar');
+                    if (tb) {
+                        tb.style.display = 'flex';
+                        const rect = div.getBoundingClientRect();
+                        const wrapperRect = document.getElementById('po-preview-wrapper').getBoundingClientRect();
+                        tb.style.top = Math.max(0, rect.top - wrapperRect.top - 45) + 'px';
+                        tb.style.left = (rect.left - wrapperRect.left) + 'px';
+                        
+                        document.getElementById('po-ft-size').value = Math.round(parseFloat(div.dataset.pdfSize) || block.pdfSize);
+                        document.getElementById('po-ft-color').value = div.dataset.color || '#000000';
+                        document.getElementById('po-ft-font').value = div.dataset.fontFamily || 'sans-serif';
+                        
+                        const align = div.dataset.align || 'left';
+                        ['left', 'center', 'right'].forEach(a => {
+                            const btn = document.getElementById('po-ft-align-' + a);
+                            if (a === align) btn.classList.add('btn-active');
+                            else btn.classList.remove('btn-active');
+                        });
+                        this.activeEditDiv = div;
+                    }
                 });
                 div.addEventListener('keydown', (e) => {
                     e.stopPropagation();
-                    if (e.key === 'Escape') { e.preventDefault(); div.blur(); }
-                });
-                div.addEventListener('blur', () => {
-                    div.contentEditable = 'false';
-                    div.classList.remove('editing');
-                    const newText = div.innerText.replace(/\n\s*\n/g, '\n').trim();
-                    pageData.textEdits = pageData.textEdits.filter(e => e.id !== blockId);
-                    if (newText !== block.text) {
-                        pageData.textEdits.push({ 
-                            id: blockId, newText, 
-                            x: block.pdfMinX, y: block.pdfMaxY, size: block.pdfSize, 
-                            width: block.pdfMaxX - block.pdfMinX, height: block.pdfMaxY - block.pdfMinY
-                        });
-                        div.classList.add('edited');
-                    } else {
-                        div.classList.remove('edited');
+                    if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { 
+                        e.preventDefault(); 
+                        div.blur();
+                        this.commitEdit(div);
                     }
-                    this.updateTextEditState();
                 });
+                div.addEventListener('blur', (e) => {
+                    const tb = document.getElementById('po-format-toolbar');
+                    if (tb && tb.contains(e.relatedTarget)) {
+                        return; // focus moved to toolbar
+                    }
+                    this.commitEdit(div);
+                });
+
                 layer.appendChild(div);
             });
         } catch(e) {
@@ -1598,6 +1720,7 @@ class PDFOrganizer {
                     const blockBottom = edit.y - edit.height;
                     const rectY = blockBottom - size * 0.28;
                     const rectH = edit.height + size * 0.5;
+console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
                     targetPage.drawRectangle({
                         x: edit.x - 2,
                         y: rectY,
@@ -1607,15 +1730,57 @@ class PDFOrganizer {
                     });
                     
                     if (edit.newText) {
-                        targetPage.drawText(edit.newText, {
-                            x: edit.x, 
-                            y: blockTop - size, // baseline dòng đầu
-                            size: size, 
-                            font: editFont,
-                            color: window.PDFLib.rgb(0, 0, 0),
-                            maxWidth: edit.width + 10,
-                            lineHeight: size * 1.2
-                        });
+                        const hex = edit.color || '#000000';
+                        const r = parseInt(hex.slice(1,3), 16)/255 || 0;
+                        const g = parseInt(hex.slice(3,5), 16)/255 || 0;
+                        const b = parseInt(hex.slice(5,7), 16)/255 || 0;
+                        
+                        // Xử lý xuống dòng tự động & căn lề
+                        const lines = edit.newText.split('\\n');
+                        const lineHeight = size * 1.2;
+                        let currentY = blockTop - size;
+                        
+                        // Để đơn giản, giả sử người dùng gõ xuống dòng bằng Enter.
+                        // Nếu cần tự động ngắt dòng, ta có thể viết hàm wrap nhỏ, nhưng hiện tại lấy theo dòng.
+                        // Trải nghiệm tốt nhất là wrap qua các từ.
+                        const words = edit.newText.replace(/\n/g, ' \n ').split(' ');
+                        let wrappedLines = [];
+                        let currentLine = '';
+                        for (let w of words) {
+                            if (w === '\n') {
+                                wrappedLines.push(currentLine.trim());
+                                currentLine = '';
+                                continue;
+                            }
+                            const testLine = currentLine ? currentLine + ' ' + w : w;
+                            const tw = editFont.widthOfTextAtSize(testLine, size);
+                            if (tw > edit.width && currentLine !== '') {
+                                wrappedLines.push(currentLine.trim());
+                                currentLine = w;
+                            } else {
+                                currentLine = testLine;
+                            }
+                        }
+                        if (currentLine) wrappedLines.push(currentLine.trim());
+
+                        for (const line of wrappedLines) {
+                            const tw = editFont.widthOfTextAtSize(line, size);
+                            let drawX = edit.x;
+                            if (edit.align === 'center') {
+                                drawX = edit.x + (edit.width - tw) / 2;
+                            } else if (edit.align === 'right') {
+                                drawX = edit.x + edit.width - tw;
+                            }
+                            
+                            targetPage.drawText(line, {
+                                x: drawX,
+                                y: currentY,
+                                size: size,
+                                font: editFont,
+                                color: window.PDFLib.rgb(r, g, b)
+                            });
+                            currentY -= lineHeight;
+                        }
                     }
                 }
             }
