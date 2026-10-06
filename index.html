@@ -315,8 +315,12 @@ async function run(){
    pBar.style.width = progress + '%';
    if(progress >= 100) {
     clearInterval(timer);
+    const file = files[0];
+    const blobUrl = URL.createObjectURL(file);
+    const fileName = file.name;
     const fakeUrl = "https://pdfhub.local/share/doc_" + Math.random().toString(36).substring(2, 9);
-    $('#out').innerHTML = `<div class="res" style="text-align:center;"><b>Tạo mã QR thành công!</b><p style="color:var(--mute); font-size:13px; margin-bottom:12px;">Quét mã bên dưới bằng camera điện thoại để tải tài liệu:</p><div id="qr-code" style="display:flex;justify-content:center;margin:16px 0;background:#fff;padding:16px;border-radius:12px;border:1px solid var(--line);width:max-content;margin-inline:auto;"></div><div style="background:var(--bg);padding:8px 12px;border-radius:6px;display:inline-block;border:1px solid var(--line);"><a href="${fakeUrl}" target="_blank" style="color:var(--acc);word-break:break-all;font-size:14px;text-decoration:none;font-weight:500;">${fakeUrl}</a></div><div style="margin-top:20px;display:flex;gap:8px;justify-content:center;"><button class="btn g" id="again">Tạo mã khác</button></div></div>`;
+    
+    $('#out').innerHTML = `<div class="res" style="text-align:center;"><b>Tạo mã QR thành công!</b><p style="color:var(--mute); font-size:13px; margin-bottom:12px;">(Lưu ý: Ứng dụng chưa có máy chủ để lưu file online. Nút bên dưới sẽ tải file trực tiếp trên trình duyệt này)</p><div id="qr-code" style="display:flex;justify-content:center;margin:16px 0;background:#fff;padding:16px;border-radius:12px;border:1px solid var(--line);width:max-content;margin-inline:auto;"></div><div style="background:var(--bg);padding:8px 12px;border-radius:6px;display:inline-block;border:1px solid var(--line);"><a href="${blobUrl}" download="shared_${fileName}" style="color:var(--acc);word-break:break-all;font-size:14px;text-decoration:none;font-weight:500;">⬇ Nhấn vào đây để tải tệp xuống (${fileName})</a></div><div style="margin-top:20px;display:flex;gap:8px;justify-content:center;"><button class="btn g" id="again">Tạo mã khác</button></div></div>`;
     const renderQR = () => new QRCode(document.getElementById("qr-code"), { text: fakeUrl, width: 180, height: 180, colorDark: "#1a1f36", colorLight: "#ffffff" });
     if (typeof QRCode === 'undefined') {
      const script = document.createElement('script');
