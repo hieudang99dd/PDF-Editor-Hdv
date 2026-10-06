@@ -1192,6 +1192,12 @@ class PDFOrganizer {
                 div.spellcheck = false;
 
                 div.addEventListener('mousedown', e => { if (this.isTextMode) e.stopPropagation(); });
+
+                div.addEventListener('paste', (e) => {
+                    e.preventDefault();
+                    const text = (e.originalEvent || e).clipboardData.getData('text/plain');
+                    document.execCommand('insertText', false, text);
+                });
                 
                 div.addEventListener('click', (e) => {
                     if (!this.isTextMode) return;
