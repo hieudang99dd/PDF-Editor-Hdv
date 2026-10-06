@@ -219,9 +219,34 @@ class PDFOrganizer {
 
         document.getElementById('po-tb-reset').onclick = () => {
             if (confirm('Bạn có chắc chắn muốn làm mới (khôi phục tài liệu về trạng thái ban đầu)?')) {
-                this.historyIndex = 0;
-                this.restoreState();
-                this.pushHistory(); // push the reset as a new state so it can be undone
+                if (this.history.length > 0) {
+                    const initialState = JSON.parse(this.history[0]);
+                    this.pages = initialState.map(p => {
+                        const cacheKey = p.type === 'blank' ? p.id : `${p.fileIndex}:${p.pageIndex}`;
+                        return {
+                            ...p,
+                            selected: false,
+                            dataUrl: this.thumbCache.get(cacheKey) || null
+                        };
+                    });
+                    
+                    // Force push this reverted state as a new history entry
+                    const snapshot = this.pages.map(p => ({
+                        id: p.id, type: p.type, fileIndex: p.fileIndex, pageIndex: p.pageIndex,
+                        rotation: p.rotation, width: p.width, height: p.height
+                    }));
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                    this.history.push(JSON.stringify(snapshot));
+                    this.historyIndex = this.history.length - 1;
+                    
+                    this.renderGrid();
+                    this.updateUndoRedo();
+                    this.updateStats();
+                    
+                    if (this.pages.length > 0) {
+                        this.focusPage(this.pages[0].id);
+                    }
+                }
             }
         };
         document.getElementById('po-tb-add-pdf').onclick = () => { this.insertIndex = this.pages.length; document.getElementById('po-insert-file').click(); };
