@@ -44,7 +44,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=18';
+            link.href = 'organizer.css?v=28';
             document.head.appendChild(link);
         }
         
@@ -750,6 +750,12 @@ class PDFOrganizer {
                                     ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
                                 });
                             }
+            
+            cvs.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                page.dataUrl = url;
+                this.thumbCache.set(cacheKey, url);
+                if (imgElement) imgElement.src = url;
             }, 'image/jpeg', 0.8);
         } catch (e) {
             console.error('Error rendering thumbnail', e);
