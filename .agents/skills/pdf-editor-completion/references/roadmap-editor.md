@@ -200,3 +200,4 @@ Với mỗi file đầu ra: mở bằng **Chrome PDF viewer** và **một trình
 | Nén PDF | Hạn chế | Chỉ nén lại ảnh (render → JPEG); phải báo rõ là sẽ mất lớp chữ |
 | Đặt/gỡ mật khẩu | Không với pdf-lib 1.17 | Cần thư viện khác (ví dụ qpdf-wasm); tạm gắn "Sắp ra mắt" |
 | Word/Excel/PPT ↔ PDF, PDF/A | Không đáng tin cậy | Gắn "Sắp ra mắt" |
+

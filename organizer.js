@@ -44,7 +44,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=28';
+            link.href = 'organizer.css?v=29';
             document.head.appendChild(link);
         }
         
@@ -141,8 +141,7 @@ class PDFOrganizer {
                         <button class="po-pv-btn" id="pv-next" title="Trang sau">&gt;</button>
                         <button class="po-pv-btn" id="pv-last" title="Trang cuối">&gt;|</button>
                         <div class="po-pv-toolbar-sep"></div>
-                        <button class="po-pv-btn" id="pv-zoom-out" title="Thu nhỏ">-</button>
-                        <button class="po-pv-btn" id="pv-zoom-in" title="Phóng to">+</button>
+                        <button class="po-pv-btn" id="pv-zoom-out" title="Thu nhỏ">-</button> <span id="pv-zoom-pct" style="font-size:13px; font-weight:600; min-width:45px; text-align:center; color:var(--po-text-light); user-select:none;">100%</span> <button class="po-pv-btn" id="pv-zoom-in" title="Phóng to">+</button>
                         <button class="po-pv-btn" id="pv-fit-w">Fit Width</button>
                         <button class="po-pv-btn" id="pv-fit-p">Fit Page</button>
                     </div>
@@ -461,22 +460,50 @@ class PDFOrganizer {
         pvCanvas.addEventListener('wheel', e => {
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault();
-                this.adjustZoom(e.deltaY < 0 ? 0.2 : -0.2);
+                const rect = pvCanvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                const zoomFactor = e.deltaY < 0 ? 1.2 : (1 / 1.2);
+                this.adjustZoomOrigin(zoomFactor, mouseX, mouseY);
             } else {
                 const isScrollable = pvCanvas.scrollHeight > pvCanvas.clientHeight + 10 || pvCanvas.scrollWidth > pvCanvas.clientWidth + 10;
                 if (!isScrollable) {
                     e.preventDefault();
                     if (wheelTimeout) return;
                     wheelTimeout = setTimeout(() => { wheelTimeout = null; }, 150);
-                    
-                    if (e.deltaY > 0) {
-                        this.navigateRelative(1);
-                    } else if (e.deltaY < 0) {
-                        this.navigateRelative(-1);
-                    }
+                    if (e.deltaY > 0) this.navigateRelative(1);
+                    else if (e.deltaY < 0) this.navigateRelative(-1);
                 }
             }
         }, { passive: false });
+
+        let spacePressed = false;
+        document.addEventListener('keydown', e => {
+            if (e.code === 'Space' && e.target === document.body) { spacePressed = true; e.preventDefault(); }
+        }, { signal: this.abort.signal });
+        document.addEventListener('keyup', e => {
+            if (e.code === 'Space') spacePressed = false;
+        }, { signal: this.abort.signal });
+
+        let isPanning = false, panStartX, panStartY, panScrollL, panScrollT;
+        pvCanvas.addEventListener('mousedown', e => {
+            if (e.button === 1 || (e.button === 0 && spacePressed)) {
+                isPanning = true;
+                panStartX = e.clientX; panStartY = e.clientY;
+                panScrollL = pvCanvas.scrollLeft; panScrollT = pvCanvas.scrollTop;
+                pvCanvas.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+        window.addEventListener('mousemove', e => {
+            if (!isPanning) return;
+            pvCanvas.scrollLeft = panScrollL - (e.clientX - panStartX);
+            pvCanvas.scrollTop = panScrollT - (e.clientY - panStartY);
+        }, { signal: this.abort.signal });
+        window.addEventListener('mouseup', () => {
+            isPanning = false;
+            pvCanvas.style.cursor = '';
+        }, { signal: this.abort.signal });
     }
 
     async loadScripts() {
@@ -1421,19 +1448,24 @@ class PDFOrganizer {
                         if (taskObj.cancelled) return;
                         
                         const container = document.getElementById('po-preview-canvas');
-                        const cw = container.clientWidth || 800;
+                                                const cw = container.clientWidth || 800;
                         const ch = container.clientHeight || 800;
+                        
                         const baseVp = pdfPage.getViewport({ scale: 1 });
+                        page.width = baseVp.width;
+                        page.height = baseVp.height;
+                        
                         this.renderTextLayer(pdfPage, baseVp, page);
                         
-                        const fitScale = Math.min(cw / baseVp.width, ch / baseVp.height);
-                        let targetScale = fitScale * (window.devicePixelRatio || 1) * Math.max(1, this.zoomLevel) * 2;
+                        const finalRot = (pdfPage.rotate + (page.rotation || 0) + 360) % 360;
+                        const rotVp = pdfPage.getViewport({ scale: 1, rotation: finalRot });
                         
-                        if (baseVp.width * targetScale > 4096 || baseVp.height * targetScale > 4096) {
-                            targetScale = Math.min(4096 / baseVp.width, 4096 / baseVp.height);
+                        let targetScale = (this.zoomLevel || 1) * (window.devicePixelRatio || 1);
+                        if (rotVp.width * targetScale > 4096 || rotVp.height * targetScale > 4096) {
+                            targetScale = Math.min(4096 / rotVp.width, 4096 / rotVp.height);
                         }
                         
-                        const vp = pdfPage.getViewport({ scale: targetScale });
+                        const vp = pdfPage.getViewport({ scale: targetScale, rotation: finalRot });
                         const cvs = document.createElement('canvas');
                         const ctx = cvs.getContext('2d');
                         cvs.width = vp.width; cvs.height = vp.height;
@@ -1520,31 +1552,43 @@ class PDFOrganizer {
         const page = this.pages.find(p => p.id === this.focusedPageId);
         if (!page) return;
 
-        let pw = page.width, ph = page.height;
-        if (!pw || !ph) { pw = img.naturalWidth || 595; ph = img.naturalHeight || 842; }
-        const rot = ((page.rotation % 360) + 360) % 360;
+        let pw = page.width || 595;
+        let ph = page.height || 842;
+        const rot = ((page.rotation || 0) % 360 + 360) % 360;
         const sideways = rot === 90 || rot === 270;
-        const boxW = sideways ? ph : pw, boxH = sideways ? pw : ph;
+        const boxW = sideways ? ph : pw;
+        const boxH = sideways ? pw : ph;
 
         const cs = getComputedStyle(container);
         const aw = Math.max(50, container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
         const ah = Math.max(50, container.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom));
-        const base = this.fitMode === 'width' ? aw / boxW : Math.min(aw / boxW, ah / boxH);
-        const s = base * (this.zoomLevel || 1);
-        const W = Math.round(boxW * s), H = Math.round(boxH * s);
+        
+        if (this.fitMode) {
+            const fitScale = this.fitMode === 'width' ? aw / boxW : Math.min(aw / boxW, ah / boxH);
+            this.zoomLevel = fitScale;
+            this.fitMode = null;
+            const pctEl = document.getElementById('pv-zoom-pct');
+            if (pctEl) pctEl.textContent = Math.round(this.zoomLevel * 100) + '%';
+        }
+
+        const W = Math.round(boxW * (this.zoomLevel || 1));
+        const H = Math.round(boxH * (this.zoomLevel || 1));
 
         wrapper.style.width = W + 'px';
         wrapper.style.height = H + 'px';
         wrapper.style.margin = 'auto';
         wrapper.style.flex = 'none';
+        
         Object.assign(img.style, {
             position: 'absolute', maxWidth: 'none', maxHeight: 'none',
-            width: (sideways ? H : W) + 'px', height: (sideways ? W : H) + 'px',
-            left: sideways ? ((W - H) / 2) + 'px' : '0', top: sideways ? ((H - W) / 2) + 'px' : '0',
-            transform: `rotate(${rot}deg)`
+            width: W + 'px', height: H + 'px',
+            left: '0', top: '0',
+            transform: 'none'
         });
-        // Lớp text chỉ khớp tọa độ khi trang không bị xoay
-        if (layer) layer.style.display = rot === 0 ? '' : 'none';
+        
+        if (layer) {
+            layer.style.display = rot === 0 ? '' : 'none';
+        }
     }
 
     navigateKeyboard(key) {
@@ -1584,14 +1628,42 @@ class PDFOrganizer {
     }
 
     adjustZoom(delta) {
-        this.zoomLevel = Math.max(0.2, Math.min(5, this.zoomLevel + delta));
-        this.focusPage(this.focusedPageId, delta > 0);
+        const factor = delta > 0 ? 1.2 : (1 / 1.2);
+        this.adjustZoomOrigin(factor);
+    }
+
+    adjustZoomOrigin(factor, mouseX, mouseY) {
+        if (!this.focusedPageId) return;
+        const container = document.getElementById('po-preview-canvas');
+        if (!container) return;
+
+        const oldZoom = this.zoomLevel || 1;
+        let newZoom = oldZoom * factor;
+        newZoom = Math.max(0.1, Math.min(10, newZoom));
+        this.zoomLevel = newZoom;
+
+        const pctEl = document.getElementById('pv-zoom-pct');
+        if (pctEl) pctEl.textContent = Math.round(this.zoomLevel * 100) + '%';
+
+        this.layoutPreview();
+
+        if (mouseX !== undefined && mouseY !== undefined) {
+            const scaleRatio = newZoom / oldZoom;
+            container.scrollLeft = (container.scrollLeft + mouseX) * scaleRatio - mouseX;
+            container.scrollTop = (container.scrollTop + mouseY) * scaleRatio - mouseY;
+        }
+
+        if (this.zoomTimeout) clearTimeout(this.zoomTimeout);
+        this.zoomTimeout = setTimeout(() => {
+            this.focusPage(this.focusedPageId, true);
+        }, 300);
     }
     
     setZoom(type) {
         this.fitMode = type === 'width' ? 'width' : 'page';
         this.zoomLevel = 1;
         this.layoutPreview();
+        this.focusPage(this.focusedPageId, true);
     }
 
     initSortable() {
@@ -2101,3 +2173,8 @@ window.initOrganizer = (files) => {
         org.handleFiles(files, 0);
     }
 };
+
+
+
+
+
