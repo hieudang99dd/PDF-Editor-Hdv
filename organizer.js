@@ -1038,28 +1038,63 @@ class PDFOrganizer {
             let merged = false;
             for (const b of blocks) {
                 if (Math.abs(b.pdfSize - pdfSize) > 4) continue;
-                const verticalDist = Math.abs(b.pdfMinY - pdfY);
-                if (verticalDist < pdfSize * 2.5) {
-                    const isSameLine = verticalDist < pdfSize * 0.5;
-                    const isNextLine = verticalDist >= pdfSize * 0.5 && verticalDist < pdfSize * 2.5;
-                    if (isSameLine || isNextLine) {
-                        b.items.push(box.items[0]);
-                        b.pdfMinX = Math.min(b.pdfMinX, box.pdfMinX);
-                        b.pdfMinY = Math.min(b.pdfMinY, box.pdfMinY);
-                        b.pdfMaxX = Math.max(b.pdfMaxX, box.pdfMaxX);
-                        b.pdfMaxY = Math.max(b.pdfMaxY, box.pdfMaxY);
-                        b.left = Math.min(b.left, box.left);
-                        b.top = Math.min(b.top, box.top);
-                        b.right = Math.max(b.right, box.right);
-                        b.bottom = Math.max(b.bottom, box.bottom);
-                        b.items.sort((a, c) => {
-                            if (Math.abs(a.pdfY - c.pdfY) > pdfSize * 0.5) return c.pdfY - a.pdfY;
-                            return a.pdfX - c.pdfX;
-                        });
-                        b.text = b.items.map(i => i.str).join(' ').replace(/\s+/g, ' ');
-                        merged = true;
-                        break;
+                
+                let isClose = false;
+                for (const existingItem of b.items) {
+                    const verticalDist = Math.abs(existingItem.pdfY - pdfY);
+                    if (verticalDist < pdfSize * 0.5) { // Same line
+                        const horizontalDist = pdfX - (existingItem.pdfX + existingItem.pdfWidth);
+                        if (horizontalDist > -pdfSize && horizontalDist < pdfSize * 3) {
+                            isClose = true;
+                            break;
+                        }
+                    } else if (verticalDist >= pdfSize * 0.5 && verticalDist < pdfSize * 2.5) { // Next line
+                        if (pdfX < existingItem.pdfX + existingItem.pdfWidth + pdfSize * 5 && (pdfX + pdfWidth) > existingItem.pdfX - pdfSize * 5) {
+                            isClose = true;
+                            break;
+                        }
                     }
+                }
+
+                if (isClose) {
+                    b.items.push(box.items[0]);
+                    b.pdfMinX = Math.min(b.pdfMinX, box.pdfMinX);
+                    b.pdfMinY = Math.min(b.pdfMinY, box.pdfMinY);
+                    b.pdfMaxX = Math.max(b.pdfMaxX, box.pdfMaxX);
+                    b.pdfMaxY = Math.max(b.pdfMaxY, box.pdfMaxY);
+                    b.left = Math.min(b.left, box.left);
+                    b.top = Math.min(b.top, box.top);
+                    b.right = Math.max(b.right, box.right);
+                    b.bottom = Math.max(b.bottom, box.bottom);
+                    
+                    b.items.sort((a, c) => {
+                        if (Math.abs(a.pdfY - c.pdfY) > pdfSize * 0.5) return c.pdfY - a.pdfY;
+                        return a.pdfX - c.pdfX;
+                    });
+                    
+                    let reconstructedText = "";
+                    for (let i = 0; i < b.items.length; i++) {
+                        const curr = b.items[i];
+                        if (i === 0) {
+                            reconstructedText += curr.str;
+                        } else {
+                            const prev = b.items[i-1];
+                            const vDist = Math.abs(curr.pdfY - prev.pdfY);
+                            if (vDist > pdfSize * 0.5) {
+                                reconstructedText += "\n" + curr.str;
+                            } else {
+                                const hDist = curr.pdfX - (prev.pdfX + prev.pdfWidth);
+                                if (hDist > pdfSize * 0.2) {
+                                    reconstructedText += " " + curr.str;
+                                } else {
+                                    reconstructedText += curr.str;
+                                }
+                            }
+                        }
+                    }
+                    b.text = reconstructedText;
+                    merged = true;
+                    break;
                 }
             }
             if (!merged) blocks.push(box);
