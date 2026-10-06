@@ -143,26 +143,31 @@ class PDFOrganizer {
                 <div class="po-modal">
                     <h3 class="po-modal-title">Lưu tài liệu thông minh</h3>
                     <div class="po-form-group">
+                        <label class="po-form-label">Thư mục lưu</label>
+                        <div class="po-input-group">
+                            <input type="text" id="po-save-dir" class="po-form-input" readonly placeholder="Chưa chọn thư mục (Lưu tải xuống mặc định)">
+                            <button class="po-tool-btn" id="po-save-pick-dir" style="border:1px solid var(--po-border)">Chọn thư mục</button>
+                        </div>
+                    </div>
+                    <div class="po-form-group">
                         <label class="po-form-label">Tên file</label>
                         <input type="text" id="po-save-filename" class="po-form-input">
                     </div>
-                    <div class="po-form-group" style="margin-top: 16px;">
-                        <label class="po-form-label">Phương thức lưu</label>
-                        <div style="display:flex; gap: 16px; margin-top: 8px;">
-                            <label style="display:flex; align-items:center; gap: 4px; font-size:14px; cursor:pointer;">
-                                <input type="radio" name="po-save-mode" value="download" checked> Tải xuống trực tiếp
-                            </label>
-                            <label style="display:flex; align-items:center; gap: 4px; font-size:14px; cursor:pointer;" id="po-save-mode-picker-lbl">
-                                <input type="radio" name="po-save-mode" value="picker"> Chọn vị trí lưu
-                            </label>
-                        </div>
+                    <div class="po-form-group">
+                        <label class="po-form-label">Đường dẫn đầy đủ</label>
+                        <div id="po-save-preview-path" style="font-size:12px; color:var(--po-text-muted); word-break:break-all; background:#f1f5f9; padding:8px; border-radius:4px;">Tải xuống thư mục mặc định của trình duyệt</div>
                     </div>
                     <div class="po-modal-footer">
                         <button class="po-tool-btn" id="po-save-cancel">Hủy</button>
-                        <button class="po-primary-btn" id="po-save-confirm">Thực hiện</button>
+                        <button class="po-primary-btn" id="po-save-confirm">Lưu file</button>
                     </div>
                 </div>
             </div>
+            <style>
+                .po-context-menu { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+                .po-menu-item { padding: 8px 16px; cursor: pointer; font-size: 13px; color: var(--po-text-main); border-radius: 4px; }
+                .po-menu-item:hover { background: var(--po-primary-light); color: var(--po-primary); }
+            </style>
         </div>
         `;
 
@@ -255,6 +260,21 @@ class PDFOrganizer {
         document.getElementById('po-save').onclick = () => this.showSaveModal();
         document.getElementById('po-save-cancel').onclick = () => document.getElementById('po-save-modal').classList.remove('active');
         document.getElementById('po-save-confirm').onclick = () => this.executeSave();
+        
+        const btnPickDir = document.getElementById('po-save-pick-dir');
+        if (btnPickDir) {
+            btnPickDir.onclick = async () => {
+                try {
+                    this.dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                    document.getElementById('po-save-dir').value = this.dirHandle.name;
+                    await this.checkOverwriteAndSuggest();
+                } catch(e) { console.log(e); }
+            };
+        }
+        const fileInput = document.getElementById('po-save-filename');
+        if (fileInput) {
+            fileInput.oninput = () => this.updatePathPreview();
+        }
 
         // Preview Toolbar
         document.getElementById('pv-zoom-in').onclick = () => this.adjustZoom(0.2);
@@ -755,6 +775,12 @@ class PDFOrganizer {
         grid.innerHTML = '';
         
         this.pages.forEach((p, i) => {
+            const insertBefore = document.createElement('div');
+            insertBefore.className = 'po-insert-point';
+            insertBefore.innerHTML = `<div class="po-insert-line"></div><div class="po-insert-btn" title="Chèn trang vào đây">+</div>`;
+            insertBefore.querySelector('.po-insert-btn').onclick = (e) => { e.stopPropagation(); this.showInsertMenu(e, i); };
+            grid.appendChild(insertBefore);
+
             const wrapper = document.createElement('div');
             wrapper.className = 'po-card-wrapper';
             wrapper.dataset.id = p.id;
@@ -794,6 +820,12 @@ class PDFOrganizer {
                 this.thumbObserver.observe(img);
             }
         });
+        
+        const insertAfter = document.createElement('div');
+        insertAfter.className = 'po-insert-point';
+        insertAfter.innerHTML = `<div class="po-insert-line"></div><div class="po-insert-btn" title="Chèn trang vào đây">+</div>`;
+        insertAfter.querySelector('.po-insert-btn').onclick = (e) => { e.stopPropagation(); this.showInsertMenu(e, this.pages.length); };
+        grid.appendChild(insertAfter);
         
         this.updateSelection();
         this.initSortable();
@@ -1028,14 +1060,14 @@ class PDFOrganizer {
             draggable: '.po-card-wrapper',
             ghostClass: 'sortable-ghost',
             onEnd: e => {
-                if (e.oldIndex !== e.newIndex) {
-                    const movedItem = this.pages.splice(e.oldIndex, 1)[0];
-                    this.pages.splice(e.newIndex, 0, movedItem);
+                const oldIdx = e.oldDraggableIndex !== undefined ? e.oldDraggableIndex : Math.floor(e.oldIndex / 2);
+                const newIdx = e.newDraggableIndex !== undefined ? e.newDraggableIndex : Math.floor(e.newIndex / 2);
+                
+                if (oldIdx !== newIdx) {
+                    const movedItem = this.pages.splice(oldIdx, 1)[0];
+                    this.pages.splice(newIdx, 0, movedItem);
                     this.pushHistory();
-                    
-                    // Update numbers directly without rebuilding DOM
-                    const nums = grid.querySelectorAll('.po-card-num');
-                    nums.forEach((el, i) => { el.textContent = i + 1; });
+                    this.renderGrid();
                 }
             }
         });
@@ -1054,7 +1086,90 @@ class PDFOrganizer {
     }
 
     /* --- Smart Save Logic --- */
-    showSaveModal() {
+    showInsertMenu(e, index) {
+        document.querySelectorAll('.po-context-menu').forEach(el => el.remove());
+        
+        const menu = document.createElement('div');
+        menu.className = 'po-context-menu';
+        menu.innerHTML = `
+            <div class="po-menu-item" id="menu-add-blank">📄 Chèn trang trắng</div>
+            <div class="po-menu-item" id="menu-add-pdf">📑 Chèn từ file PDF</div>
+        `;
+        menu.style.position = 'absolute';
+        menu.style.left = e.pageX + 'px';
+        menu.style.top = e.pageY + 'px';
+        menu.style.background = '#fff';
+        menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+        menu.style.borderRadius = '6px';
+        menu.style.padding = '4px';
+        menu.style.zIndex = '1000';
+        
+        document.body.appendChild(menu);
+        
+        menu.querySelector('#menu-add-blank').onclick = () => {
+            menu.remove();
+            this.addBlankPage(index);
+        };
+        menu.querySelector('#menu-add-pdf').onclick = () => {
+            menu.remove();
+            this.insertIndex = index;
+            document.getElementById('po-insert-file').click();
+        };
+        
+        setTimeout(() => {
+            const closeMenu = (evt) => {
+                if (!menu.contains(evt.target)) {
+                    menu.remove();
+                    document.removeEventListener('click', closeMenu);
+                }
+            };
+            document.addEventListener('click', closeMenu);
+        }, 10);
+    }
+    
+    updatePathPreview() {
+        const fname = document.getElementById('po-save-filename').value || 'document.pdf';
+        const pv = document.getElementById('po-save-preview-path');
+        if (this.dirHandle) {
+            pv.textContent = this.dirHandle.name + '\\\\' + fname;
+        } else {
+            pv.textContent = 'Tải xuống thư mục mặc định của trình duyệt: ' + fname;
+        }
+    }
+    
+    async checkOverwriteAndSuggest() {
+        if (!this.dirHandle) return;
+        let fname = document.getElementById('po-save-filename').value;
+        let base = fname.replace(/\.pdf$/i, '');
+        
+        try {
+            while (true) {
+                try {
+                    await this.dirHandle.getFileHandle(fname);
+                    // if no error, file exists!
+                    let match = base.match(/_v(\d+)$/);
+                    if (match) {
+                        base = base.replace(/_v\d+$/, '') + '_v' + (parseInt(match[1]) + 1);
+                    } else {
+                        base = base + '_v1';
+                    }
+                    fname = base + '.pdf';
+                } catch (e) {
+                    // file not found, this name is safe
+                    break;
+                }
+            }
+            if (fname !== document.getElementById('po-save-filename').value) {
+                alert('Tên file đã tồn tại! Tự động đề xuất version: ' + fname);
+                document.getElementById('po-save-filename').value = fname;
+            }
+            this.updatePathPreview();
+        } catch (e) {
+            console.error("Check overwrite error", e);
+        }
+    }
+
+    async showSaveModal() {
         let name = this.baseFilename;
         // Auto versioning regex logic
         let match = name.match(/_v(\d+)$/);
@@ -1065,6 +1180,10 @@ class PDFOrganizer {
         }
         
         document.getElementById('po-save-filename').value = name + '.pdf';
+        this.updatePathPreview();
+        if (this.dirHandle) {
+            await this.checkOverwriteAndSuggest();
+        }
         document.getElementById('po-save-modal').classList.add('active');
     }
 
