@@ -55,7 +55,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=33';
+            link.href = 'organizer.css?v=34';
             document.head.appendChild(link);
         }
         
@@ -108,6 +108,7 @@ class PDFOrganizer {
                 </div>
                 <div class="po-selection-text" id="po-sel-text" style="display:none;"></div>
             </div>
+            <div class="po-top-progress" id="po-top-progress"><div class="po-top-progress-fill" id="po-top-progress-fill"></div></div>
             
             <div id="po-edit-subbar" class="po-edit-subbar" style="display:none;">
                 <div class="po-tool-group">
@@ -154,13 +155,16 @@ class PDFOrganizer {
                         </div>
                         <div class="po-meta-changes" id="po-meta-changes"></div>
                         <div class="po-meta-deleted" id="po-meta-deleted">Lịch sử xóa: Không có</div>
-                        <div class="po-render-progress-container" id="po-render-progress-container" style="position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); width: 320px; background: #fff; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border: 1px solid #e2e8f0; z-index: 9999; display: none;">
-                            <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--po-text-muted); margin-bottom: 4px;">
-                                <span>Tiến trình tải trang:</span>
-                                <span id="po-render-progress-text">0%</span>
+                        <div class="po-render-progress-container" id="po-render-progress-container">
+                            <div class="po-render-progress-header">
+                                <span class="po-render-progress-label">
+                                    <span class="po-render-progress-dot"></span>
+                                    <span id="po-render-progress-status">Đang tải trang...</span>
+                                </span>
+                                <span id="po-render-progress-text" class="po-render-progress-text">0%</span>
                             </div>
-                            <div style="width: 100%; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden;">
-                                <div id="po-render-progress-fill" style="width: 0%; height: 100%; background: var(--po-primary); transition: width 0.3s ease;"></div>
+                            <div class="po-render-progress-track">
+                                <div id="po-render-progress-fill" class="po-render-progress-fill"></div>
                             </div>
                         </div>
                     </div>
@@ -1523,20 +1527,33 @@ class PDFOrganizer {
         const container = document.getElementById('po-render-progress-container');
         const fill = document.getElementById('po-render-progress-fill');
         const text = document.getElementById('po-render-progress-text');
+        const status = document.getElementById('po-render-progress-status');
+        const topBar = document.getElementById('po-top-progress');
+        const topFill = document.getElementById('po-top-progress-fill');
         if (!container || !fill || !text) return;
 
         if (total > 0 && loaded < total) {
             container.style.display = 'block';
+            container.classList.remove('completed');
             fill.style.width = `${pct}%`;
             text.textContent = `${pct}%${etaStr}`;
+            if (status) status.textContent = 'Đang tải trang...';
+            if (topBar && topFill) {
+                topBar.style.display = 'block';
+                topFill.style.width = `${pct}%`;
+            }
         } else if (loaded === total && total > 0) {
+            container.classList.add('completed');
             fill.style.width = `100%`;
-            text.textContent = `100% - Hoàn tất`;
+            text.textContent = `100%`;
+            if (status) status.textContent = 'Hoàn tất tải trang';
+            if (topFill) topFill.style.width = `100%`;
             setTimeout(() => {
-                if (document.getElementById('po-render-progress-text')?.textContent.includes('Hoàn tất')) {
+                if (document.getElementById('po-render-progress-container')?.classList.contains('completed')) {
                     container.style.display = 'none';
+                    if (topBar) topBar.style.display = 'none';
                 }
-            }, 2000);
+            }, 1800);
         }
     }
 
