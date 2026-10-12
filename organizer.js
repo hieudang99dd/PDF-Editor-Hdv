@@ -1317,6 +1317,7 @@ class PDFOrganizer {
             this.pushHistory();
             this.renderGrid();
             if (isFirstUpload && this.pages.length > 0) {
+                this.fitMode = 'page';
                 this.focusPage(this.pages[0].id);
             }
         } catch (err) {
@@ -1505,6 +1506,8 @@ class PDFOrganizer {
             const cvs = document.createElement('canvas');
             const ctx = cvs.getContext('2d');
             cvs.width = vp.width; cvs.height = vp.height;
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, cvs.width, cvs.height);
             
             const renderTask = pdfPage.render({ canvasContext: ctx, viewport: vp });
             this.activeThumbTasks.set(pageId, renderTask);
@@ -1777,6 +1780,7 @@ class PDFOrganizer {
             
             // Interaction
             card.onclick = e => this.handleCardClick(e, p, i);
+            wrapper.onclick = e => this.handleCardClick(e, p, i);
             
             const btnRotL = card.querySelector('.po-ca-rot-l');
             const btnRotR = card.querySelector('.po-ca-rot-r');
@@ -2280,14 +2284,18 @@ class PDFOrganizer {
                         const rotVp = pdfPage.getViewport({ scale: 1, rotation: finalRot });
                         
                         let targetScale = (this.zoomLevel || 1) * (window.devicePixelRatio || 1);
-                        if (rotVp.width * targetScale > 4096 || rotVp.height * targetScale > 4096) {
-                            targetScale = Math.min(4096 / rotVp.width, 4096 / rotVp.height);
+                        if (rotVp.width * targetScale > 3200 || rotVp.height * targetScale > 3200) {
+                            targetScale = Math.min(3200 / rotVp.width, 3200 / rotVp.height);
                         }
                         
                         const vp = pdfPage.getViewport({ scale: targetScale, rotation: finalRot });
                         const cvs = document.createElement('canvas');
                         const ctx = cvs.getContext('2d');
                         cvs.width = vp.width; cvs.height = vp.height;
+                        
+                        // Tô nền trắng trước khi vẽ để tránh tài liệu CAD/vector nền trong suốt bị đen hoặc lỗi
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, cvs.width, cvs.height);
                         
                         const renderTask = pdfPage.render({ canvasContext: ctx, viewport: vp });
                         taskObj.cancel = () => { taskObj.cancelled = true; renderTask.cancel(); };
@@ -2310,6 +2318,10 @@ class PDFOrganizer {
                             
                             cvs.toBlob(blob => {
                                 if (taskObj.cancelled || this.focusedPageId !== id) return;
+                                if (!blob) {
+                                    if (page.dataUrl) img.src = page.dataUrl;
+                                    return;
+                                }
                                 if (this.previewObjUrl) URL.revokeObjectURL(this.previewObjUrl);
                                 this.previewObjUrl = URL.createObjectURL(blob);
                                 img.src = this.previewObjUrl;
@@ -2323,9 +2335,12 @@ class PDFOrganizer {
                                     if (scale > 1) scale = 1;
                                     thumbCvs.width = cvs.width * scale;
                                     thumbCvs.height = cvs.height * scale;
+                                    thumbCtx.fillStyle = '#ffffff';
+                                    thumbCtx.fillRect(0, 0, thumbCvs.width, thumbCvs.height);
                                     thumbCtx.drawImage(cvs, 0, 0, thumbCvs.width, thumbCvs.height);
                                     
                                     thumbCvs.toBlob(thumbBlob => {
+                                        if (!thumbBlob) return;
                                         const thumbUrl = URL.createObjectURL(thumbBlob);
                                         page.dataUrl = thumbUrl;
                                         page.width = baseVp.width;
@@ -2346,6 +2361,9 @@ class PDFOrganizer {
                     }).catch(e => {
                         if (e.name !== 'RenderingCancelledException' && e.message !== 'Rendering cancelled.') {
                             console.error('Lỗi render high-res:', e);
+                            if (page.dataUrl && this.focusedPageId === id) {
+                                img.src = page.dataUrl;
+                            }
                         }
                     }).finally(() => {
                         if (this.previewTask && this.previewTask.cancel === taskObj.cancel) {
@@ -2385,10 +2403,14 @@ class PDFOrganizer {
         const aw = Math.max(50, container.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
         const ah = Math.max(50, container.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom));
         
-        if (this.fitMode) {
+        if (this.fitMode && container.clientWidth > 100) {
             const fitScale = this.fitMode === 'width' ? aw / boxW : Math.min(aw / boxW, ah / boxH);
-            this.zoomLevel = fitScale;
+            this.zoomLevel = Math.max(0.05, Math.min(5, fitScale));
             this.fitMode = null;
+            const pctEl = document.getElementById('pv-zoom-pct');
+            if (pctEl) pctEl.textContent = Math.round(this.zoomLevel * 100) + '%';
+        } else if (!this.zoomLevel && container.clientWidth > 100) {
+            this.zoomLevel = Math.max(0.05, Math.min(5, Math.min(aw / boxW, ah / boxH)));
             const pctEl = document.getElementById('pv-zoom-pct');
             if (pctEl) pctEl.textContent = Math.round(this.zoomLevel * 100) + '%';
         }
