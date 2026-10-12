@@ -76,7 +76,7 @@ class PDFOrganizer {
             
             <div class="po-toolbar">
                 <div class="po-tool-group">
-                    <button class="po-tool-btn" id="po-tb-add-pdf">📑 Chèn từ PDF</button>
+                    <button class="po-tool-btn po-btn-highlight" id="po-tb-add-pdf" style="font-weight:600; color:var(--po-primary); background:var(--po-primary-light);">➕ Thêm tệp / trang</button>
                     <button class="po-tool-btn" id="po-tb-dup" disabled>⧉ Nhân đôi</button>
                 </div>
                 <div class="po-tool-group">
@@ -501,7 +501,7 @@ class PDFOrganizer {
         document.getElementById('po-tb-edit-text').onclick = () => {
             this.toggleEditMode();
         };
-        document.getElementById('po-tb-add-pdf').onclick = () => { this.insertIndex = this.pages.length; document.getElementById('po-insert-file').click(); };
+        document.getElementById('po-tb-add-pdf').onclick = (e) => { this.showInsertMenu(e, this.pages.length); };
         document.getElementById('po-insert-file').onchange = e => this.handleFiles(e.target.files, this.insertIndex);
 
         document.getElementById('po-tb-rot-l').onclick = () => this.actionSelected(p => p.rotation = (p.rotation - 90) % 360);
@@ -1319,11 +1319,97 @@ class PDFOrganizer {
             if (isFirstUpload && this.pages.length > 0) {
                 this.fitMode = 'page';
                 this.focusPage(this.pages[0].id);
+            } else if (!isFirstUpload && newPages.length > 0) {
+                this.focusPage(newPages[0].id);
+                if (typeof toast === 'function') {
+                    toast(`Đã chèn thêm ${newPages.length} trang vào tài liệu`);
+                }
             }
         } catch (err) {
             console.error('Lỗi nạp tệp PDF:', err);
             this.hideLoading();
             alert('Không thể mở tệp PDF: ' + (err.message || 'Lỗi đọc tệp'));
+        }
+    }
+
+    async handleImages(fileList, insertAt) {
+        if (!fileList || !fileList.length) return;
+        const imgFiles = Array.from(fileList).filter(f => f.type.startsWith('image/') || /\.(jpe?g|png|webp|bmp)$/i.test(f.name));
+        if (!imgFiles.length) return alert('Vui lòng chọn tệp hình ảnh (JPG, PNG, WebP)');
+        
+        this.showLoading('Đang xử lý hình ảnh...');
+        try {
+            const isFirstUpload = (this.files.length === 0 && this.pages.length === 0);
+            if (isFirstUpload) {
+                this.baseFilename = imgFiles[0].name.replace(/\.[^.]+$/, '');
+                document.getElementById('po-meta-title').textContent = this.baseFilename;
+                document.getElementById('po-meta-info').textContent = `Ảnh | ${(imgFiles[0].size / (1024*1024)).toFixed(1)} MB`;
+                document.getElementById('po-initial-upload').style.display = 'none';
+                document.getElementById('po-ws').style.display = 'flex';
+            }
+            
+            const newPages = [];
+            for (let i = 0; i < imgFiles.length; i++) {
+                const f = imgFiles[i];
+                const dataUrl = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(f);
+                });
+                
+                const dims = await new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight });
+                    img.onerror = () => resolve({ w: 595, h: 842 });
+                    img.src = dataUrl;
+                });
+                
+                const pageId = 'pg_' + (this.pageCounter++);
+                const isPng = f.type === 'image/png' || f.name.toLowerCase().endsWith('.png');
+                
+                let ptW = dims.w;
+                let ptH = dims.h;
+                const maxDim = 1200;
+                if (ptW > maxDim || ptH > maxDim) {
+                    const s = Math.min(maxDim / ptW, maxDim / ptH);
+                    ptW = Math.round(ptW * s);
+                    ptH = Math.round(ptH * s);
+                }
+                
+                const pageObj = {
+                    id: pageId,
+                    type: 'image',
+                    width: ptW,
+                    height: ptH,
+                    rotation: 0,
+                    dataUrl: dataUrl,
+                    imgDataUrl: dataUrl,
+                    imgFormat: isPng ? 'png' : 'jpg',
+                    selected: false
+                };
+                
+                this.thumbCache.set(pageId, dataUrl);
+                newPages.push(pageObj);
+                this.updateProgress(((i + 1) / imgFiles.length) * 100);
+            }
+            
+            const idx = (insertAt !== undefined && insertAt !== null) ? insertAt : this.pages.length;
+            this.pages.splice(idx, 0, ...newPages);
+            this.hideLoading();
+            this.pushHistory();
+            this.renderGrid();
+            this.updateStats();
+            if (newPages.length > 0) {
+                this.focusPage(newPages[0].id);
+            }
+            if (typeof toast === 'function') {
+                toast(`Đã chèn thành công ${newPages.length} hình ảnh.`);
+            }
+        } catch (err) {
+            console.error('Lỗi nạp hình ảnh:', err);
+            this.hideLoading();
+            alert('Không thể chèn hình ảnh: ' + (err.message || 'Lỗi đọc tệp'));
         }
     }
 
@@ -1544,19 +1630,25 @@ class PDFOrganizer {
     addBlankPage(insertAt) {
         const pageId = 'pg_' + (this.pageCounter++);
         const cvs = document.createElement('canvas');
-        cvs.width = 400; cvs.height = 565;
+        cvs.width = 595; cvs.height = 842;
         const ctx = cvs.getContext('2d');
-        ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,400,565);
+        ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, 595, 842);
         const dataUrl = cvs.toDataURL();
         
         this.thumbCache.set(pageId, dataUrl);
         
-        this.pages.splice(insertAt, 0, {
+        const idx = (insertAt !== undefined && insertAt !== null) ? insertAt : this.pages.length;
+        this.pages.splice(idx, 0, {
             id: pageId, type: 'blank', width: 595, height: 842,
             rotation: 0, dataUrl: dataUrl, selected: false
         });
         this.pushHistory();
         this.renderGrid();
+        this.updateStats();
+        this.focusPage(pageId);
+        if (typeof toast === 'function') {
+            toast('Đã thêm 1 trang trắng');
+        }
     }
 
     pushHistory() {
@@ -1772,9 +1864,15 @@ class PDFOrganizer {
                 <div class="po-card-label">${p.type === 'blank' ? 'Trang trống' : 'Trang ' + (p.pageIndex + 1)}</div>
             
                 <div class="po-card-actions">
-                    <button class="po-ca-btn po-ca-rot-l" title="Xoay tr�i">?</button>
-                    <button class="po-ca-btn po-ca-rot-r" title="Xoay ph?i">?</button>
-                    <button class="po-ca-btn po-ca-del" title="X�a" style="color:var(--po-danger);">?</button>
+                    <button class="po-ca-btn po-ca-rot-l" title="Xoay trái">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                    </button>
+                    <button class="po-ca-btn po-ca-rot-r" title="Xoay phải">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+                    </button>
+                    <button class="po-ca-btn po-ca-del" title="Xóa trang" style="color:var(--po-danger);">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                    </button>
                 </div>
             `;
             
@@ -1817,6 +1915,24 @@ class PDFOrganizer {
         insertAfter.innerHTML = `<div class="po-insert-line"></div><div class="po-insert-btn" title="Chèn trang vào đây">+</div>`;
         insertAfter.querySelector('.po-insert-btn').onclick = (e) => { e.stopPropagation(); this.showInsertMenu(e, this.pages.length); };
         grid.appendChild(insertAfter);
+        
+        const addCardWrapper = document.createElement('div');
+        addCardWrapper.className = 'po-card-wrapper po-add-card-wrapper';
+        addCardWrapper.innerHTML = `
+            <div class="po-card po-add-card" id="po-add-page-card" title="Thêm trang mới hoặc chèn tệp PDF / ảnh">
+                <div class="po-add-card-inner">
+                    <div class="po-add-card-icon">
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    </div>
+                    <div class="po-add-card-text">Thêm tệp / trang</div>
+                </div>
+            </div>
+        `;
+        addCardWrapper.querySelector('.po-add-card').onclick = (e) => {
+            e.stopPropagation();
+            this.showInsertMenu(e, this.pages.length);
+        };
+        grid.appendChild(addCardWrapper);
         
         this.updateSelection();
         this.initSortable();
@@ -2569,21 +2685,35 @@ class PDFOrganizer {
         const menu = document.createElement('div');
         menu.className = 'po-context-menu';
         menu.innerHTML = `
-            <div class="po-menu-item" id="menu-add-blank">? Trang tr?ng</div>
-            <div class="po-menu-item" id="menu-add-pdf">?? T? file PDF</div>
-            <div class="po-menu-item" id="menu-add-img">??? T? ?nh (JPG/PNG)</div>
+            <div class="po-menu-item" id="menu-add-pdf" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-radius:4px;font-size:13px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>Chèn từ tệp PDF...</span>
+            </div>
+            <div class="po-menu-item" id="menu-add-img" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-radius:4px;font-size:13px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <span>Chèn ảnh (JPG / PNG / WebP)...</span>
+            </div>
+            <div class="po-menu-item" id="menu-add-blank" style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;border-radius:4px;font-size:13px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                <span>Thêm trang giấy trắng</span>
+            </div>
         `;
+        let x = e.pageX || (e.clientX ? (e.clientX + window.scrollX) : 100);
+        let y = e.pageY || (e.clientY ? (e.clientY + window.scrollY) : 100);
+        if (x + 240 > window.innerWidth) x = Math.max(10, window.innerWidth - 250);
+        
         menu.style.position = 'absolute';
-        menu.style.left = e.pageX + 'px';
-        menu.style.top = e.pageY + 'px';
+        menu.style.left = x + 'px';
+        menu.style.top = y + 'px';
         menu.style.background = '#fff';
-        menu.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
-        menu.style.borderRadius = '6px';
-        menu.style.padding = '4px';
+        menu.style.boxShadow = '0 6px 20px rgba(0,0,0,0.18)';
+        menu.style.borderRadius = '8px';
+        menu.style.border = '1px solid var(--po-border)';
+        menu.style.padding = '6px';
         menu.style.zIndex = '1000';
+        menu.style.minWidth = '220px';
         
         document.body.appendChild(menu);
-        
         
         menu.querySelector('#menu-add-blank').onclick = () => {
             menu.remove();
@@ -2598,7 +2728,7 @@ class PDFOrganizer {
             menu.remove();
             const fi = document.createElement('input');
             fi.type = 'file';
-            fi.accept = 'image/jpeg, image/png';
+            fi.accept = 'image/jpeg, image/png, image/webp, image/bmp';
             fi.multiple = true;
             fi.onchange = ev => this.handleImages(ev.target.files, index);
             fi.click();
@@ -3186,6 +3316,7 @@ window.initOrganizer = (files) => {
     document.querySelector('header').style.display = 'none';
     document.getElementById('ws').style.display = 'none';
     const org = new PDFOrganizer();
+    window.organizerInstance = org;
     if (files && files.length > 0) {
         org.handleFiles(files, 0);
     }
