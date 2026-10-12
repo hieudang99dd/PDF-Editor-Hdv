@@ -19,6 +19,17 @@ class PDFOrganizer {
         this.zoomLevel = 1;
         this.dirHandle = null;
         this.isTextMode = false;
+        this.isEditMode = false;
+        this.currentAnnTool = 'select';
+        this.selectedAnnId = null;
+        this.annCounter = 0;
+        this.currentAnnColor = '#1a1f36';
+        this.currentAnnFontSize = 14;
+        this.currentAnnStrokeWidth = 2;
+        this.isDrawingPen = false;
+        this.currentPenPoints = [];
+        this.isCreatingShape = false;
+        this.shapeStart = null;
         
         this.thumbQueue = [];
         this.activeThumbRenders = 0;
@@ -85,17 +96,49 @@ class PDFOrganizer {
                     <button class="po-tool-btn" id="po-tb-reset">🔄 Làm mới</button>
                 </div>
                 <div class="po-tool-group">
-                    <button class="po-tool-btn" id="po-tb-edit-text">? Ch?nh s?a van b?n</button>
+                    <button class="po-tool-btn" id="po-tb-edit-text" style="background:var(--po-primary-light); color:var(--po-primary); font-weight:600;">✎ Chỉnh sửa nội dung</button>
                 </div>
                 <div class="po-tool-group" style="display: flex; align-items: center; padding: 0 8px;">
-                    <span style="font-size: 12px; color: var(--po-text-muted); margin-right: 4px;">C? th?:</span>
+                    <span style="font-size: 12px; color: var(--po-text-muted); margin-right: 4px;">Cỡ thẻ:</span>
                     <select id="po-tb-thumb-size" style="padding: 2px 4px; font-size: 12px; border: 1px solid var(--po-border); border-radius: 4px; outline: none; background: #fff;">
-                        <option value="S">Nh?</option>
-                        <option value="M">V?a</option>
-                        <option value="L">L?n</option>
+                        <option value="S">Nhỏ</option>
+                        <option value="M">Vừa</option>
+                        <option value="L">Lớn</option>
                     </select>
                 </div>
                 <div class="po-selection-text" id="po-sel-text" style="display:none;"></div>
+            </div>
+            
+            <div id="po-edit-subbar" class="po-edit-subbar" style="display:none;">
+                <div class="po-tool-group">
+                    <button class="po-edit-tool-btn active" data-tool="select" id="po-tool-select" title="Chọn và di chuyển">👆 Chọn</button>
+                    <button class="po-edit-tool-btn" data-tool="text" id="po-tool-text" title="Thêm đoạn văn bản">🔤 Thêm chữ</button>
+                    <button class="po-edit-tool-btn" data-tool="whiteout" id="po-tool-whiteout" title="Che trắng / xóa nội dung">⬜ Che trắng</button>
+                    <button class="po-edit-tool-btn" data-tool="highlight" id="po-tool-highlight" title="Tô sáng màu vàng">🟡 Tô sáng</button>
+                    <button class="po-edit-tool-btn" data-tool="rect" id="po-tool-rect" title="Vẽ khung chữ nhật">🔲 Khung viền</button>
+                    <button class="po-edit-tool-btn" data-tool="pen" id="po-tool-pen" title="Vẽ tay tự do">✏ Vẽ tay</button>
+                    <button class="po-edit-tool-btn" data-tool="image" id="po-tool-image" title="Chèn ảnh">🖼 Chèn ảnh</button>
+                    <button class="po-edit-tool-btn" data-tool="signature" id="po-tool-signature" title="Chèn chữ ký">✍ Chữ ký</button>
+                </div>
+                <div class="po-tool-group po-edit-props" id="po-edit-props">
+                    <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--po-text-muted);">Màu:
+                        <input type="color" id="po-prop-color" value="#1a1f36" style="width:24px;height:24px;border:none;cursor:pointer;padding:0;background:none;">
+                    </label>
+                    <label id="po-prop-size-wrap" style="display:flex;align-items:center;gap:4px;font-size:12px;color:var(--po-text-muted);">Cỡ:
+                        <select id="po-prop-size" style="padding:2px 4px;font-size:12px;border:1px solid var(--po-border);border-radius:4px;background:var(--po-surface);">
+                            <option value="10">10</option>
+                            <option value="12">12</option>
+                            <option value="14" selected>14</option>
+                            <option value="18">18</option>
+                            <option value="24">24</option>
+                            <option value="32">32</option>
+                        </select>
+                    </label>
+                </div>
+                <div style="margin-left:auto; display:flex; gap:6px;">
+                    <button class="po-tool-btn" id="po-edit-delete-sel" title="Xóa đối tượng đang chọn" style="color:var(--po-danger)">🗑 Xóa đối tượng</button>
+                    <button class="po-tool-btn" id="po-edit-close" title="Xong / Đóng chế độ sửa" style="background:var(--po-primary);color:#fff;font-weight:600;">✔ Đóng sửa</button>
+                </div>
             </div>
             
             <div class="po-workspace" id="po-ws" style="display:none;">
@@ -132,6 +175,8 @@ class PDFOrganizer {
                         <div id="po-preview-wrapper" style="position: relative; display: inline-block;">
                             <img id="po-preview-img" src="" style="display:none; vertical-align: top;">
                             <div id="po-text-layer" class="po-text-layer"></div>
+                            <div id="po-ann-layer" class="po-ann-layer"></div>
+                            <canvas id="po-ann-drawing-canvas" class="po-ann-drawing-canvas"></canvas>
                             <div id="po-format-toolbar" style="display:none;">
                                 <select id="po-ft-font" title="Phông chữ">
                                     <option value="sans-serif">Mặc định</option>
@@ -201,6 +246,25 @@ class PDFOrganizer {
                     <div class="po-modal-footer">
                         <button class="po-tool-btn" id="po-save-cancel">Hủy</button>
                         <button class="po-primary-btn" id="po-save-confirm">Lưu file</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Signature Modal -->
+            <input type="file" id="po-ann-img-input" accept="image/*" hidden>
+            <div class="po-modal-overlay" id="po-sig-modal">
+                <div class="po-modal" style="max-width: 440px;">
+                    <h3 class="po-modal-title">✍ Ký tên điện tử</h3>
+                    <p style="font-size:12px; color:var(--po-text-muted); margin-bottom:8px;">Vẽ chữ ký của bạn vào khung bên dưới:</p>
+                    <div style="border: 1px dashed var(--po-border); border-radius: 6px; background: #fff; overflow: hidden; margin-bottom: 12px;">
+                        <canvas id="po-sig-canvas" width="400" height="180" style="display:block; touch-action:none; cursor:crosshair; width:100%; height:180px;"></canvas>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <button class="po-tool-btn" id="po-sig-clear">Xóa chữ ký</button>
+                        <div style="display:flex; gap:8px;">
+                            <button class="po-tool-btn" id="po-sig-cancel">Hủy</button>
+                            <button class="po-primary-btn" id="po-sig-apply">Chèn vào PDF</button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -434,22 +498,8 @@ class PDFOrganizer {
                 }
             }
         };
-        document.getElementById('po-tb-edit-text').onclick = (e) => {
-            this.isTextMode = !this.isTextMode;
-            e.target.classList.toggle('active', this.isTextMode);
-            const wrapper = document.getElementById('po-preview-wrapper');
-            if (wrapper) {
-                wrapper.classList.toggle('text-mode-active', this.isTextMode);
-            }
-            if (this.isTextMode) {
-                e.target.style.backgroundColor = '#eff6ff';
-                e.target.style.color = '#2563eb';
-                e.target.style.borderColor = '#2563eb';
-            } else {
-                e.target.style.backgroundColor = '';
-                e.target.style.color = '';
-                e.target.style.borderColor = '';
-            }
+        document.getElementById('po-tb-edit-text').onclick = () => {
+            this.toggleEditMode();
         };
         document.getElementById('po-tb-add-pdf').onclick = () => { this.insertIndex = this.pages.length; document.getElementById('po-insert-file').click(); };
         document.getElementById('po-insert-file').onchange = e => this.handleFiles(e.target.files, this.insertIndex);
@@ -579,99 +629,700 @@ class PDFOrganizer {
             isPanning = false;
             pvCanvas.style.cursor = '';
         }, { signal: this.abort.signal });
+
+        this.bindAnnotationEvents();
+    }
+
+    bindAnnotationEvents() {
+        const toolBtns = document.querySelectorAll('.po-edit-tool-btn');
+        toolBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tool = btn.dataset.tool;
+                this.setAnnTool(tool);
+            });
+        });
+
+        const colorProp = document.getElementById('po-prop-color');
+        if (colorProp) {
+            colorProp.addEventListener('input', (e) => {
+                this.currentAnnColor = e.target.value;
+                if (this.selectedAnnId) {
+                    this.updateAnnotation(this.selectedAnnId, { color: this.currentAnnColor });
+                }
+            });
+        }
+
+        const sizeProp = document.getElementById('po-prop-size');
+        if (sizeProp) {
+            sizeProp.addEventListener('change', (e) => {
+                const sz = parseInt(e.target.value, 10);
+                this.currentAnnFontSize = sz;
+                this.currentAnnStrokeWidth = Math.max(1, Math.round(sz / 7));
+                if (this.selectedAnnId) {
+                    this.updateAnnotation(this.selectedAnnId, { fontSize: this.currentAnnFontSize, strokeWidth: this.currentAnnStrokeWidth });
+                }
+            });
+        }
+
+        const delAnnBtn = document.getElementById('po-edit-delete-sel');
+        if (delAnnBtn) {
+            delAnnBtn.addEventListener('click', () => {
+                if (this.selectedAnnId) {
+                    this.deleteAnnotation(this.selectedAnnId);
+                }
+            });
+        }
+
+        const closeEditBtn = document.getElementById('po-edit-close');
+        if (closeEditBtn) {
+            closeEditBtn.addEventListener('click', () => {
+                this.toggleEditMode(false);
+            });
+        }
+
+        const imgInput = document.getElementById('po-ann-img-input');
+        if (imgInput) {
+            imgInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    const dataUrl = evt.target.result;
+                    this.addAnnotation({
+                        id: 'ann_' + (++this.annCounter),
+                        type: 'image',
+                        leftPct: 25,
+                        topPct: 25,
+                        widthPct: 35,
+                        heightPct: 25,
+                        dataUrl
+                    });
+                };
+                reader.readAsDataURL(file);
+                imgInput.value = '';
+            });
+        }
+
+        const sigModal = document.getElementById('po-sig-modal');
+        const sigCanvas = document.getElementById('po-sig-canvas');
+        let sigCtx = null;
+        let isSigDrawing = false;
+        if (sigCanvas) {
+            sigCtx = sigCanvas.getContext('2d');
+            sigCtx.lineWidth = 2.5;
+            sigCtx.lineCap = 'round';
+            sigCtx.lineJoin = 'round';
+            sigCtx.strokeStyle = '#1a1f36';
+
+            const getSigPos = (e) => {
+                const rect = sigCanvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    x: (clientX - rect.left) * (sigCanvas.width / rect.width),
+                    y: (clientY - rect.top) * (sigCanvas.height / rect.height)
+                };
+            };
+
+            const startSig = (e) => {
+                e.preventDefault();
+                isSigDrawing = true;
+                const pos = getSigPos(e);
+                sigCtx.beginPath();
+                sigCtx.moveTo(pos.x, pos.y);
+            };
+            const moveSig = (e) => {
+                if (!isSigDrawing) return;
+                e.preventDefault();
+                const pos = getSigPos(e);
+                sigCtx.lineTo(pos.x, pos.y);
+                sigCtx.stroke();
+            };
+            const endSig = () => { isSigDrawing = false; };
+
+            sigCanvas.addEventListener('mousedown', startSig);
+            sigCanvas.addEventListener('mousemove', moveSig);
+            window.addEventListener('mouseup', endSig);
+
+            sigCanvas.addEventListener('touchstart', startSig, { passive: false });
+            sigCanvas.addEventListener('touchmove', moveSig, { passive: false });
+            window.addEventListener('touchend', endSig);
+        }
+
+        const sigClearBtn = document.getElementById('po-sig-clear');
+        if (sigClearBtn && sigCanvas) {
+            sigClearBtn.addEventListener('click', () => {
+                sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+            });
+        }
+
+        const sigCancelBtn = document.getElementById('po-sig-cancel');
+        if (sigCancelBtn && sigModal) {
+            sigCancelBtn.addEventListener('click', () => {
+                sigModal.classList.remove('active');
+                sigModal.style.display = 'none';
+            });
+        }
+
+        const sigApplyBtn = document.getElementById('po-sig-apply');
+        if (sigApplyBtn && sigModal && sigCanvas) {
+            sigApplyBtn.addEventListener('click', () => {
+                const dataUrl = sigCanvas.toDataURL('image/png');
+                sigModal.classList.remove('active');
+                sigModal.style.display = 'none';
+                this.addAnnotation({
+                    id: 'ann_' + (++this.annCounter),
+                    type: 'signature',
+                    leftPct: 30,
+                    topPct: 40,
+                    widthPct: 30,
+                    heightPct: 15,
+                    dataUrl
+                });
+            });
+        }
+
+        const annLayer = document.getElementById('po-ann-layer');
+        const drawCanvas = document.getElementById('po-ann-drawing-canvas');
+
+        if (annLayer) {
+            let isCreatingShape = false;
+            let startX = 0, startY = 0;
+            let tempBox = null;
+
+            const getLayerPosPct = (e) => {
+                const rect = annLayer.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    xPct: Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)),
+                    yPct: Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100))
+                };
+            };
+
+            annLayer.addEventListener('mousedown', (e) => {
+                if (!this.isEditMode) return;
+                if (e.target !== annLayer) return;
+
+                const tool = this.currentAnnTool;
+                const pos = getLayerPosPct(e);
+
+                if (tool === 'select') {
+                    this.selectAnnotation(null);
+                    return;
+                }
+
+                if (tool === 'text') {
+                    this.addAnnotation({
+                        id: 'ann_' + (++this.annCounter),
+                        type: 'text',
+                        leftPct: pos.xPct,
+                        topPct: pos.yPct,
+                        widthPct: 25,
+                        heightPct: 6,
+                        text: 'Văn bản mới',
+                        color: this.currentAnnColor,
+                        fontSize: this.currentAnnFontSize
+                    });
+                    return;
+                }
+
+                if (['whiteout', 'highlight', 'rect'].includes(tool)) {
+                    isCreatingShape = true;
+                    startX = pos.xPct;
+                    startY = pos.yPct;
+                    tempBox = document.createElement('div');
+                    tempBox.className = 'po-ann-item po-ann-' + tool;
+                    tempBox.style.left = startX + '%';
+                    tempBox.style.top = startY + '%';
+                    tempBox.style.width = '0%';
+                    tempBox.style.height = '0%';
+                    if (tool === 'rect') {
+                        tempBox.style.borderColor = this.currentAnnColor;
+                        tempBox.style.borderWidth = (this.currentAnnStrokeWidth || 2) + 'px';
+                    }
+                    annLayer.appendChild(tempBox);
+                }
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (!isCreatingShape || !tempBox) return;
+                const pos = getLayerPosPct(e);
+                const left = Math.min(startX, pos.xPct);
+                const top = Math.min(startY, pos.yPct);
+                const width = Math.abs(pos.xPct - startX);
+                const height = Math.abs(pos.yPct - startY);
+                tempBox.style.left = left + '%';
+                tempBox.style.top = top + '%';
+                tempBox.style.width = width + '%';
+                tempBox.style.height = height + '%';
+            });
+
+            window.addEventListener('mouseup', (e) => {
+                if (!isCreatingShape || !tempBox) return;
+                isCreatingShape = false;
+                const pos = getLayerPosPct(e);
+                const left = Math.min(startX, pos.xPct);
+                const top = Math.min(startY, pos.yPct);
+                const width = Math.abs(pos.xPct - startX);
+                const height = Math.abs(pos.yPct - startY);
+                tempBox.remove();
+                tempBox = null;
+
+                if (width > 1 && height > 1) {
+                    this.addAnnotation({
+                        id: 'ann_' + (++this.annCounter),
+                        type: this.currentAnnTool,
+                        leftPct: left,
+                        topPct: top,
+                        widthPct: width,
+                        heightPct: height,
+                        color: this.currentAnnColor,
+                        strokeWidth: this.currentAnnStrokeWidth || 2
+                    });
+                }
+            });
+        }
+
+        if (drawCanvas) {
+            let isDrawing = false;
+            let currentPoints = [];
+            const getCvsPosPct = (e) => {
+                const rect = drawCanvas.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return {
+                    xPct: Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100)),
+                    yPct: Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100))
+                };
+            };
+
+            const startPen = (e) => {
+                if (!this.isEditMode || this.currentAnnTool !== 'pen') return;
+                e.preventDefault();
+                isDrawing = true;
+                currentPoints = [getCvsPosPct(e)];
+                const ctx = drawCanvas.getContext('2d');
+                ctx.beginPath();
+                const p = currentPoints[0];
+                ctx.moveTo((p.xPct / 100) * drawCanvas.width, (p.yPct / 100) * drawCanvas.height);
+                ctx.strokeStyle = this.currentAnnColor;
+                ctx.lineWidth = this.currentAnnStrokeWidth || 2;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+            };
+
+            const movePen = (e) => {
+                if (!isDrawing) return;
+                e.preventDefault();
+                const pt = getCvsPosPct(e);
+                currentPoints.push(pt);
+                const ctx = drawCanvas.getContext('2d');
+                ctx.lineTo((pt.xPct / 100) * drawCanvas.width, (pt.yPct / 100) * drawCanvas.height);
+                ctx.stroke();
+            };
+
+            const endPen = () => {
+                if (!isDrawing) return;
+                isDrawing = false;
+                if (currentPoints.length > 1) {
+                    this.addAnnotation({
+                        id: 'ann_' + (++this.annCounter),
+                        type: 'pen',
+                        points: currentPoints,
+                        color: this.currentAnnColor,
+                        strokeWidth: this.currentAnnStrokeWidth || 2
+                    });
+                }
+                currentPoints = [];
+            };
+
+            drawCanvas.addEventListener('mousedown', startPen);
+            drawCanvas.addEventListener('mousemove', movePen);
+            window.addEventListener('mouseup', endPen);
+            drawCanvas.addEventListener('touchstart', startPen, { passive: false });
+            drawCanvas.addEventListener('touchmove', movePen, { passive: false });
+            window.addEventListener('touchend', endPen);
+        }
+    }
+
+    setAnnTool(tool) {
+        this.currentAnnTool = tool;
+        document.querySelectorAll('.po-edit-tool-btn').forEach(b => {
+            b.classList.toggle('active', b.dataset.tool === tool);
+        });
+        const wrapper = document.getElementById('po-preview-wrapper');
+        if (wrapper) {
+            wrapper.classList.toggle('edit-mode-drawing', tool === 'pen');
+        }
+        if (tool === 'image') {
+            const inp = document.getElementById('po-ann-img-input');
+            if (inp) inp.click();
+        } else if (tool === 'signature') {
+            const sigModal = document.getElementById('po-sig-modal');
+            const sigCanvas = document.getElementById('po-sig-canvas');
+            if (sigModal) {
+                sigModal.classList.add('active');
+                sigModal.style.display = 'flex';
+                if (sigCanvas) {
+                    const ctx = sigCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+                }
+            }
+        }
+    }
+
+    toggleEditMode(forceState) {
+        this.isEditMode = (forceState !== undefined) ? forceState : !this.isEditMode;
+        this.isTextMode = this.isEditMode;
+        
+        const subbar = document.getElementById('po-edit-subbar');
+        const annLayer = document.getElementById('po-ann-layer');
+        const drawCanvas = document.getElementById('po-ann-drawing-canvas');
+        const wrapper = document.getElementById('po-preview-wrapper');
+        const btnEdit = document.getElementById('po-tb-edit-text');
+
+        if (subbar) subbar.style.display = this.isEditMode ? 'flex' : 'none';
+        if (annLayer) annLayer.style.display = this.isEditMode ? 'block' : 'none';
+        if (drawCanvas) drawCanvas.style.display = this.isEditMode ? 'block' : 'none';
+        if (wrapper) {
+            wrapper.classList.toggle('edit-mode-active', this.isEditMode);
+            wrapper.classList.toggle('text-mode-active', this.isEditMode);
+            wrapper.classList.toggle('edit-mode-drawing', this.isEditMode && this.currentAnnTool === 'pen');
+        }
+        if (btnEdit) {
+            btnEdit.classList.toggle('active', this.isEditMode);
+            if (this.isEditMode) {
+                btnEdit.style.backgroundColor = '#eff6ff';
+                btnEdit.style.color = '#2563eb';
+                btnEdit.style.borderColor = '#2563eb';
+            } else {
+                btnEdit.style.backgroundColor = '';
+                btnEdit.style.color = '';
+                btnEdit.style.borderColor = '';
+            }
+        }
+
+        if (this.focusedPageId) {
+            const page = this.pages.find(p => p.id === this.focusedPageId);
+            if (page) {
+                this.renderAnnotations(page);
+                this.renderPenStrokes();
+            }
+        }
+    }
+
+    renderAnnotations(page) {
+        const annLayer = document.getElementById('po-ann-layer');
+        if (!annLayer) return;
+        annLayer.innerHTML = '';
+        if (!page || !page.annotations) return;
+
+        page.annotations.forEach(ann => {
+            if (ann.type === 'pen') return;
+            const div = document.createElement('div');
+            div.className = `po-ann-item po-ann-${ann.type}` + (this.selectedAnnId === ann.id ? ' selected' : '');
+            div.dataset.id = ann.id;
+            div.style.left = (ann.leftPct || 0) + '%';
+            div.style.top = (ann.topPct || 0) + '%';
+            div.style.width = (ann.widthPct || 10) + '%';
+            div.style.height = (ann.heightPct || 5) + '%';
+
+            if (ann.type === 'rect') {
+                div.style.borderColor = ann.color || '#ef4444';
+                div.style.borderWidth = (ann.strokeWidth || 2) + 'px';
+            } else if (ann.type === 'text') {
+                div.style.color = ann.color || '#1a1f36';
+                div.style.fontSize = (ann.fontSize || 14) + 'px';
+                div.contentEditable = 'true';
+                div.textContent = ann.text || '';
+                div.spellcheck = false;
+                div.addEventListener('input', () => {
+                    ann.text = div.innerText;
+                    this.updateAnnCountState();
+                });
+            } else if (ann.type === 'image' || ann.type === 'signature') {
+                const img = document.createElement('img');
+                img.src = ann.dataUrl;
+                img.style.width = '100%';
+                img.style.height = '100%';
+                img.style.objectFit = 'contain';
+                div.appendChild(img);
+            }
+
+            const delBtn = document.createElement('div');
+            delBtn.className = 'po-ann-delete-btn';
+            delBtn.innerHTML = '✕';
+            delBtn.title = 'Xóa đối tượng';
+            delBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.deleteAnnotation(ann.id);
+            });
+            div.appendChild(delBtn);
+
+            div.addEventListener('mousedown', (e) => {
+                if (e.target === delBtn) return;
+                e.stopPropagation();
+                this.selectAnnotation(ann.id);
+
+                if (this.currentAnnTool === 'select' || !['text', 'whiteout', 'highlight', 'rect', 'pen'].includes(this.currentAnnTool)) {
+                    let isDragging = true;
+                    const startClientX = e.clientX;
+                    const startClientY = e.clientY;
+                    const origLeft = ann.leftPct;
+                    const origTop = ann.topPct;
+                    const layerRect = annLayer.getBoundingClientRect();
+
+                    const onMove = (ev) => {
+                        if (!isDragging) return;
+                        const dxPct = ((ev.clientX - startClientX) / layerRect.width) * 100;
+                        const dyPct = ((ev.clientY - startClientY) / layerRect.height) * 100;
+                        const newLeft = Math.max(0, Math.min(100 - (ann.widthPct || 5), origLeft + dxPct));
+                        const newTop = Math.max(0, Math.min(100 - (ann.heightPct || 5), origTop + dyPct));
+                        div.style.left = newLeft + '%';
+                        div.style.top = newTop + '%';
+                    };
+
+                    const onUp = (ev) => {
+                        if (!isDragging) return;
+                        isDragging = false;
+                        window.removeEventListener('mousemove', onMove);
+                        window.removeEventListener('mouseup', onUp);
+                        const dxPct = ((ev.clientX - startClientX) / layerRect.width) * 100;
+                        const dyPct = ((ev.clientY - startClientY) / layerRect.height) * 100;
+                        ann.leftPct = Math.max(0, Math.min(100 - (ann.widthPct || 5), origLeft + dxPct));
+                        ann.topPct = Math.max(0, Math.min(100 - (ann.heightPct || 5), origTop + dyPct));
+                        this.pushHistory();
+                        this.updateAnnCountState();
+                    };
+
+                    window.addEventListener('mousemove', onMove);
+                    window.addEventListener('mouseup', onUp);
+                }
+            });
+
+            annLayer.appendChild(div);
+        });
+    }
+
+    renderPenStrokes() {
+        const drawCanvas = document.getElementById('po-ann-drawing-canvas');
+        if (!drawCanvas) return;
+        const ctx = drawCanvas.getContext('2d');
+        ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+        
+        const page = this.pages.find(p => p.id === this.focusedPageId);
+        if (!page || !page.annotations) return;
+
+        page.annotations.filter(a => a.type === 'pen').forEach(ann => {
+            if (!ann.points || ann.points.length < 2) return;
+            ctx.beginPath();
+            ctx.strokeStyle = ann.color || '#1a1f36';
+            ctx.lineWidth = ann.strokeWidth || 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            ctx.moveTo((ann.points[0].xPct / 100) * drawCanvas.width, (ann.points[0].yPct / 100) * drawCanvas.height);
+            for (let i = 1; i < ann.points.length; i++) {
+                ctx.lineTo((ann.points[i].xPct / 100) * drawCanvas.width, (ann.points[i].yPct / 100) * drawCanvas.height);
+            }
+            ctx.stroke();
+        });
+    }
+
+    addAnnotation(ann) {
+        const page = this.pages.find(p => p.id === this.focusedPageId);
+        if (!page) return;
+        if (!page.annotations) page.annotations = [];
+        page.annotations.push(ann);
+        this.selectAnnotation(ann.id);
+        this.renderAnnotations(page);
+        this.renderPenStrokes();
+        this.pushHistory();
+        this.updateAnnCountState();
+    }
+
+    updateAnnotation(id, updates) {
+        const page = this.pages.find(p => p.id === this.focusedPageId);
+        if (!page || !page.annotations) return;
+        const ann = page.annotations.find(a => a.id === id);
+        if (!ann) return;
+        Object.assign(ann, updates);
+        this.renderAnnotations(page);
+        this.renderPenStrokes();
+        this.pushHistory();
+        this.updateAnnCountState();
+    }
+
+    selectAnnotation(id) {
+        this.selectedAnnId = id;
+        document.querySelectorAll('.po-ann-item').forEach(el => {
+            el.classList.toggle('selected', el.dataset.id === id);
+        });
+        const delBtn = document.getElementById('po-edit-delete-sel');
+        if (delBtn) delBtn.disabled = !id;
+    }
+
+    deleteAnnotation(id) {
+        const page = this.pages.find(p => p.id === this.focusedPageId);
+        if (!page || !page.annotations) return;
+        page.annotations = page.annotations.filter(a => a.id !== id);
+        if (this.selectedAnnId === id) this.selectedAnnId = null;
+        this.renderAnnotations(page);
+        this.renderPenStrokes();
+        this.pushHistory();
+        this.updateAnnCountState();
+    }
+
+    updateAnnCountState() {
+        const annCount = this.pages.reduce((sum, p) => sum + (p.annotations ? p.annotations.length : 0), 0);
+        const textCount = this.pages.reduce((sum, p) => sum + (p.textEdits ? p.textEdits.length : 0), 0);
+        const save = document.getElementById('po-save');
+        if (save && (annCount > 0 || textCount > 0)) save.disabled = false;
+        
+        const changesEl = document.getElementById('po-meta-changes');
+        if (changesEl && (annCount > 0 || textCount > 0)) {
+            let msg = [];
+            if (textCount > 0) msg.push(`Sửa ${textCount} đoạn văn bản`);
+            if (annCount > 0) msg.push(`Thêm ${annCount} ghi chú/đối tượng`);
+            changesEl.textContent = msg.join(' | ');
+            changesEl.style.display = 'block';
+        }
     }
 
     async loadScripts() {
-        if (!window.pdfjsLib) {
+        if (!window.pdfjsLib && !window['pdfjs-dist/build/pdf']) {
             await new Promise(resolve => {
                 const s = document.createElement('script');
-                s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                s.src = 'pdf.min.js';
                 s.onload = () => {
-                    window.pdfjsLib = window['pdfjs-dist/build/pdf'];
-                    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+                    window.pdfjsLib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
                     resolve();
                 };
+                s.onerror = () => {
+                    const s2 = document.createElement('script');
+                    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+                    s2.onload = () => {
+                        window.pdfjsLib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+                        resolve();
+                    };
+                    s2.onerror = resolve;
+                    document.head.appendChild(s2);
+                };
                 document.head.appendChild(s);
+                setTimeout(resolve, 4000);
             });
+        } else if (!window.pdfjsLib && window['pdfjs-dist/build/pdf']) {
+            window.pdfjsLib = window['pdfjs-dist/build/pdf'];
         }
+
+        if (window.pdfjsLib) {
+            if (window.location.protocol === 'file:') {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+            } else if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+            }
+        }
+
         if (!window.Sortable) {
             await new Promise(resolve => {
                 const s = document.createElement('script');
-                s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
+                s.src = 'Sortable.min.js';
                 s.onload = resolve;
+                s.onerror = () => {
+                    const s2 = document.createElement('script');
+                    s2.src = 'https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js';
+                    s2.onload = resolve;
+                    s2.onerror = resolve;
+                    document.head.appendChild(s2);
+                };
                 document.head.appendChild(s);
+                setTimeout(resolve, 4000);
             });
         }
-        // window.PDFLib is already loaded in index.html
     }
 
     async handleFiles(fileList, insertAt) {
-        if (!fileList.length) return;
+        if (!fileList || !fileList.length) return;
         const pdfFiles = Array.from(fileList).filter(f => f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf'));
         if (!pdfFiles.length) return alert('Vui lòng chọn tệp PDF');
         
         this.showLoading('Đang đọc trang...');
-        await this.loadScripts();
-        
-        const isFirstUpload = (this.files.length === 0);
-        const startIndex = this.files.length;
-        this.files = [...this.files, ...pdfFiles];
-        
-        if (isFirstUpload) {
-            this.baseFilename = pdfFiles[0].name.replace(/\.pdf$/i, '');
-            const sizeMB = (pdfFiles[0].size / (1024*1024)).toFixed(1);
-            document.getElementById('po-meta-title').textContent = this.baseFilename;
-            document.getElementById('po-meta-info').textContent = `PDF | ${sizeMB} MB`;
-            document.getElementById('po-initial-upload').style.display = 'none';
-            document.getElementById('po-ws').style.display = 'flex';
-        }
-        
-        let newPages = [];
-        for (let i = 0; i < pdfFiles.length; i++) {
-            const f = pdfFiles[i];
-            if (!f.objUrl) f.objUrl = URL.createObjectURL(f);
-            const pdf = await pdfjsLib.getDocument(f.objUrl).promise;
-            this.pdfDocs[startIndex + i] = pdf;
+        try {
+            await this.loadScripts();
             
-            try {
-                const perms = await pdf.getPermissions();
-                if (perms !== null) {
-                    this.encrypted[startIndex + i] = true;
-                    if (typeof toast === 'function') {
-                        toast('Tệp có bảo vệ quyền. Khi lưu sẽ được chuyển thành dạng ảnh.');
+            const isFirstUpload = (this.files.length === 0);
+            const startIndex = this.files.length;
+            this.files = [...this.files, ...pdfFiles];
+            
+            if (isFirstUpload) {
+                this.baseFilename = pdfFiles[0].name.replace(/\.pdf$/i, '');
+                const sizeMB = (pdfFiles[0].size / (1024*1024)).toFixed(1);
+                document.getElementById('po-meta-title').textContent = this.baseFilename;
+                document.getElementById('po-meta-info').textContent = `PDF | ${sizeMB} MB`;
+                document.getElementById('po-initial-upload').style.display = 'none';
+                document.getElementById('po-ws').style.display = 'flex';
+            }
+            
+            let newPages = [];
+            for (let i = 0; i < pdfFiles.length; i++) {
+                const f = pdfFiles[i];
+                let pdf = null;
+                
+                try {
+                    const arrayBuffer = await f.arrayBuffer();
+                    pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                } catch (readErr) {
+                    console.warn('Đọc bằng arrayBuffer thất bại, thử lại bằng ObjectURL:', readErr);
+                    if (!f.objUrl) f.objUrl = URL.createObjectURL(f);
+                    pdf = await pdfjsLib.getDocument(f.objUrl).promise;
+                }
+                
+                this.pdfDocs[startIndex + i] = pdf;
+                
+                try {
+                    const perms = await pdf.getPermissions();
+                    if (perms !== null) {
+                        this.encrypted[startIndex + i] = true;
+                        if (typeof toast === 'function') {
+                            toast('Tệp có bảo vệ quyền. Khi lưu sẽ được chuyển thành dạng ảnh.');
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Could not check permissions', e);
+                }
+                
+                for (let p = 1; p <= pdf.numPages; p++) {
+                    const pageId = 'pg_' + (this.pageCounter++);
+                    newPages.push({
+                        id: pageId,
+                        fileIndex: startIndex + i,
+                        pageIndex: p - 1,
+                        rotation: 0,
+                        dataUrl: null, // Render lazily
+                        selected: false,
+                        type: 'pdf',
+                        width: 595,
+                        height: 842
+                    });
+                    
+                    if (isFirstUpload) {
+                        this.originalPages.push({ id: pageId, pageNum: p });
                     }
                 }
-            } catch (e) {
-                console.warn('Could not check permissions', e);
+                this.updateProgress(((i+1)/pdfFiles.length)*100);
             }
             
-            for (let p = 1; p <= pdf.numPages; p++) {
-                const pageId = 'pg_' + (this.pageCounter++);
-                newPages.push({
-                    id: pageId,
-                    fileIndex: startIndex + i,
-                    pageIndex: p - 1,
-                    rotation: 0,
-                    dataUrl: null, // Render lazily
-                    selected: false,
-                    type: 'pdf',
-                    width: 595,
-                    height: 842
-                });
-                
-                if (isFirstUpload) {
-                    this.originalPages.push({ id: pageId, pageNum: p });
-                }
+            this.pages.splice(insertAt, 0, ...newPages);
+            this.hideLoading();
+            this.pushHistory();
+            this.renderGrid();
+            if (isFirstUpload && this.pages.length > 0) {
+                this.focusPage(this.pages[0].id);
             }
-            this.updateProgress(((i+1)/pdfFiles.length)*100);
-        }
-        
-        this.pages.splice(insertAt, 0, ...newPages);
-        this.hideLoading();
-        this.pushHistory();
-        this.renderGrid();
-        if (isFirstUpload && this.pages.length > 0) {
-            this.focusPage(this.pages[0].id);
+        } catch (err) {
+            console.error('Lỗi nạp tệp PDF:', err);
+            this.hideLoading();
+            alert('Không thể mở tệp PDF: ' + (err.message || 'Lỗi đọc tệp'));
         }
     }
 
@@ -913,7 +1564,9 @@ class PDFOrganizer {
             pageIndex: p.pageIndex,
             rotation: p.rotation,
             width: p.width,
-            height: p.height
+            height: p.height,
+            textEdits: p.textEdits ? JSON.parse(JSON.stringify(p.textEdits)) : [],
+            annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : []
         }));
         const state = JSON.stringify(snapshot);
         if (this.historyIndex >= 0 && this.history[this.historyIndex] === state) return;
@@ -947,12 +1600,21 @@ class PDFOrganizer {
             return {
                 ...p,
                 selected: selectedIds.has(p.id),
-                dataUrl: this.thumbCache.get(cacheKey) || null
+                dataUrl: this.thumbCache.get(cacheKey) || null,
+                textEdits: p.textEdits ? JSON.parse(JSON.stringify(p.textEdits)) : [],
+                annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : []
             };
         });
         this.renderGrid();
         this.updateUndoRedo();
         this.updateStats();
+        if (this.focusedPageId) {
+            const page = this.pages.find(p => p.id === this.focusedPageId);
+            if (page) {
+                this.renderAnnotations(page);
+                this.renderPenStrokes();
+            }
+        }
     }
     
     updateUndoRedo() {
@@ -1516,20 +2178,42 @@ class PDFOrganizer {
 
     async getUnicodeFont(doc) {
         if (!window.fontkit) {
-            await new Promise((res, rej) => {
+            await new Promise((res) => {
                 const s = document.createElement('script');
-                s.src = 'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
-                s.onload = res; s.onerror = () => rej(new Error('Không tải được fontkit'));
+                s.src = 'fontkit.umd.min.js';
+                s.onload = res;
+                s.onerror = () => {
+                    const s2 = document.createElement('script');
+                    s2.src = 'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
+                    s2.onload = res;
+                    s2.onerror = res;
+                    document.head.appendChild(s2);
+                };
                 document.head.appendChild(s);
+                setTimeout(res, 4000);
             });
         }
         if (!this._fontBytes) {
-            const r = await fetch('https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf');
-            if (!r.ok) throw new Error('Không tải được font tiếng Việt');
-            this._fontBytes = await r.arrayBuffer();
+            try {
+                const r = await fetch('NotoSans-Regular.ttf');
+                if (r.ok) this._fontBytes = await r.arrayBuffer();
+            } catch (e) {}
+            if (!this._fontBytes) {
+                try {
+                    const r2 = await fetch('https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf');
+                    if (r2.ok) this._fontBytes = await r2.arrayBuffer();
+                } catch(e) {}
+            }
         }
-        doc.registerFontkit(window.fontkit);
-        return doc.embedFont(this._fontBytes, { subset: true });
+        if (window.fontkit && this._fontBytes) {
+            try {
+                doc.registerFontkit(window.fontkit);
+                return await doc.embedFont(this._fontBytes, { subset: true });
+            } catch (fErr) {
+                console.warn('registerFontkit failed, fallback to Helvetica:', fErr);
+            }
+        }
+        return await doc.embedFont(window.PDFLib.StandardFonts.Helvetica);
     }
     focusPage(id, forceRender = false) {
         const pageChanged = (this.focusedPageId !== id);
@@ -1675,6 +2359,8 @@ class PDFOrganizer {
         
         img.onload = () => this.layoutPreview();
         img.style.display = 'block';
+        this.renderAnnotations(page);
+        this.renderPenStrokes();
         this.layoutPreview();
     }
 
@@ -1683,6 +2369,7 @@ class PDFOrganizer {
         const wrapper = document.getElementById('po-preview-wrapper');
         const container = document.getElementById('po-preview-canvas');
         const layer = document.getElementById('po-text-layer');
+        const drawCanvas = document.getElementById('po-ann-drawing-canvas');
         if (!img || !wrapper || !container) return;
         const page = this.pages.find(p => p.id === this.focusedPageId);
         if (!page) return;
@@ -1723,6 +2410,12 @@ class PDFOrganizer {
         
         if (layer) {
             layer.style.display = rot === 0 ? '' : 'none';
+        }
+
+        if (drawCanvas) {
+            drawCanvas.width = W;
+            drawCanvas.height = H;
+            this.renderPenStrokes();
         }
     }
 
@@ -1802,26 +2495,37 @@ class PDFOrganizer {
     }
 
     initSortable() {
-        if(this.sortable) this.sortable.destroy();
+        if (this.sortable) {
+            try { this.sortable.destroy(); } catch (e) {}
+            this.sortable = null;
+        }
+        if (typeof Sortable === 'undefined') {
+            console.warn('Thư viện Sortable chưa sẵn sàng, tạm tắt kéo thả.');
+            return;
+        }
         const grid = document.getElementById('po-grid');
-        this.sortable = new Sortable(grid, {
-            animation: 150,
-            delay: 200,
-            delayOnTouchOnly: true,
-            draggable: '.po-card-wrapper',
-            ghostClass: 'sortable-ghost',
-            onEnd: e => {
-                const oldIdx = e.oldDraggableIndex !== undefined ? e.oldDraggableIndex : Math.floor(e.oldIndex / 2);
-                const newIdx = e.newDraggableIndex !== undefined ? e.newDraggableIndex : Math.floor(e.newIndex / 2);
-                
-                if (oldIdx !== newIdx) {
-                    const movedItem = this.pages.splice(oldIdx, 1)[0];
-                    this.pages.splice(newIdx, 0, movedItem);
-                    this.pushHistory();
-                    this.renderGrid();
+        try {
+            this.sortable = new Sortable(grid, {
+                animation: 150,
+                delay: 200,
+                delayOnTouchOnly: true,
+                draggable: '.po-card-wrapper',
+                ghostClass: 'sortable-ghost',
+                onEnd: e => {
+                    const oldIdx = e.oldDraggableIndex !== undefined ? e.oldDraggableIndex : Math.floor(e.oldIndex / 2);
+                    const newIdx = e.newDraggableIndex !== undefined ? e.newDraggableIndex : Math.floor(e.newIndex / 2);
+                    
+                    if (oldIdx !== newIdx) {
+                        const movedItem = this.pages.splice(oldIdx, 1)[0];
+                        this.pages.splice(newIdx, 0, movedItem);
+                        this.pushHistory();
+                        this.renderGrid();
+                    }
                 }
-            }
-        });
+            });
+        } catch (sErr) {
+            console.warn('Lỗi khởi tạo Sortable:', sErr);
+        }
     }
 
     showLoading(msg) {
@@ -2252,6 +2956,117 @@ console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
                                 });
                                 currentY -= lineHeight;
                             }
+                        }
+                    }
+                }
+            }
+
+            // Apply Rich Annotations (Shapes, Text, Images, Signatures, Pen)
+            for (let i = 0; i < targetPages.length; i++) {
+                const p = targetPages[i];
+                if (!p.annotations || p.annotations.length === 0) continue;
+                const targetPage = finalPages[i];
+                if (!targetPage) continue;
+                
+                const pageWidth = targetPage.getWidth();
+                const pageHeight = targetPage.getHeight();
+
+                for (const ann of p.annotations) {
+                    const pdfX = (ann.leftPct / 100) * pageWidth;
+                    const pdfY = (1 - (ann.topPct + (ann.heightPct || 5)) / 100) * pageHeight;
+                    const pdfW = ((ann.widthPct || 10) / 100) * pageWidth;
+                    const pdfH = ((ann.heightPct || 5) / 100) * pageHeight;
+
+                    if (ann.type === 'whiteout') {
+                        targetPage.drawRectangle({
+                            x: pdfX,
+                            y: pdfY,
+                            width: pdfW,
+                            height: pdfH,
+                            color: window.PDFLib.rgb(1, 1, 1)
+                        });
+                    } else if (ann.type === 'highlight') {
+                        targetPage.drawRectangle({
+                            x: pdfX,
+                            y: pdfY,
+                            width: pdfW,
+                            height: pdfH,
+                            color: window.PDFLib.rgb(1, 0.92, 0.23),
+                            opacity: 0.4
+                        });
+                    } else if (ann.type === 'rect') {
+                        const hex = ann.color || '#ef4444';
+                        const r = parseInt(hex.slice(1,3), 16)/255 || 0;
+                        const g = parseInt(hex.slice(3,5), 16)/255 || 0;
+                        const b = parseInt(hex.slice(5,7), 16)/255 || 0;
+                        targetPage.drawRectangle({
+                            x: pdfX,
+                            y: pdfY,
+                            width: pdfW,
+                            height: pdfH,
+                            borderColor: window.PDFLib.rgb(r, g, b),
+                            borderWidth: ann.strokeWidth || 2
+                        });
+                    } else if (ann.type === 'text' && ann.text) {
+                        if (!editFont) editFont = await this.getUnicodeFont(finalDoc);
+                        const hex = ann.color || '#1a1f36';
+                        const r = parseInt(hex.slice(1,3), 16)/255 || 0;
+                        const g = parseInt(hex.slice(3,5), 16)/255 || 0;
+                        const b = parseInt(hex.slice(5,7), 16)/255 || 0;
+                        const fontSize = ann.fontSize || 14;
+
+                        const lines = ann.text.split('\n');
+                        let currentY = pdfY + pdfH - fontSize;
+                        for (const line of lines) {
+                            if (line) {
+                                targetPage.drawText(line, {
+                                    x: pdfX,
+                                    y: currentY,
+                                    size: fontSize,
+                                    font: editFont,
+                                    color: window.PDFLib.rgb(r, g, b)
+                                });
+                            }
+                            currentY -= fontSize * 1.25;
+                        }
+                    } else if ((ann.type === 'image' || ann.type === 'signature') && ann.dataUrl) {
+                        try {
+                            let imgEmbed = null;
+                            if (ann.dataUrl.startsWith('data:image/png')) {
+                                imgEmbed = await finalDoc.embedPng(ann.dataUrl);
+                            } else {
+                                imgEmbed = await finalDoc.embedJpg(ann.dataUrl);
+                            }
+                            if (imgEmbed) {
+                                targetPage.drawImage(imgEmbed, {
+                                    x: pdfX,
+                                    y: pdfY,
+                                    width: pdfW,
+                                    height: pdfH
+                                });
+                            }
+                        } catch (imgErr) {
+                            console.error('Lỗi nhúng ảnh/chữ ký:', imgErr);
+                        }
+                    } else if (ann.type === 'pen' && ann.points && ann.points.length > 1) {
+                        const hex = ann.color || '#1a1f36';
+                        const r = parseInt(hex.slice(1,3), 16)/255 || 0;
+                        const g = parseInt(hex.slice(3,5), 16)/255 || 0;
+                        const b = parseInt(hex.slice(5,7), 16)/255 || 0;
+                        const thick = ann.strokeWidth || 2;
+                        for (let k = 0; k < ann.points.length - 1; k++) {
+                            const p1 = ann.points[k];
+                            const p2 = ann.points[k+1];
+                            const p1X = (p1.xPct / 100) * pageWidth;
+                            const p1Y = (1 - p1.yPct / 100) * pageHeight;
+                            const p2X = (p2.xPct / 100) * pageWidth;
+                            const p2Y = (1 - p2.yPct / 100) * pageHeight;
+                            targetPage.drawLine({
+                                start: { x: p1X, y: p1Y },
+                                end: { x: p2X, y: p2Y },
+                                thickness: thick,
+                                color: window.PDFLib.rgb(r, g, b)
+                            });
                         }
                     }
                 }

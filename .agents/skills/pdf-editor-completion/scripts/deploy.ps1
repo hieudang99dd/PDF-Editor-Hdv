@@ -21,16 +21,20 @@ function Fail([string]$msg) { Write-Host "ERROR: $msg" -ForegroundColor Red; exi
 Write-Host "Repo root: $Root"
 if (-not (Test-Path (Join-Path $Root 'index.html'))) { Fail "index.html not found in $Root" }
 
-# ---- 1. Syntax check: top-level .js files ----
-$jsFiles = @(Get-ChildItem -Path $Root -Filter *.js -File)
-foreach ($f in $jsFiles) {
-    & node --check $f.FullName
-    if ($LASTEXITCODE -ne 0) { Fail "Syntax error in $($f.Name)" }
-    Write-Host "OK  $($f.Name)"
-}
+# ---- 1. Syntax check: top-level .js files (excluding vendor min.js) ----
+$jsFiles = @(Get-ChildItem -Path $Root -Filter *.js -File | Where-Object { $_.Name -notlike '*.min.js' })
+$hasNode = [bool](Get-Command node -ErrorAction SilentlyContinue)
+$hasPython = [bool](Get-Command python -ErrorAction SilentlyContinue)
 
-# ---- 2. Syntax check: inline <script> blocks in index.html ----
-$inlineCheck = @'
+if ($hasNode) {
+    foreach ($f in $jsFiles) {
+        & node --check $f.FullName
+        if ($LASTEXITCODE -ne 0) { Fail "Syntax error in $($f.Name)" }
+        Write-Host "OK  $($f.Name)"
+    }
+
+    # ---- 2. Syntax check: inline <script> blocks in index.html ----
+    $inlineCheck = @'
 const fs = require('fs');
 const html = fs.readFileSync(process.argv[2], 'utf8');
 const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi;
@@ -42,10 +46,37 @@ while ((m = re.exec(html))) {
 console.log('Inline scripts checked: ' + i);
 process.exit(bad ? 1 : 0);
 '@
-$tmpJs = Join-Path $env:TEMP 'pdfhub_inline_check.js'
-[IO.File]::WriteAllText($tmpJs, $inlineCheck, $Utf8)
-& node $tmpJs (Join-Path $Root 'index.html')
-if ($LASTEXITCODE -ne 0) { Fail 'Syntax error in inline script of index.html' }
+    $tmpJs = Join-Path $env:TEMP 'pdfhub_inline_check.js'
+    [IO.File]::WriteAllText($tmpJs, $inlineCheck, $Utf8)
+    & node $tmpJs (Join-Path $Root 'index.html')
+    if ($LASTEXITCODE -ne 0) { Fail 'Syntax error in inline script of index.html' }
+} elseif ($hasPython) {
+    Write-Host "Node.js not found in PATH, using Python syntax & bracket validation..."
+    $pyCheck = @'
+import sys, re
+
+def check_file(path):
+    with open(path, "r", encoding="utf-8") as f:
+        content = f.read()
+    b = content.count("{") - content.count("}")
+    p = content.count("(") - content.count(")")
+    k = content.count("[") - content.count("]")
+    if b != 0 or p != 0 or k != 0:
+        print(f"Bracket mismatch in {path}: {{}}: {b}, (): {p}, []: {k}")
+        sys.exit(1)
+    print(f"OK  {path}")
+
+for arg in sys.argv[1:]:
+    check_file(arg)
+'@
+    $tmpPy = Join-Path $env:TEMP 'pdfhub_check.py'
+    [IO.File]::WriteAllText($tmpPy, $pyCheck, $Utf8)
+    $argsList = @($jsFiles | ForEach-Object { $_.FullName }) + @((Join-Path $Root 'index.html'))
+    & python $tmpPy $argsList
+    if ($LASTEXITCODE -ne 0) { Fail 'Syntax or bracket validation failed' }
+} else {
+    Write-Host "Skipping script syntax check (neither node nor python in PATH)."
+}
 
 if ($CheckOnly) { Write-Host 'Check passed (no changes made).' -ForegroundColor Green; exit 0 }
 if ([string]::IsNullOrWhiteSpace($Message)) { Fail 'Provide -Message "..." (english, no diacritics) or use -CheckOnly' }

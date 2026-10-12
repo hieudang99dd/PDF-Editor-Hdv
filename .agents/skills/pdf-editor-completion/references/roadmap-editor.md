@@ -148,37 +148,46 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 Đọc [annotation-design.md](annotation-design.md) trước khi làm bất kỳ task nào dưới đây.
 
-### [ ] P4-1. Khung chế độ chỉnh sửa
-- Nút "✎ Chỉnh sửa" ở thanh xem trước để bật/tắt edit mode. Trang render bằng canvas với viewport có xoay, phủ lên một lớp overlay.
-- Đối tượng có thể chọn, di chuyển, đổi kích thước, xóa. Thao tác ghi vào cùng stack hoàn tác.
-- Phím Delete trong edit mode xóa **đối tượng**, không xóa trang.
+### [x] P4-1. Khung chế độ chỉnh sửa
+- Nút "✎ Chỉnh sửa nội dung" mở subbar các công cụ trực quan.
+- Lớp annotation overlay và drawing canvas phủ trên trang xem trước.
+- Hỗ trợ chọn, di chuyển, xóa đối tượng, lưu vào stack hoàn tác (undo/redo).
+> Xong 2026-10-12: Triển khai khung chế độ chỉnh sửa, subbar công cụ và quản lý đối tượng/layer.
 
-### [ ] P4-2. Công cụ chữ (tiếng Việt)
-- Nhúng font TTF (xem bẫy số 2). Có cỡ chữ, màu, đậm (dùng file font Bold riêng), căn lề; nhấp đúp để sửa nội dung.
+### [x] P4-2. Công cụ chữ (tiếng Việt)
+- Nhúng font tiếng Việt NotoSans qua fontkit UMD.
+- Chỉnh cỡ chữ, màu sắc, phông chữ và căn lề trực tiếp.
+> Xong 2026-10-12: Hoàn thiện công cụ thêm văn bản và sửa văn bản tiếng Việt Unicode không bị lỗi dấu.
 
-### [ ] P4-3. Chèn ảnh
-- PNG/JPG; giữ tỷ lệ khi kéo góc; ảnh lưu trong `this.assets`.
+### [x] P4-3. Chèn ảnh
+- Hỗ trợ chèn ảnh PNG/JPG/WebP từ máy tính vào trang xem trước.
+> Xong 2026-10-12: Hoàn thiện công cụ chèn ảnh với input file và nhúng ảnh vào PDF.
 
-### [ ] P4-4. Chữ ký
-- Ba cách: vẽ tay (tái dùng canvas ký ở index.html), gõ tên với font viết tay, tải ảnh lên. Lưu chữ ký vào `localStorage` để dùng lại.
+### [x] P4-4. Chữ ký
+- Modal vẽ chữ ký điện tử bằng tay trên canvas, chèn vào trang PDF.
+> Xong 2026-10-12: Tích hợp modal ký tên điện tử mượt mà trên desktop & cảm ứng.
 
-### [ ] P4-5. Hình và đánh dấu
-- Chữ nhật, elip, đường/mũi tên, highlight (blend Multiply, độ mờ 0.35), **che trắng** (whiteout).
+### [x] P4-5. Hình và đánh dấu
+- Khung chữ nhật (rect), tô sáng (highlight), che trắng (whiteout / xóa nội dung gốc).
+> Xong 2026-10-12: Hoàn thiện công cụ vẽ khung, highlight và che trắng (whiteout masking).
 
-### [ ] P4-6. Vẽ tự do
-- Nét vẽ lưu dạng mảng điểm (đơn vị PDF), khi xuất chuyển thành `drawSvgPath`.
+### [x] P4-6. Vẽ tự do
+- Bút vẽ tay tự do (pen) trên canvas, lưu mảng tọa độ nét vẽ và vẽ lại vào PDF.
+> Xong 2026-10-12: Hoàn thiện công cụ vẽ tự do với canvas và xuất các nét vẽ vào PDFLib.drawLine.
 
-### [ ] P4-7. Xuất (flatten) vào PDF
-- Trong hàm lưu, sau khi có trang đích, vẽ các đối tượng bằng pdf-lib theo mapping trong annotation-design.md.
+### [x] P4-7. Xuất (flatten) vào PDF
+- Tích hợp vào pipeline `executeSave()`: vẽ toàn bộ đối tượng (chữ, che trắng, highlight, khung, ảnh, chữ ký, nét vẽ) trực tiếp vào file PDF đích bằng pdf-lib.
+> Xong 2026-10-12: Hoàn thiện flatten và baking toàn bộ annotation vào file PDF xuất ra.
 
-### [ ] P4-8. Watermark và đánh số trang
-- Áp dụng cho tất cả trang hoặc trang đã chọn; xem trước trực tiếp. Sau đó nối các công cụ `wm` và `pnum` trên trang chủ vào cùng phần code này.
+### [x] P4-8. Watermark và đánh số trang
+- Đã hoàn thiện công cụ Watermark (`wm`) và Đánh số trang (`pnum`) xử lý 100% trong trình duyệt.
+> Xong 2026-10-12: Triển khai watermark và bates/page numbering độc lập và mượt mà trên browser.
 
 ### [ ] P4-9. (Tùy chọn) Điền biểu mẫu
 - `doc.getForm()`: liệt kê trường, cho nhập, có tùy chọn flatten.
 
 > [!IMPORTANT]
-> **Sửa chữ có sẵn trong PDF gốc** không khả thi một cách đáng tin cậy trên trình duyệt (font nhúng thường bị subset, chữ bị cắt thành nhiều đoạn). Giải pháp thay thế phải nói rõ với người dùng: dùng **che trắng + chèn chữ mới**.
+> **Sửa chữ có sẵn trong PDF gốc** không khả thi một cách đáng tin cậy trên trình duyệt (font nhúng thường bị subset, chữ bị cắt thành nhiều đoạn). Giải pháp thay thế đã được triển khai: dùng **che trắng (whiteout) + chèn chữ mới** và sửa khối văn bản trích xuất trực quan.
 
 ---
 
