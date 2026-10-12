@@ -96,7 +96,7 @@ class PDFOrganizer {
                     <button class="po-tool-btn" id="po-tb-reset">🔄 Làm mới</button>
                 </div>
                 <div class="po-tool-group">
-                    <button class="po-tool-btn" id="po-tb-edit-text" style="background:var(--po-primary-light); color:var(--po-primary); font-weight:600;">✎ Chỉnh sửa nội dung</button>
+                    <button class="po-tool-btn" id="po-tb-edit-text" style="background:var(--po-primary-light); color:var(--po-primary); font-weight:600;" title="Chỉnh sửa trực tiếp nội dung văn bản trong PDF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Chỉnh sửa nội dung</button>
                 </div>
                 <div class="po-tool-group" style="display: flex; align-items: center; padding: 0 8px;">
                     <span style="font-size: 12px; color: var(--po-text-muted); margin-right: 4px;">Cỡ thẻ:</span>
@@ -320,10 +320,14 @@ class PDFOrganizer {
         });
         div.classList.add('edited');
         this.updateTextEditState();
+        this.pushHistory();
         
         // Bắt buộc re-render lại để cập nhật Canvas che đi text gốc
         if (this.focusedPageId) {
             this.focusPage(this.focusedPageId, true);
+        }
+        if (typeof toast === 'function') {
+            toast('Đã lưu nội dung văn bản mới');
         }
     }
 
@@ -346,10 +350,16 @@ class PDFOrganizer {
         
         const tb = document.getElementById('po-format-toolbar');
         if (tb) {
+            tb.addEventListener('mousedown', e => e.stopPropagation());
             document.getElementById('po-ft-size').addEventListener('input', e => {
                 if (this.activeEditDiv) {
-                    this.activeEditDiv.dataset.pdfSize = e.target.value;
-                    // Tạm thời ko đổi fontSize UI vì nó theo % của viewport, phức tạp. Chỉ lưu data để save.
+                    const newSize = parseFloat(e.target.value) || 12;
+                    this.activeEditDiv.dataset.pdfSize = newSize;
+                    const origPdfSize = parseFloat(this.activeEditDiv.dataset.origPdfSize) || 12;
+                    const initialFontCqh = parseFloat(this.activeEditDiv.dataset.initialFontCqh);
+                    if (initialFontCqh && origPdfSize > 0) {
+                        this.activeEditDiv.style.fontSize = `${initialFontCqh * (newSize / origPdfSize)}cqh`;
+                    }
                 }
             });
             document.getElementById('po-ft-color').addEventListener('input', e => {
@@ -954,6 +964,7 @@ class PDFOrganizer {
         const wrapper = document.getElementById('po-preview-wrapper');
         if (wrapper) {
             wrapper.classList.toggle('edit-mode-drawing', tool === 'pen');
+            wrapper.classList.toggle('drawing-shape-active', ['whiteout', 'highlight', 'rect', 'text'].includes(tool));
         }
         if (tool === 'image') {
             const inp = document.getElementById('po-ann-img-input');
@@ -989,6 +1000,7 @@ class PDFOrganizer {
             wrapper.classList.toggle('edit-mode-active', this.isEditMode);
             wrapper.classList.toggle('text-mode-active', this.isEditMode);
             wrapper.classList.toggle('edit-mode-drawing', this.isEditMode && this.currentAnnTool === 'pen');
+            wrapper.classList.toggle('drawing-shape-active', this.isEditMode && ['whiteout', 'highlight', 'rect', 'text'].includes(this.currentAnnTool));
         }
         if (btnEdit) {
             btnEdit.classList.toggle('active', this.isEditMode);
@@ -1708,6 +1720,7 @@ class PDFOrganizer {
             if (page) {
                 this.renderAnnotations(page);
                 this.renderPenStrokes();
+                this.focusPage(this.focusedPageId, true);
             }
         }
     }
@@ -2202,7 +2215,10 @@ class PDFOrganizer {
                 div.style.minHeight = `${(block.cssHeight / H) * 100}%`;
                 div.style.transformOrigin = '0 0';
                 div.style.transform = block.cssTransform || 'none';
-                div.style.fontSize = `${(block.size / H) * 100}cqh`;
+                const fontCqh = (block.size / H) * 100;
+                div.style.fontSize = `${fontCqh}cqh`;
+                div.dataset.initialFontCqh = fontCqh;
+                div.dataset.origPdfSize = block.pdfSize;
                 div.style.lineHeight = '1.15';
                 const firstItem = block.items[0];
                 div.style.fontFamily = firstItem.fontName && textContent.styles[firstItem.fontName] ? textContent.styles[firstItem.fontName].fontFamily : 'sans-serif';
@@ -2221,6 +2237,9 @@ class PDFOrganizer {
                     div.style.textAlign = edited.align;
                     div.style.color = edited.color;
                     div.style.fontFamily = edited.fontFamily;
+                    if (edited.size && block.pdfSize > 0) {
+                        div.style.fontSize = `${fontCqh * (edited.size / block.pdfSize)}cqh`;
+                    }
                 }
                 div.spellcheck = false;
 
@@ -2244,8 +2263,15 @@ class PDFOrganizer {
                         tb.style.display = 'flex';
                         const rect = div.getBoundingClientRect();
                         const wrapperRect = document.getElementById('po-preview-wrapper').getBoundingClientRect();
-                        tb.style.top = Math.max(0, rect.top - wrapperRect.top - 45) + 'px';
-                        tb.style.left = (rect.left - wrapperRect.left) + 'px';
+                        let top = rect.top - wrapperRect.top - 45;
+                        if (top < 0) {
+                            top = rect.bottom - wrapperRect.top + 8;
+                        }
+                        let left = rect.left - wrapperRect.left;
+                        const maxLeft = Math.max(0, wrapperRect.width - (tb.offsetWidth || 280));
+                        left = Math.max(0, Math.min(left, maxLeft));
+                        tb.style.top = top + 'px';
+                        tb.style.left = left + 'px';
                         
                         document.getElementById('po-ft-size').value = Math.round(parseFloat(div.dataset.pdfSize) || block.pdfSize);
                         document.getElementById('po-ft-color').value = div.dataset.color || '#000000';
