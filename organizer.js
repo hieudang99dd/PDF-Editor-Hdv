@@ -187,6 +187,10 @@ class PDFOrganizer {
                                 <input type="number" id="po-ft-size" style="width:45px" title="Cỡ chữ" />
                                 <input type="color" id="po-ft-color" title="Màu chữ" value="#000000" />
                                 <div class="toolbar-sep"></div>
+                                <button id="po-ft-bold" title="In đậm (Ctrl+B)" style="font-weight:bold; font-size:13px; width:28px;">B</button>
+                                <button id="po-ft-italic" title="In nghiêng (Ctrl+I)" style="font-style:italic; font-size:13px; width:28px; font-family:serif;">I</button>
+                                <button id="po-ft-underline" title="Gạch chân (Ctrl+U)" style="text-decoration:underline; font-size:13px; width:28px;">U</button>
+                                <div class="toolbar-sep"></div>
                                 <button id="po-ft-align-left" title="Căn trái">⬅️</button>
                                 <button id="po-ft-align-center" title="Căn giữa">↔️</button>
                                 <button id="po-ft-align-right" title="Căn phải">➡️</button>
@@ -316,7 +320,10 @@ class PDFOrganizer {
             height: parseFloat(div.dataset.pdfMaxY) - parseFloat(div.dataset.pdfMinY),
             align: div.dataset.align || 'left',
             color: div.dataset.color || '#000000',
-            fontFamily: div.dataset.fontFamily || 'sans-serif'
+            fontFamily: div.dataset.fontFamily || 'sans-serif',
+            bold: div.dataset.bold === '1',
+            italic: div.dataset.italic === '1',
+            underline: div.dataset.underline === '1'
         });
         div.classList.add('edited');
         this.updateTextEditState();
@@ -374,6 +381,39 @@ class PDFOrganizer {
                     this.activeEditDiv.style.fontFamily = e.target.value;
                 }
             });
+            const btnBold = document.getElementById('po-ft-bold');
+            if (btnBold) {
+                btnBold.addEventListener('click', () => {
+                    if (this.activeEditDiv) {
+                        const cur = this.activeEditDiv.dataset.bold === '1';
+                        this.activeEditDiv.dataset.bold = cur ? '0' : '1';
+                        this.activeEditDiv.style.fontWeight = cur ? 'normal' : 'bold';
+                        btnBold.classList.toggle('btn-active', !cur);
+                    }
+                });
+            }
+            const btnItalic = document.getElementById('po-ft-italic');
+            if (btnItalic) {
+                btnItalic.addEventListener('click', () => {
+                    if (this.activeEditDiv) {
+                        const cur = this.activeEditDiv.dataset.italic === '1';
+                        this.activeEditDiv.dataset.italic = cur ? '0' : '1';
+                        this.activeEditDiv.style.fontStyle = cur ? 'normal' : 'italic';
+                        btnItalic.classList.toggle('btn-active', !cur);
+                    }
+                });
+            }
+            const btnUnderline = document.getElementById('po-ft-underline');
+            if (btnUnderline) {
+                btnUnderline.addEventListener('click', () => {
+                    if (this.activeEditDiv) {
+                        const cur = this.activeEditDiv.dataset.underline === '1';
+                        this.activeEditDiv.dataset.underline = cur ? '0' : '1';
+                        this.activeEditDiv.style.textDecoration = cur ? 'none' : 'underline';
+                        btnUnderline.classList.toggle('btn-active', !cur);
+                    }
+                });
+            }
             ['left', 'center', 'right'].forEach(a => {
                 document.getElementById('po-ft-align-' + a).addEventListener('click', () => {
                     if (this.activeEditDiv) {
@@ -1977,7 +2017,7 @@ class PDFOrganizer {
     }
 
     
-    groupTextItems(items, styles, transform, Util, W, H, baseVp) {
+    groupTextItems(items, styles, transform, Util, W, H, baseVp, pdfPage) {
         let processedItems = [];
         items.forEach((item, index) => {
             if (!item.str || item.str.trim() === '') return;
@@ -1986,12 +2026,8 @@ class PDFOrganizer {
             const scaleX = Math.abs(transform[0]) || 1;
             const scaleY = Math.abs(transform[3]) || 1;
             
-            // FONT HEIGHT CALCULATION (30 Years Experience Fix)
-            // t_vp[2] and t_vp[3] represent the Y-axis vector in Viewport space.
+            // FONT HEIGHT CALCULATION
             let fontH = Math.hypot(t_vp[2], t_vp[3]);
-            
-            // If fontH is tiny (e.g. text matrix is unscaled or scaled down to 0.01),
-            // we must use item.height (unscaled glyph height) and multiply it by the matrix scale!
             if (fontH < 2 && item.height) {
                 fontH = item.height * scaleY; 
             }
@@ -2009,15 +2045,23 @@ class PDFOrganizer {
             const lenX_user = Math.hypot(item.transform[0], item.transform[1]) || 1;
             let width_vp = (item.width / lenX_user) * advanceScale_vp;
             
-            // Fallback for missing or zero-width items (e.g. big titles in some CAD PDFs)
             if (width_vp < 0.1) width_vp = fontH * 0.5 * item.str.length;
-            
             if (fontH < 0.1 || width_vp < 0.1) return;
+
+            // Extract bold and italic from pdf font object and font name
+            let fontObj = null;
+            if (pdfPage && pdfPage.commonObjs && pdfPage.commonObjs.has(item.fontName)) {
+                try { fontObj = pdfPage.commonObjs.get(item.fontName); } catch(e) {}
+            }
+            const fnStr = (fontObj?.name || item.fontName || '').toLowerCase();
+            const isBold = !!(fontObj?.bold || fontObj?.black || /bold|black|heavy|w[6-9]|semibold/i.test(fnStr));
+            const isItalic = !!(fontObj?.italic || /italic|oblique/i.test(fnStr));
             
             processedItems.push({
                 ...item, index, t_vp, origin_vp, fontSize_vp: fontH, angle_vp, dir_vp, normal_vp, width_vp,
                 pdfX: item.transform[4], pdfY: item.transform[5],
-                pdfSize: Math.hypot(item.transform[2], item.transform[3]) || item.height || (fontH / scaleY)
+                pdfSize: Math.hypot(item.transform[2], item.transform[3]) || item.height || (fontH / scaleY),
+                isBold, isItalic, fontNameStr: fontObj?.name || item.fontName
             });
         });
 
@@ -2042,7 +2086,7 @@ class PDFOrganizer {
                     // Horizontal gap check
                     const gap = Math.max(0, Math.max(l.minH - hEnd, hStart - l.maxH));
                     
-                    if (gap <= l.fontSize_vp * 4.0) { // Allow reasonable gaps for spaces
+                    if (gap <= l.fontSize_vp * 3.0) { // Allow reasonable gaps for spaces
                         l.items.push({ ...box, hStart, hEnd });
                         l.minH = Math.min(l.minH, hStart);
                         l.maxH = Math.max(l.maxH, hEnd);
@@ -2061,60 +2105,74 @@ class PDFOrganizer {
             }
         });
 
-        // Format text inside each line
+        // Format text inside each line and extract dominant style
         lines.forEach(l => {
             l.items.sort((a, b) => a.hStart - b.hStart);
             let lineStr = "";
+            let boldChars = 0, italicChars = 0, totalChars = 0;
             for (let i = 0; i < l.items.length; i++) {
-                if (i === 0) { lineStr += l.items[i].str; }
+                const it = l.items[i];
+                const len = it.str.length;
+                totalChars += len;
+                if (it.isBold) boldChars += len;
+                if (it.isItalic) italicChars += len;
+                if (i === 0) { lineStr += it.str; }
                 else {
-                    const gap = l.items[i].hStart - l.items[i-1].hEnd;
-                    if (gap > l.fontSize_vp * 0.2) lineStr += " " + l.items[i].str;
-                    else lineStr += l.items[i].str;
+                    const gap = it.hStart - l.items[i-1].hEnd;
+                    if (gap > l.fontSize_vp * 0.2) lineStr += " " + it.str;
+                    else lineStr += it.str;
                 }
             }
             l.text = lineStr;
+            l.isBold = boldChars > 0 && (boldChars / Math.max(1, totalChars) >= 0.25 || l.items.some(i => i.isBold));
+            l.isItalic = italicChars > 0 && (italicChars / Math.max(1, totalChars) >= 0.25 || l.items.some(i => i.isItalic));
         });
 
         // SORT LINES TOP-TO-BOTTOM BEFORE MULTI-LINE MERGE
         lines.sort((a, b) => a.origin_vp[1] - b.origin_vp[1]);
 
-        // PASS 2: Group adjacent lines into Blocks (Paragraphs)
+        // PASS 2: Group lines into Blocks
+        // In PDF documents, form fields, table cells, titles, and distinct labels/values must NOT be aggressively merged!
+        // Only merge lines if they have matching styles, sizes, and continuous paragraph spacing.
         let blocks = [];
         lines.forEach(line => {
             let merged = false;
             for (const b of blocks) {
                 if (Math.abs(b.angle_vp - line.angle_vp) > 0.05) continue;
-                if (Math.abs(b.fontSize_vp - line.fontSize_vp) > b.fontSize_vp * 0.3) continue;
+                if (Math.abs(b.fontSize_vp - line.fontSize_vp) > b.fontSize_vp * 0.12) continue;
+                // Style must match! Never merge bold with non-bold, or italic with non-italic!
+                if (b.isBold !== line.isBold || b.isItalic !== line.isItalic) continue;
                 
+                // Do not merge if previous line or current line ends/starts with a form colon or list marker
+                const lastLine = b.lineObjects[b.lineObjects.length - 1];
+                if (lastLine.text.trim().endsWith(':') || line.text.trim().startsWith(':')) continue;
+                if (/^[0-9]+[\.\)]|^[I|V|X]+[\.\)]/i.test(line.text.trim())) continue;
+
                 const dx_block = line.origin_vp[0] - b.origin_vp[0];
                 const dy_block = line.origin_vp[1] - b.origin_vp[1];
                 const vOffset = dx_block * b.normal_vp[0] + dy_block * b.normal_vp[1];
                 
-                const lastLine = b.lineObjects[b.lineObjects.length - 1];
                 const dx_last = line.origin_vp[0] - lastLine.origin_vp[0];
                 const dy_last = line.origin_vp[1] - lastLine.origin_vp[1];
                 const vDist = Math.abs(dx_last * b.normal_vp[0] + dy_last * b.normal_vp[1]);
                 
-                // Only merge if the next line is directly below (0.5 to 3.0 font sizes away)
-                if (vDist > b.fontSize_vp * 0.5 && vDist < b.fontSize_vp * 3.0) {
+                // Paragraph line spacing must be standard (0.8x to 1.7x fontSize)
+                if (vDist >= b.fontSize_vp * 0.8 && vDist <= b.fontSize_vp * 1.7) {
                     const hOffset = dx_block * b.dir_vp[0] + dy_block * b.dir_vp[1];
                     const lineMinH = line.minH + hOffset;
                     const lineMaxH = line.maxH + hOffset;
                     
-                    const leftAlign = Math.abs(lastLine.minH_block - lineMinH) < b.fontSize_vp * 2.0;
-                    const rightAlign = Math.abs(lastLine.maxH_block - lineMaxH) < b.fontSize_vp * 2.0;
-                    const centerAlign = Math.abs((lastLine.minH_block + lastLine.maxH_block)/2 - (lineMinH + lineMaxH)/2) < b.fontSize_vp * 2.0;
+                    const leftAlign = Math.abs(lastLine.minH_block - lineMinH) < b.fontSize_vp * 0.8;
                     const hOverlap = Math.min(lastLine.maxH_block, lineMaxH) - Math.max(lastLine.minH_block, lineMinH);
                     
-                    if (leftAlign || rightAlign || centerAlign || hOverlap > b.fontSize_vp * 2) {
+                    if (leftAlign && (hOverlap > b.fontSize_vp * 3 || Math.abs(lastLine.maxH_block - lineMaxH) < b.fontSize_vp * 3)) {
                         line.minH_block = lineMinH; line.maxH_block = lineMaxH;
                         b.lineObjects.push(line);
                         b.items.push(...line.items);
                         b.minH = Math.min(b.minH, lineMinH);
                         b.maxH = Math.max(b.maxH, lineMaxH);
                         b.minV = Math.min(b.minV, vOffset - line.fontSize_vp);
-                        b.maxV = Math.max(b.maxV, vOffset + line.fontSize_vp * 0.2); // descent
+                        b.maxV = Math.max(b.maxV, vOffset + line.fontSize_vp * 0.25);
                         merged = true;
                         break;
                     }
@@ -2126,7 +2184,8 @@ class PDFOrganizer {
                     lineObjects: [line], items: [...line.items],
                     origin_vp: line.origin_vp, angle_vp: line.angle_vp, dir_vp: line.dir_vp, normal_vp: line.normal_vp,
                     fontSize_vp: line.fontSize_vp,
-                    minH: line.minH, maxH: line.maxH, minV: -line.fontSize_vp, maxV: line.fontSize_vp * 0.2
+                    minH: line.minH, maxH: line.maxH, minV: -line.fontSize_vp, maxV: line.fontSize_vp * 0.25,
+                    isBold: line.isBold, isItalic: line.isItalic, isUnderline: false
                 });
             }
         });
@@ -2201,7 +2260,7 @@ class PDFOrganizer {
             if (!pageData.textEdits) pageData.textEdits = [];
             const Util = window.pdfjsLib.Util;
             const W = baseVp.width, H = baseVp.height;
-            const blocks = this.groupTextItems(textContent.items, textContent.styles, baseVp.transform, Util, W, H, baseVp);
+            const blocks = this.groupTextItems(textContent.items, textContent.styles, baseVp.transform, Util, W, H, baseVp, pdfPage);
             blocks.forEach((block, index) => {
                 const blockId = 'block_' + index;
                 const edited = pageData.textEdits.find(e => e.id === blockId);
@@ -2230,9 +2289,23 @@ class PDFOrganizer {
                 div.dataset.pdfMinY = block.pdfMinY;
                 div.dataset.pdfMaxX = block.pdfMaxX;
                 div.dataset.pdfSize = edited ? edited.size : block.pdfSize;
-                div.dataset.align = edited ? edited.align : 'left'; // Basic extraction can be added later
+                div.dataset.align = edited ? edited.align : 'left';
                 div.dataset.color = edited ? edited.color : '#000000';
                 div.dataset.fontFamily = edited ? edited.fontFamily : 'sans-serif';
+                
+                // Rich text styling (Bold, Italic, Underline)
+                const isBold = edited ? !!edited.bold : !!block.isBold;
+                const isItalic = edited ? !!edited.italic : !!block.isItalic;
+                const isUnderline = edited ? !!edited.underline : !!block.isUnderline;
+                
+                div.dataset.bold = isBold ? '1' : '0';
+                div.dataset.italic = isItalic ? '1' : '0';
+                div.dataset.underline = isUnderline ? '1' : '0';
+                
+                div.style.fontWeight = isBold ? 'bold' : 'normal';
+                div.style.fontStyle = isItalic ? 'italic' : 'normal';
+                div.style.textDecoration = isUnderline ? 'underline' : 'none';
+
                 if (edited) {
                     div.style.textAlign = edited.align;
                     div.style.color = edited.color;
@@ -2268,7 +2341,7 @@ class PDFOrganizer {
                             top = rect.bottom - wrapperRect.top + 8;
                         }
                         let left = rect.left - wrapperRect.left;
-                        const maxLeft = Math.max(0, wrapperRect.width - (tb.offsetWidth || 280));
+                        const maxLeft = Math.max(0, wrapperRect.width - (tb.offsetWidth || 340));
                         left = Math.max(0, Math.min(left, maxLeft));
                         tb.style.top = top + 'px';
                         tb.style.left = left + 'px';
@@ -2277,6 +2350,16 @@ class PDFOrganizer {
                         document.getElementById('po-ft-color').value = div.dataset.color || '#000000';
                         document.getElementById('po-ft-font').value = div.dataset.fontFamily || 'sans-serif';
                         
+                        const curBold = div.dataset.bold === '1';
+                        const curItalic = div.dataset.italic === '1';
+                        const curUnderline = div.dataset.underline === '1';
+                        const btnB = document.getElementById('po-ft-bold');
+                        if (btnB) btnB.classList.toggle('btn-active', curBold);
+                        const btnI = document.getElementById('po-ft-italic');
+                        if (btnI) btnI.classList.toggle('btn-active', curItalic);
+                        const btnU = document.getElementById('po-ft-underline');
+                        if (btnU) btnU.classList.toggle('btn-active', curUnderline);
+
                         const align = div.dataset.align || 'left';
                         ['left', 'center', 'right'].forEach(a => {
                             const btn = document.getElementById('po-ft-align-' + a);
@@ -2288,6 +2371,35 @@ class PDFOrganizer {
                 });
                 div.addEventListener('keydown', (e) => {
                     e.stopPropagation();
+                    if (e.ctrlKey || e.metaKey) {
+                        if (e.key === 'b' || e.key === 'B') {
+                            e.preventDefault();
+                            const cur = div.dataset.bold === '1';
+                            div.dataset.bold = cur ? '0' : '1';
+                            div.style.fontWeight = cur ? 'normal' : 'bold';
+                            const btn = document.getElementById('po-ft-bold');
+                            if (btn) btn.classList.toggle('btn-active', !cur);
+                            return;
+                        }
+                        if (e.key === 'i' || e.key === 'I') {
+                            e.preventDefault();
+                            const cur = div.dataset.italic === '1';
+                            div.dataset.italic = cur ? '0' : '1';
+                            div.style.fontStyle = cur ? 'normal' : 'italic';
+                            const btn = document.getElementById('po-ft-italic');
+                            if (btn) btn.classList.toggle('btn-active', !cur);
+                            return;
+                        }
+                        if (e.key === 'u' || e.key === 'U') {
+                            e.preventDefault();
+                            const cur = div.dataset.underline === '1';
+                            div.dataset.underline = cur ? '0' : '1';
+                            div.style.textDecoration = cur ? 'none' : 'underline';
+                            const btn = document.getElementById('po-ft-underline');
+                            if (btn) btn.classList.toggle('btn-active', !cur);
+                            return;
+                        }
+                    }
                     if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { 
                         e.preventDefault(); 
                         div.blur();
@@ -2322,7 +2434,7 @@ class PDFOrganizer {
         }
     }
 
-    async getUnicodeFont(doc) {
+    async getUnicodeFont(doc, style = {}) {
         if (!window.fontkit) {
             await new Promise((res) => {
                 const s = document.createElement('script');
@@ -2339,26 +2451,73 @@ class PDFOrganizer {
                 setTimeout(res, 4000);
             });
         }
-        if (!this._fontBytes) {
+        if (!this._fontBytesMap) this._fontBytesMap = {};
+        
+        const isBold = !!style.bold;
+        const isItalic = !!style.italic;
+        let variant = 'regular';
+        if (isBold && isItalic) variant = 'bolditalic';
+        else if (isBold) variant = 'bold';
+        else if (isItalic) variant = 'italic';
+
+        const fileMap = {
+            regular: 'NotoSans-Regular.ttf',
+            bold: 'NotoSans-Bold.ttf',
+            italic: 'NotoSans-Italic.ttf',
+            bolditalic: 'NotoSans-BoldItalic.ttf'
+        };
+        const cdnMap = {
+            regular: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf',
+            bold: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Bold.ttf',
+            italic: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Italic.ttf',
+            bolditalic: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-BoldItalic.ttf'
+        };
+
+        if (!this._fontBytesMap[variant]) {
             try {
-                const r = await fetch('NotoSans-Regular.ttf');
-                if (r.ok) this._fontBytes = await r.arrayBuffer();
+                const r = await fetch(fileMap[variant]);
+                if (r.ok) this._fontBytesMap[variant] = await r.arrayBuffer();
             } catch (e) {}
-            if (!this._fontBytes) {
+            if (!this._fontBytesMap[variant]) {
                 try {
-                    const r2 = await fetch('https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf');
-                    if (r2.ok) this._fontBytes = await r2.arrayBuffer();
+                    const r2 = await fetch(cdnMap[variant]);
+                    if (r2.ok) this._fontBytesMap[variant] = await r2.arrayBuffer();
                 } catch(e) {}
             }
         }
-        if (window.fontkit && this._fontBytes) {
+
+        // Fallback to regular if variant not found
+        if (!this._fontBytesMap[variant] && this._fontBytesMap['regular']) {
+            variant = 'regular';
+        } else if (!this._fontBytesMap[variant]) {
             try {
-                doc.registerFontkit(window.fontkit);
-                return await doc.embedFont(this._fontBytes, { subset: true });
+                const rReg = await fetch(fileMap.regular);
+                if (rReg.ok) this._fontBytesMap['regular'] = await rReg.arrayBuffer();
+            } catch(e) {}
+            if (this._fontBytesMap['regular']) variant = 'regular';
+        }
+
+        const bytes = this._fontBytesMap[variant];
+        if (window.fontkit && bytes) {
+            try {
+                if (!doc._fontkitRegistered) {
+                    doc.registerFontkit(window.fontkit);
+                    doc._fontkitRegistered = true;
+                }
+                if (!doc._customFontCache) doc._customFontCache = {};
+                if (!doc._customFontCache[variant]) {
+                    doc._customFontCache[variant] = await doc.embedFont(bytes, { subset: true });
+                }
+                return doc._customFontCache[variant];
             } catch (fErr) {
-                console.warn('registerFontkit failed, fallback to Helvetica:', fErr);
+                console.warn(`embedFont failed for ${variant}:`, fErr);
             }
         }
+        try {
+            if (isBold && isItalic) return await doc.embedFont(window.PDFLib.StandardFonts.HelveticaBoldOblique);
+            if (isBold) return await doc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
+            if (isItalic) return await doc.embedFont(window.PDFLib.StandardFonts.HelveticaOblique);
+        } catch(e) {}
         return await doc.embedFont(window.PDFLib.StandardFonts.Helvetica);
     }
     focusPage(id, forceRender = false) {
@@ -3031,49 +3190,43 @@ class PDFOrganizer {
             
             // Apply WYSIWYG Text Edits
             const finalPages = finalDoc.getPages();
-            let editFont = null;
             for (let i = 0; i < targetPages.length; i++) {
                 const p = targetPages[i];
                 if (!p.textEdits || p.textEdits.length === 0) continue;
                 if (p.type !== 'pdf' || (!isSingleFile && this.encrypted[p.fileIndex])) continue;
-                if (!editFont) editFont = await this.getUnicodeFont(finalDoc);
                 const targetPage = finalPages[i];
                 if (!targetPage) continue;
                 for (const edit of p.textEdits) {
                     const size = edit.size || 12;
                     // Xóa vùng cũ (Block Masking)
-                    // edit.y là top, edit.x là left, edit.width và edit.height của block
                     const blockTop = edit.y;
                     const blockBottom = edit.y - edit.height;
-                    const rectY = blockBottom - size * 0.28;
-                    const rectH = edit.height + size * 0.5;
-console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
                     const minX = edit.pdfMinX !== undefined ? edit.pdfMinX : edit.x;
                     const maxX = edit.pdfMaxX !== undefined ? edit.pdfMaxX : (edit.x + edit.width);
                     const minY = edit.pdfMinY !== undefined ? edit.pdfMinY : (edit.y - edit.height);
                     const maxY = edit.pdfMaxY !== undefined ? edit.pdfMaxY : edit.y;
                     targetPage.drawRectangle({
-                        x: minX - 2,
-                        y: minY - 2,
-                        width: (maxX - minX) + 4,
-                        height: (maxY - minY) + 4,
+                        x: minX - 1.5,
+                        y: minY - 1.5,
+                        width: (maxX - minX) + 3,
+                        height: (maxY - minY) + 3,
                         color: window.PDFLib.rgb(1, 1, 1)
                     });
                     
                     if (edit.newText) {
+                        const editFont = await this.getUnicodeFont(finalDoc, {
+                            bold: !!edit.bold,
+                            italic: !!edit.italic
+                        });
                         const hex = edit.color || '#000000';
-                        const r = parseInt(hex.slice(1,3), 16)/255 || 0;
-                        const g = parseInt(hex.slice(3,5), 16)/255 || 0;
-                        const b = parseInt(hex.slice(5,7), 16)/255 || 0;
+                        const r = (parseInt(hex.slice(1,3), 16) || 0) / 255;
+                        const g = (parseInt(hex.slice(3,5), 16) || 0) / 255;
+                        const b = (parseInt(hex.slice(5,7), 16) || 0) / 255;
                         
                         // Xử lý xuống dòng tự động & căn lề
-                        const lines = edit.newText.split('\\n');
                         const lineHeight = size * 1.2;
                         let currentY = blockTop - size;
                         
-                        // Để đơn giản, giả sử người dùng gõ xuống dòng bằng Enter.
-                        // Nếu cần tự động ngắt dòng, ta có thể viết hàm wrap nhỏ, nhưng hiện tại lấy theo dòng.
-                        // Trải nghiệm tốt nhất là wrap qua các từ.
                         const words = edit.newText.replace(/\n/g, ' \n ').split(' ');
                         let wrappedLines = [];
                         let currentLine = '';
@@ -3113,6 +3266,14 @@ console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
                                     color: window.PDFLib.rgb(r, g, b),
                                     rotate: window.PDFLib.degrees(90)
                                 });
+                                if (edit.underline) {
+                                    targetPage.drawLine({
+                                        start: { x: currentX + 2, y: drawY },
+                                        end: { x: currentX + 2, y: drawY + tw },
+                                        thickness: Math.max(0.75, size * 0.07),
+                                        color: window.PDFLib.rgb(r, g, b)
+                                    });
+                                }
                                 currentX += lineHeight;
                             }
                         } else {
@@ -3132,6 +3293,14 @@ console.log("DRAWING TEXT", edit.newText, edit.x, edit.y);
                                     font: editFont,
                                     color: window.PDFLib.rgb(r, g, b)
                                 });
+                                if (edit.underline) {
+                                    targetPage.drawLine({
+                                        start: { x: drawX, y: currentY - size * 0.12 },
+                                        end: { x: drawX + tw, y: currentY - size * 0.12 },
+                                        thickness: Math.max(0.75, size * 0.07),
+                                        color: window.PDFLib.rgb(r, g, b)
+                                    });
+                                }
                                 currentY -= lineHeight;
                             }
                         }
