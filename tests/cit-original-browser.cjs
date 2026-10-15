@@ -34,7 +34,8 @@ function createServer(){
  return http.createServer((req,res)=>{
   const raw=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
   const relative=raw.replace(/^\/PDF-Editor-Hdv(?=\/)/,'');
-  const file=path.resolve(site,'.'+relative);
+  const route=relative.endsWith('/')?relative+'index.html':relative;
+  const file=path.resolve(site,'.'+route);
   if(!file.startsWith(site+path.sep)){res.writeHead(403);res.end();return;}
   fs.readFile(file,(error,data)=>{
    res.writeHead(error?404:200,{'Content-Type':mime[path.extname(file)]||'application/octet-stream',
@@ -60,6 +61,11 @@ async function main(){
   await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.waitForURL(/\/PDF-Editor-Hdv\/cit-native\/edit-pdf-text\.html/,{timeout:15000});
   await page.locator('#file-input').waitFor();
+  await page.locator('#hvd-cit-uploader-home').waitFor();
+  assert.equal(await page.evaluate(()=>document.body.dataset.hvdCitHub),'original');
+  assert.match(await page.locator('#hvd-cit-uploader-home').getAttribute('href'),
+    /\/PDF-Editor-Hdv\/index\.html$/,'HVD home link must not point back inside CIT');
+
   for(const sel of ['#text-editor-app','#inspector','#fFamily','#fSize','#fLine',
     '#fPara','#fSwatches','#fAlign','#fToggles','#undo','#redo','#save']){
     assert.equal(await page.locator(sel).count(),1,'Original CIT element: '+sel);
@@ -75,6 +81,13 @@ async function main(){
   await page.screenshot({path:path.join(results,'01-cit-original-loaded.png'),fullPage:true});
   assert.equal(await page.locator('#inspector').isVisible(),true,
     'Original right-hand formatting dock must be visible');
+  assert.equal(await page.locator('#hvd-cit-home').isVisible(),true,
+    'Brand/HVD navigation in original editor toolbar must be visible');
+  assert.ok(await page.locator('#fFamily option').count()>=8,
+    'CIT original font families must remain intact');
+  assert.equal(await page.locator('#fLine').isVisible(),true);
+  assert.equal(await page.locator('#fPara').isVisible(),true);
+
   const box=page.locator('#overlay .para-box:not(.block-box)').first();
   await box.dispatchEvent('mousedown');
   const editor=page.locator('#overlay .editor [contenteditable=true]');
@@ -101,6 +114,19 @@ async function main(){
   // HVD PDF.js 3.x has different glyph extraction behavior from CIT PDFium.
   console.log('Native-CIT PDF export size:',bytes.length);
   assert.deepEqual(failed,[],'No PDFium or Vite resource failures');
+  // Verify the CIT "Back to Tools" route returns to the actual HVD home,
+  // not to CIT's own subapplication homepage. This is independent of editor
+  // state and must not alter the original save or text-edit handling.
+  const nav=await browser.newPage({viewport:{width:1280,height:820}});
+  try{
+    await nav.goto('http://127.0.0.1:'+server.address().port+
+      '/PDF-Editor-Hdv/cit-native/edit-pdf-text.html',{waitUntil:'domcontentloaded'});
+    await nav.locator('#back-to-tools').waitFor();
+    await nav.locator('#back-to-tools').click();
+    await nav.waitForURL(/\/PDF-Editor-Hdv\/index\.html$/,{timeout:20000});
+    assert.equal(await nav.locator('#shortcut-text').count(),1,
+      'Return destination must be PDF HVD, not the upstream CIT hub');
+  }finally{await nav.close();}
   console.log('PASS: original CIT frontend, exact inspector, original WASM PDF text rewrite, native export');
  }finally{
   await browser.close();
