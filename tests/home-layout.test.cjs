@@ -6,77 +6,58 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const ui=fs.readFileSync(path.join(root,'hvd-ui-v2.js'),'utf8');
-
-test('global header contains only site-wide actions, never Text editing CTA',()=>{
- const header=html.match(/<header>([\s\S]*?)<\/header>/)?.[1];
- assert.ok(header);
- assert.doesNotMatch(header,/shortcut-text|Chỉnh Text|Sửa Text|Chỉnh sửa văn bản PDF/);
- assert.match(header,/<nav id="nav">/);
- assert.match(header,/id="logo"/);
-});
-
-test('Text editor is a real item inside the Chỉnh sửa category',()=>{
- assert.match(html,/\['Chỉnh sửa văn bản PDF','[^']+','Chỉnh sửa','T','cit-text-route','\.pdf'\]/);
- assert.match(html,/if\(T\[i\]\?\.\[4\]==='cit-text-route'\)\{location\.href='\.\/text-editor\.html'/);
- assert.doesNotMatch(html,/id="shortcut-text"/);
-});
-
-test('new catalog displays friendly names without mutating original tool engine keys',()=>{
- const data=[
-  ['Giảm dung lượng PDF','Giảm kích cỡ','Nén','⇲','compress','.pdf'],
-  ['Chuyển đổi PDF','Đổi định dạng','Chuyển đổi','⇄','fmt','.pdf'],
-  ['PDF OCR','Nhận dạng chữ','Chuyển đổi','OCR','lang','.pdf'],
-  ['Chỉnh sửa văn bản PDF','Sửa Text','Chỉnh sửa','T','cit-text-route','.pdf'],
-  ['PDF sang PDF/A','Lưu lâu dài','Chuyển đổi','A','none','.pdf']
- ];
- const before=structuredClone(data);
- const nodes={
-  '#q':{value:'',placeholder:'',oninput:null},
-  '#chips':{innerHTML:''},
-  '#tools':{innerHTML:''}
- };
- const hero={
-  children:{h1:{textContent:''},p:{textContent:''}},
-  querySelector(q){return q==='.eyebrow'?null:this.children[q]},
-  insertAdjacentHTML(){}
- };
- const rootNode={querySelector(q){return q==='.hero'?hero:null}};
- const context={
-  document:{querySelector:q=>q==='#home'?rootNode:nodes[q]},
-  T:data,
-  C:{'Nén':'#fa3','Chuyển đổi':'#37c','Chỉnh sửa':'#09a'},
-  cats:['Tất cả','Nén','Chuyển đổi','Chỉnh sửa'],
-  cat:'Tất cả',
-  home(){},
-  console
- };
+const cit=fs.readFileSync(path.join(root,'cit-advanced-ui.js'),'utf8');
+function mock(data){
+ const saved=structuredClone(data);
+ const nodes={'#q':{value:'',placeholder:''},'#chips':{innerHTML:''},'#tools':{innerHTML:''},'#nav':{innerHTML:''}};
+ const listeners={};
+ const hero={querySelector:q=>q==='.eyebrow'?null:({textContent:''}),insertAdjacentHTML(){}};
+ const context={document:{querySelector:q=>q==='#home'?{querySelector:()=>hero}:nodes[q],addEventListener:(n,f)=>listeners[n]=f},T:data,cat:'Tất cả',home(){},openTool(i){context.opened=i}};
  vm.createContext(context);
  new vm.Script(ui).runInContext(context);
- assert.deepEqual(data,before,'internal tool names cannot change during display-only rebrand');
- assert.match(nodes['#tools'].innerHTML,/Chỉnh sửa văn bản PDF/);
- assert.match(nodes['#tools'].innerHTML,/Nén PDF/);
- assert.match(nodes['#tools'].innerHTML,/Nhận dạng văn bản \(OCR\)/);
- assert.match(nodes['#tools'].innerHTML,/data-i="3"/);
- assert.match(nodes['#tools'].innerHTML,/data-i="0"/);
- assert.equal((nodes['#tools'].innerHTML.match(/data-i="3"/g)||[]).length,1);
- assert.doesNotMatch(nodes['#tools'].innerHTML,/PDF sang PDF\/A[^]*data-i="4"[^>]*class="tool"/);
+ const click=(selector,dataset)=>listeners.click({target:{closest:q=>q===selector?{dataset}:null}});
+ return {nodes,context,saved,html:()=>nodes['#tools'].innerHTML,click};
+}
+test('Text editing remains a separate native tool routed to its existing page',()=>{
+ assert.match(html,/\['Chỉnh sửa văn bản PDF','[^']+','Chỉnh sửa','T','cit-text-route','\.pdf'\]/);
+ assert.match(html,/if\(T\[i\]\?\.\[4\]==='cit-text-route'\)\{location\.href='\.\/text-editor\.html'/);
+ const h=mock([['Chỉnh sửa văn bản PDF','Text','Chỉnh sửa','T','cit-text-route','.pdf'],['Chỉnh sửa PDF','Other','Chỉnh sửa','✎','organize','.pdf']]);
+ assert.match(h.html(),/Chỉnh sửa Text — công cụ độc lập/);
+ assert.match(h.html(),/Sửa Text PDF gốc/);
+ assert.match(h.html(),/data-i="0"/);
+ assert.equal((h.html().match(/Sửa Text PDF gốc/g)||[]).length,1);
 });
-
-test('search and category filtering work with display label or original name',()=>{
- const data=[
-  ['Giảm dung lượng PDF','Tối ưu','Nén','⇲','compress','.pdf'],
-  ['PDF OCR','Nhận dạng','Chuyển đổi','OCR','lang','.pdf'],
-  ['Chỉnh sửa văn bản PDF','Văn bản gốc','Chỉnh sửa','T','cit-text-route','.pdf']
- ];
- const nodes={'#q':{value:'',oninput:null},'#chips':{innerHTML:''},'#tools':{innerHTML:''}};
- const hero={querySelector:q=>q==='.eyebrow'?null:({textContent:''}),insertAdjacentHTML(){}};
- const context={document:{querySelector:q=>q==='#home'?{querySelector:()=>hero}:nodes[q]},
-  T:data,C:{'Nén':'#a','Chuyển đổi':'#b','Chỉnh sửa':'#c'},
-  cats:['Tất cả','Nén','Chuyển đổi','Chỉnh sửa'],cat:'Tất cả',home(){}};
- vm.createContext(context);new vm.Script(ui).runInContext(context);
- nodes['#q'].value='nén';vm.runInContext('home()',context);
- assert.match(nodes['#tools'].innerHTML,/Nén PDF/);
- assert.doesNotMatch(nodes['#tools'].innerHTML,/Nhận dạng văn bản/);
- nodes['#q'].value='OCR';vm.runInContext('home()',context);
- assert.match(nodes['#tools'].innerHTML,/Nhận dạng văn bản/);
+test('15 catalog definitions, original registry immutable, unsupported tools hidden',()=>{
+ const source=ui.match(/const cards=\[([\s\S]*?)\];/)[1];
+ assert.equal((source.match(/^\s*\['/gm)||[]).length,15);
+ const data=[['Giảm dung lượng PDF','Nén','Nén','⇲','compress','.pdf'],['PDF OCR','OCR','Chuyển đổi','OCR','lang','.pdf'],['PDF sang PDF/A','Không có engine','Chuyển đổi','A','none','.pdf'],['Chỉnh sửa văn bản PDF','Text','Chỉnh sửa','T','cit-text-route','.pdf'],['Ghép PDF','Ghép','Sắp xếp','⊕','merge','.pdf'],['Ghép PDF xen kẽ','Xen kẽ','Sắp xếp','⇄','merge','.pdf'],['Chia sẻ PDF','Chưa có server','Chỉnh sửa','↗','qr','.pdf'],['Xóa trang PDF','Xóa','Sắp xếp','×','range','.pdf'],['Trích xuất trang','Trích','Sắp xếp','⇥','range','.pdf']];
+ const h=mock(data);
+ assert.deepEqual(data,h.saved);
+ assert.match(h.html(),/Nén PDF/);
+ assert.match(h.html(),/Quản lý trang PDF/);
+ assert.match(h.html(),/Cần ứng dụng PC/);
+ assert.doesNotMatch(h.html(),/PDF sang PDF\/A|Chia sẻ PDF|Chưa hỗ trợ/);
+ h.click('[data-group-key]',{groupKey:'pages'});
+ assert.match(h.html(),/data-target-tool="7"/);
+ h.click('[data-target-tool]',{targetTool:'7'});
+ assert.equal(h.context.opened,7);
+});
+test('catalog filters by category and by hidden action name',()=>{
+ const h=mock([['Giảm dung lượng PDF','Nén','Nén','⇲','compress','.pdf'],['Chỉnh sửa văn bản PDF','Text','Chỉnh sửa','T','cit-text-route','.pdf'],['PDF OCR','OCR','Chuyển đổi','OCR','lang','.pdf'],['Đảo thứ tự trang PDF','Đảo','Sắp xếp','⇅','cit-reverse','.pdf']]);
+ h.nodes['#q'].value='đảo';vm.runInContext('home()',h.context);
+ assert.match(h.html(),/Quản lý trang PDF/);
+ assert.doesNotMatch(h.html(),/Sửa Text PDF gốc/);
+ h.nodes['#q'].value='';h.context.cat='Sửa Text';vm.runInContext('home()',h.context);
+ assert.match(h.html(),/Sửa Text PDF gốc/);
+ assert.doesNotMatch(h.html(),/Nén PDF/);
+ h.context.cat='Tất cả';h.nodes['#q'].value='OCR';vm.runInContext('home()',h.context);
+ assert.match(h.html(),/Nhận dạng văn bản OCR/);
+ assert.match(h.nodes['#nav'].innerHTML,/Nâng cao/);
+ assert.doesNotMatch(h.nodes['#nav'].innerHTML,/AI PDF/);
+});
+test('CIT route and editor engine stay unmodified',()=>{
+ assert.match(cit,/for\(const t of tools\)if\(!existing\.has\(t\[0\]\)\)T\.push\(t\)/);
+ assert.match(cit,/home\(\);\s*\}\)\(\);/);
+ assert.doesNotMatch(ui,/T\.push\(|T\[[^\]]+\]\s*=/);
+ assert.match(html,/hvd-ui-v2\.js\?v=20261016-compact1/);
 });

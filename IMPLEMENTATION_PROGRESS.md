@@ -166,3 +166,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Giữ biểu tượng thông tin nhỏ, mở `NOTICE.md` trong tab mới khi người dùng chủ động chọn; không tự bật, không làm gián đoạn quá trình thao tác.
 - Giữ nguyên `LICENSE`, `NOTICE.md` và ghi nhận tác giả trong repository. Không thay đổi thuật toán xử lý PDF.
 - Cập nhật CSS, cache version và kiểm thử để ngăn hộp thoại xuất hiện trở lại.
+
+## 2026-10-16 — Tinh gọn giao diện, Sửa Text là công cụ riêng
+
+- Chốt giữ tính năng Sửa Text PDF gốc độc lập; đi thẳng `text-editor.html` qua định tuyến `cit-text-route` như cũ, không gộp với nhóm Chỉnh sửa PDF.
+- Giảm giao diện chính xuống 15 thẻ (cấu hình tĩnh), 5 mục lọc: Sửa Text, Biên tập, Tổ chức, Chuyển đổi và Nâng cao.
+- Gộp các thao tác trang, ghép, đánh số/Bates/watermark, chuyển đổi Office, xuất ảnh, N-up/Overlay, metadata thành nhóm có submenu; lựa chọn vẫn gọi đúng `openTool(i)` cũ.
+- Ẩn tính năng chưa có engine bằng allowlist; không xóa mã nguồn/thuật toán, không sửa `T`, `organizer.js`, PDFium/CIT hay Local Engine. OCR/Office/TIFF tiếp tục gắn nhãn cần PC; không hứa chạy toàn bộ trên Pages.
+- Thay `hvd-ui-v2.js`, CSS, cache phiên bản của `index.html`, cập nhật kiểm thử `tests/home-layout.test.cjs` và ghi tiến độ; chờ CI và Pages xác thực.

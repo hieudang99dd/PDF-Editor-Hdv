@@ -1,68 +1,77 @@
-/* PDF HVD – catalog presentation. Tool identities are immutable. */
+/* PDF HVD / Catalog only. Preserve all original engine names and dispatch routes. */
 (function(){
 'use strict';
 const main=document.querySelector('#home');
 if(!main||typeof home!=='function')return;
 const hero=main.querySelector('.hero');
-hero.querySelector('h1').textContent='Bộ công cụ xử lý PDF chuyên nghiệp';
-hero.querySelector('p').textContent='Chuyển đổi, sắp xếp, chỉnh sửa và bảo vệ tài liệu trong một không gian làm việc. Chọn công cụ để bắt đầu.';
-if(!hero.querySelector('.eyebrow'))hero.insertAdjacentHTML('afterbegin','<span class="eyebrow">PDF HVD <span aria-hidden="true">/</span> TRUNG TÂM CÔNG CỤ</span>');
+hero.querySelector('h1').textContent='Bộ công cụ PDF chuyên nghiệp';
+hero.querySelector('p').textContent='Chỉnh sửa, tổ chức, chuyển đổi và xuất bản hồ sơ. Các tác vụ cần engine PC được ghi rõ.';
+if(!hero.querySelector('.eyebrow'))hero.insertAdjacentHTML('afterbegin','<span class="eyebrow">PDF HVD / KHÔNG GIAN LÀM VIỆC</span>');
 const q=document.querySelector('#q');
-q.placeholder='Tìm kiếm công cụ: ghép PDF, chuyển Word, OCR, đánh số trang…';
-/* Display-only names: never rename T[i][0].
- * Existing local/OCR/CIT engines dispatch by the ORIGINAL name. */
-const labels=new Map([
- ['Giảm dung lượng PDF',['Nén PDF','Tối ưu dung lượng tệp PDF mà không thay đổi nội dung.']],
- ['Chuyển đổi PDF',['Chuyển đổi định dạng PDF','Xuất PDF sang các định dạng hiện được hỗ trợ.']],
- ['PDF OCR',['Nhận dạng văn bản (OCR)','Nhận dạng chữ trên tài liệu PDF dạng ảnh.']],
- ['PDF sang PDF/A',['Chuyển PDF sang PDF/A','Chuyển tài liệu sang định dạng lưu trữ dài hạn.']],
- ['JPG sang PDF',['Ảnh sang PDF','Chuyển ảnh JPG, PNG và các định dạng được hỗ trợ thành PDF.']],
- ['Biên tập lại (che thông tin)',['Che nội dung PDF','Chỉ che phần hiển thị; không phải xóa dữ liệu bảo mật.']],
- ['Che thông tin trực quan',['Che nội dung PDF','Chỉ che phần hiển thị; không phải xóa dữ liệu bảo mật.']]
+q.placeholder='Tìm: sửa Text, ghép PDF, xóa trang, OCR, chồng bản vẽ…';
+const categories=['Tất cả','Sửa Text','Biên tập','Tổ chức','Chuyển đổi','Nâng cao'];
+const local=new Set(['PDF OCR','PDF sang Word','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF']);
+const browser=new Set([
+'Chỉnh sửa văn bản PDF','Chỉnh sửa PDF','Ký tên vào PDF','Đánh số trang','Đánh số Bates','Watermark PDF',
+'Sắp xếp PDF','Cắt PDF','Xóa trang PDF','Trích xuất trang','Xoay PDF','Đảo thứ tự trang PDF',
+'Trích trang lẻ','Trích trang chẵn','Chèn trang trắng PDF','Xoay PDF góc tùy chỉnh','Ghép PDF',
+'Ghép PDF xen kẽ','Giảm dung lượng PDF','Cắt lề PDF','PDF sang JPG','PDF sang PNG',
+'JPG sang PDF','PDF sang TXT','In nhiều trang N-up','Chồng 2 PDF (Overlay)',
+'Xem thuộc tính PDF','Sửa thuộc tính PDF','Xóa metadata cơ bản','Xóa chú thích PDF','Làm phẳng PDF'
 ]);
-const display=t=>labels.get(t[0])||[t[0],t[1]];
-const offlineNames=new Set(['PDF OCR','PDF sang Word','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF']);
-const browserCodes=new Set(['merge','range','rot','organize','img','pdf2jpg','pdf2png','wm','pnum','sign','flatten','cit-text-route']);
-const browserNames=new Set(['Giảm dung lượng PDF','Chuyển đổi PDF','PDF sang TXT']);
-const allLocalNames=new Set([...offlineNames]);
-const getStatus=t=>{
- if(allLocalNames.has(t[0]))return ['Cần ứng dụng PC','is-local'];
- if(t[4].startsWith('cit-')||browserCodes.has(t[4])||browserNames.has(t[0]))return ['Trình duyệt','is-web'];
- return ['Chưa hỗ trợ','is-soon'];
-};
-const featured=[
- 'Chỉnh sửa văn bản PDF','Ghép PDF','Giảm dung lượng PDF','Chỉnh sửa PDF',
- 'Chuyển đổi PDF','PDF sang Word','PDF sang JPG','JPG sang PDF'
+/* Only entries with a known implemented route are exposed. The original T array
+ * also contains incomplete tools sharing the same codes ("none"/"organize").
+ * Hide these in the UI, never delete their original engine definitions. */
+const cards=[
+ ['text','Sửa Text','Sửa Text PDF gốc','Chỉnh sửa trực tiếp chữ gốc trong không gian riêng bằng PDFium WASM.','T',['Chỉnh sửa văn bản PDF']],
+ ['edit','Biên tập','Chỉnh sửa & chú thích','Thêm chữ, ảnh, highlight và chú thích; không phải sửa Text gốc.','✎',['Chỉnh sửa PDF']],
+ ['sign','Biên tập','Chèn chữ ký','Chữ ký dạng ảnh, không phải chữ ký số.','✍',['Ký tên vào PDF']],
+ ['stamp','Biên tập','Đánh số & đóng dấu','Đánh số trang, Bates và watermark.','#',['Đánh số trang','Đánh số Bates','Watermark PDF']],
+ ['pages','Tổ chức','Quản lý trang PDF','Sắp xếp, tách, xóa, trích, xoay và chèn trang.','▦',['Sắp xếp PDF','Cắt PDF','Xóa trang PDF','Trích xuất trang','Xoay PDF','Đảo thứ tự trang PDF','Trích trang lẻ','Trích trang chẵn','Chèn trang trắng PDF','Xoay PDF góc tùy chỉnh']],
+ ['merge','Tổ chức','Ghép PDF','Ghép nối hoặc ghép xen kẽ.','⊕',['Ghép PDF','Ghép PDF xen kẽ']],
+ ['compress','Tổ chức','Nén PDF','Tối ưu dung lượng và ưu tiên giữ vector.','⇲',['Giảm dung lượng PDF']],
+ ['crop','Tổ chức','Cắt lề PDF','Thay đổi vùng nhìn CropBox, không xóa nội dung ngoài lề.','⌗',['Cắt lề PDF']],
+ ['export','Chuyển đổi','PDF sang ảnh','Xuất trang PDF thành JPG, PNG hoặc TIFF.','JPG',['PDF sang JPG','PDF sang PNG','PDF sang TIFF']],
+ ['image','Chuyển đổi','Ảnh sang PDF','Đổi các định dạng ảnh thông dụng thành PDF.','▣',['JPG sang PDF']],
+ ['office','Chuyển đổi','Văn bản & Office','PDF sang Word/TXT; Word, Excel, PPT sang PDF. Một số định dạng cần PC.','W',['PDF sang Word','PDF sang TXT','Word sang PDF','Excel sang PDF','PPT sang PDF']],
+ ['ocr','Chuyển đổi','Nhận dạng văn bản OCR','Nhận dạng văn bản scan, cần ứng dụng PC.','OCR',['PDF OCR']],
+ ['drawings','Nâng cao','Bố trí & chồng bản vẽ','N-up và chồng hai bản vẽ PDF, ưu tiên giữ vector.','▤',['In nhiều trang N-up','Chồng 2 PDF (Overlay)']],
+ ['meta','Nâng cao','Thuộc tính PDF','Xem, sửa, xóa metadata cơ bản hoặc xóa chú thích.','ⓘ',['Xem thuộc tính PDF','Sửa thuộc tính PDF','Xóa metadata cơ bản','Xóa chú thích PDF']],
+ ['flatten','Nâng cao','Làm phẳng biểu mẫu','Làm phẳng trường biểu mẫu, không khẳng định tất cả chú thích.','▭',['Làm phẳng PDF']]
 ];
-const escape=s=>String(s).replace(/[&<>"']/g,x=>({
- '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-}[x]));
+const esc=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const find=name=>T.findIndex(t=>t[0]===name);
+const actions=c=>c[5].filter(n=>(browser.has(n)||local.has(n))&&find(n)>=0);
+let expanded=null;
+const nav=document.querySelector('#nav');
+if(nav)nav.innerHTML=categories.slice(2).map(c=>'<button type="button" data-nav="'+esc(c)+'">'+esc(c)+'</button>').join('');
 const renderCatalog=()=>{
  const term=q.value.trim().toLocaleLowerCase('vi');
- const chips=document.querySelector('#chips');
- chips.innerHTML=cats.map(c=>'<button class="chip '+(c===cat?'on':'')+'" data-c="'+escape(c)+'" aria-pressed="'+(c===cat)+'">'+escape(c)+'</button>').join('');
- const featuredIndices=cat==='Tất cả'&&!term?
-   featured.map(name=>T.findIndex(t=>t[0]===name)).filter(i=>i>=0):[];
- const groups=[];
- if(featuredIndices.length)groups.push(['Công cụ thường dùng',featuredIndices]);
- for(const c of Object.keys(C)){
-   if(cat!=='Tất cả'&&cat!==c)continue;
-   const indices=T.map((t,i)=>({t,i})).filter(({t})=>{
-     const [label,description]=display(t);
-     return t[2]===c&&(label+' '+description+' '+t[0]).toLocaleLowerCase('vi').includes(term);
-   }).map(x=>x.i);
-   const entries=cat==='Tất cả'&&!term?indices.filter(i=>!featuredIndices.includes(i)):indices;
-   if(entries.length)groups.push([c,entries]);
- }
- const html=groups.map(([title,indices])=>'<section class="catalog-group"><h2 class="cat">'+escape(title)+'</h2><div class="grid">'+indices.map(i=>{
-   const t=T[i],st=getStatus(t),soon=st[1]==='is-soon';
-   const [label,description]=display(t);
-   const primary=t[4]==='cit-text-route';
-   return '<button type="button" class="tool '+(soon?'is-soon':'')+(primary?' is-primary':'')+'" data-i="'+i+'"'+(soon?' disabled title="Chức năng chưa khả dụng"':'')+'><div class="ic" style="background:'+C[t[2]]+'">'+escape(t[3])+'</div><div class="tool-body"><b>'+escape(label)+'</b><span>'+escape(description)+'</span></div><span class="tool-status '+st[1]+'">'+st[0]+'</span></button>';
- }).join('')+'</div></section>').join('');
- document.querySelector('#tools').innerHTML=html||'<p role="status" style="color:var(--mute)">Không tìm thấy công cụ phù hợp. Hãy thử từ khóa khác.</p>';
+ document.querySelector('#chips').innerHTML=categories.map(c=>'<button type="button" class="chip '+(cat===c?'on':'')+'" data-c="'+esc(c)+'" aria-pressed="'+(cat===c)+'">'+esc(c)+'</button>').join('');
+ const html=categories.slice(1).filter(c=>cat==='Tất cả'||cat===c).map(c=>{
+  const visible=cards.filter(x=>x[1]===c&&actions(x).length&&(!term||(x[2]+' '+x[3]+' '+x[5].join(' ')).toLocaleLowerCase('vi').includes(term)));
+  if(!visible.length)return '';
+  const tiles=visible.map(x=>{
+   const names=actions(x),single=names.length===1,idx=single?find(names[0]):-1;
+   const needsPC=names.some(n=>local.has(n)),hasWeb=names.some(n=>browser.has(n));
+   const status=needsPC?(hasWeb?'Web / PC':'Cần ứng dụng PC'):'Trình duyệt';
+   const opened=expanded===x[0]&&!single;
+   const attrs=single?' data-i="'+idx+'"':' data-group-key="'+esc(x[0])+'" aria-expanded="'+opened+'" aria-controls="catalog-panel-'+esc(x[0])+'"';
+   return '<button type="button" class="tool catalog-tile'+(x[0]==='text'?' is-primary':'')+'"'+attrs+'><span class="ic catalog-icon">'+esc(x[4])+'</span><span class="tool-body"><b>'+esc(x[2])+'</b><span>'+esc(x[3])+'</span><span class="catalog-status">'+status+'</span></span>'+(single?'':'<span class="catalog-chevron" aria-hidden="true">'+(opened?'−':'+')+'</span>')+'</button>';
+  }).join('');
+  const active=visible.find(x=>x[0]===expanded&&actions(x).length>1);
+  const panel=active?'<div class="catalog-action-panel" role="region" id="catalog-panel-'+esc(active[0])+'" aria-label="'+esc(active[2])+'"><div class="catalog-action-heading"><strong>'+esc(active[2])+'</strong><button type="button" class="catalog-panel-close" data-group-key="'+esc(active[0])+'" aria-label="Thu gọn">×</button></div><div class="catalog-action-list">'+actions(active).map(name=>'<button type="button" class="catalog-action" data-target-tool="'+find(name)+'"><span>'+esc(name)+'</span><small>'+(local.has(name)?'PC':'Web')+'</small></button>').join('')+'</div></div>':'';
+  return '<section class="catalog-group" data-category="'+esc(c)+'"><h2 class="cat">'+esc(c==='Sửa Text'?'Chỉnh sửa Text — công cụ độc lập':c)+'</h2><div class="grid">'+tiles+'</div>'+panel+'</section>';
+ }).join('');
+ document.querySelector('#tools').innerHTML=html||'<p role="status" class="catalog-empty">Không tìm thấy công cụ đang hỗ trợ phù hợp.</p>';
 };
+document.addEventListener('click',e=>{
+ const group=e.target.closest('[data-group-key]');
+ if(group){expanded=expanded===group.dataset.groupKey?null:group.dataset.groupKey;renderCatalog();return;}
+ const action=e.target.closest('[data-target-tool]');
+ if(action){const i=Number(action.dataset.targetTool);if(Number.isInteger(i)&&i>=0&&i<T.length)openTool(i);}
+});
 home=renderCatalog;
-q.oninput=renderCatalog;
+q.oninput=()=>{expanded=null;renderCatalog();};
 renderCatalog();
 })();

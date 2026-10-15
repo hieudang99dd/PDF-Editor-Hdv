@@ -67,3 +67,25 @@ header .hvd-info-toggle:focus-visible{
   outline-offset:2px;
 }
 @media(max-width:550px){header .hvd-info-toggle{width:30px;height:30px}}
+
+/* Compact grouped PDF tools; native Text stays a separate full-width tile. */
+.catalog-tile{width:100%;min-width:0;text-align:left;cursor:pointer}
+.catalog-tile .catalog-icon{flex:0 0 40px}
+.catalog-tile .tool-body{display:block;min-width:0;padding-bottom:22px}
+.catalog-tile .tool-body>b{font-size:14px;line-height:1.4}
+.catalog-tile .tool-body>span:not(.catalog-status){display:block;color:var(--mute);font-size:12px}
+.catalog-tile .catalog-status{position:absolute;bottom:10px;left:68px;font-size:10px;font-weight:700;color:var(--acc)}
+.catalog-tile .catalog-chevron{align-self:center;color:var(--acc);font-size:19px}
+.catalog-group[data-category="Sửa Text"] .grid{grid-template-columns:minmax(0,1fr)}
+.catalog-group[data-category="Sửa Text"] .catalog-tile{background:linear-gradient(105deg,var(--accs),var(--card) 64%);border-color:var(--acc);min-height:102px}
+.catalog-action-panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;box-shadow:0 5px 16px #10223c0c}
+.catalog-action-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.catalog-panel-close{height:32px;width:32px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:20px;cursor:pointer}
+.catalog-action-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.catalog-action{display:flex;align-items:center;justify-content:space-between;min-width:0;gap:8px;padding:10px 12px;text-align:left;font-size:13px;color:var(--ink);border:1px solid var(--line);border-radius:8px;background:var(--bg);cursor:pointer}
+.catalog-action>span{overflow-wrap:anywhere}
+.catalog-action>small{font-size:10px;color:var(--mute);flex:0 0 auto}
+.catalog-action:hover,.catalog-action:focus-visible{border-color:var(--acc);outline-offset:2px}
+.catalog-empty{padding:16px;color:var(--mute)}
+@media(max-width:850px){.catalog-action-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:550px){.catalog-action-list{grid-template-columns:1fr}}
