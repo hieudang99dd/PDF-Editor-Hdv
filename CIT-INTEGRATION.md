@@ -1,5 +1,10 @@
 # Đánh giá và tích hợp CIT-PDF 1.0.0 vào HDV
 
+## 2026-10-15 — Giao diện chỉnh Text tách riêng
+
+Đã tách ra [text-editor.html](text-editor.html) với UI làm việc theo bố cục CIT (PDF giữa, panel định dạng phải), nhưng vẫn dùng **engine PDFium/CIT hiện tại** cùng kiểm tra hình học CAD. Tài liệu chi tiết [CIT-TEXT-WORKSPACE.md](CIT-TEXT-WORKSPACE.md). Không nhận là copy đầy đủ frontend Vite và paragraph reflow của CIT. Bộ test riêng gồm Node và Chromium cho thao tác thật.
+
+
 ## Nâng cấp thuật toán sửa chữ CIT (2026-10-15)
 
 Đã bổ sung sửa **nhiều dòng gốc trong một lượt** (batch/Undo atomic), tìm và xem trước thay thế, bảo toàn các style run kế bên khi sửa run riêng biệt trong paragraph rich text, kiểm tra chữ ký số trước khi rewrite và chỉ thị rõ vùng Type3 không chỉnh sửa an toàn. Chi tiết: [CIT-TEXT-EDITING-UPDATE.md](CIT-TEXT-EDITING-UPDATE.md). **Chưa có paragraph reflow tự do hoặc native edit cho mọi font Type3.**
