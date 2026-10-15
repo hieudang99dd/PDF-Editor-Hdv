@@ -99,6 +99,66 @@
       return getOutput(await output.save(),name+'_xen_ke.pdf',
         'Ghép lần lượt trang 1 của hai file, trang 2 của hai file…');
     }
+
+    if (action==='insert-blank') {
+      const count=doc.getPageCount();
+      const index=normalizeNumber(options.position,0,count,'Vị trí thêm trang');
+      assert(Number.isInteger(index),'Vị trí thêm trang phải là số nguyên');
+      const b=getBox(doc.getPage(Math.min(index,count-1)));
+      doc.insertPage(index,[b.width,b.height]);
+      return getOutput(await doc.save(),name+'_blank.pdf',
+        'Đã chèn một trang trắng vào vị trí '+(index+1)+'.');
+    }
+    if (action==='overlay') {
+      assert(docs.length===2,'Overlay yêu cầu đúng hai tệp: nền và lớp phủ');
+      const overlay=docs[1];
+      const op=normalizeNumber(options.opacity||1,0.05,1,'Độ mờ');
+      const pages=doc.getPages();
+      for(let i=0;i<pages.length;i++){
+        const src=overlay.getPage(Math.min(i,overlay.getPageCount()-1));
+        if(!src.node.Contents())src.drawLine({start:{x:0,y:0},end:{x:0,y:0},
+          thickness:0,color:PDFLib.rgb(1,1,1),opacity:0});
+        const embedded=await doc.embedPage(src);
+        const b=getBox(pages[i]);
+        const scale=Math.min(b.width/embedded.width,b.height/embedded.height);
+        pages[i].drawPage(embedded,{
+          x:b.x+(b.width-embedded.width*scale)/2,
+          y:b.y+(b.height-embedded.height*scale)/2,
+          width:embedded.width*scale,height:embedded.height*scale,opacity:op
+        });
+      }
+      return getOutput(await doc.save(),name+'_overlay.pdf',
+        'Chồng nội dung vector của PDF thứ hai lên PDF thứ nhất; annotation lớp phủ không được chuyển.');
+    }
+    if(action==='rotate-custom'){
+      const angle=normalizeNumber(options.angle,-360,360,'Góc xoay');
+      assert(angle!==0,'Góc xoay phải khác 0');
+      if(angle%90===0){
+        for(const page of doc.getPages()){
+          const current=page.getRotation().angle;
+          page.setRotation(PDFLib.degrees(((current+angle)%360+360)%360));
+        }
+        return getOutput(await doc.save(),name+'_rotated.pdf','Đã cập nhật thuộc tính /Rotate, giữ vector.');
+      }
+      const output=await PDFLib.PDFDocument.create();
+      for(const p of doc.getPages()){
+        if(!p.node.Contents())p.drawLine({start:{x:0,y:0},end:{x:0,y:0},
+          thickness:0,color:PDFLib.rgb(1,1,1),opacity:0});
+        const emb=await output.embedPage(p),w=emb.width,h=emb.height;
+        const degrees=((p.getRotation().angle+angle)%360+360)%360;
+        const rad=degrees*Math.PI/180,c=Math.cos(rad),ss=Math.sin(rad);
+        const corners=[[0,0],[w,0],[0,h],[w,h]]
+          .map(([x,y])=>[x*c-y*ss,x*ss+y*c]);
+        const minx=Math.min(...corners.map(a=>a[0]));
+        const miny=Math.min(...corners.map(a=>a[1]));
+        const maxx=Math.max(...corners.map(a=>a[0]));
+        const maxy=Math.max(...corners.map(a=>a[1]));
+        const sheet=output.addPage([maxx-minx,maxy-miny]);
+        sheet.drawPage(emb,{x:-minx,y:-miny,width:w,height:h,rotate:PDFLib.degrees(degrees)});
+      }
+      return getOutput(await output.save(),name+'_rotated.pdf',
+        'Đã xoay góc bất kỳ trên trang mới, giữ vector; chú thích của trang nguồn không chuyển theo.');
+    }
     if (action==='crop') {
       const left=normalizeNumber(options.left,0,500,'Lề trái')*ptPerMm;
       const right=normalizeNumber(options.right,0,500,'Lề phải')*ptPerMm;
