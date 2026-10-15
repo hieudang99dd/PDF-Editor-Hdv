@@ -42,6 +42,88 @@
     if (target === 'compress') return `compressed_${original}`;
     return `${stem}.${target}`;
   }
+
+  // Keep common PDF tools available on GitHub Pages without a native backend.
+  async function runInBrowser(name, file, target) {
+    if (!file || !file.size) throw new Error('Chưa chọn tệp hợp lệ');
+    const bytes = await file.arrayBuffer();
+    if (name === 'Giảm dung lượng PDF') {
+      if (!window.PDFLib || !window.PDFLib.PDFDocument) {
+        throw new Error('Thư viện xử lý PDF chưa tải. Hãy tải lại trang');
+      }
+      const document = await window.PDFLib.PDFDocument.load(bytes);
+      const saved = await document.save({ useObjectStreams: true });
+      // Rewriting PDFs can affect signatures; never claim a size reduction without one.
+      const compressed = saved.byteLength < bytes.byteLength
+        ? new Blob([saved], { type: 'application/pdf' })
+        : new Blob([bytes], { type: 'application/pdf' });
+      return { blob: compressed, extension: 'pdf',
+        filename: 'optimized_' + file.name.replace(/[^a-zA-Z0-9._()\-\u00C0-\u1EF9 ]/g, '_'),
+        note: saved.byteLength < bytes.byteLength
+          ? 'Đã tối ưu cấu trúc PDF ngay trên trình duyệt.'
+          : 'Không tìm thấy cách giảm dung lượng an toàn; đã giữ nguyên bản gốc.' };
+    }
+    if (target === 'txt') {
+      const pdfjs = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+      if (!pdfjs || !pdfjs.getDocument) {
+        throw new Error('PDF.js chưa tải. Hãy tải lại trang');
+      }
+      const pdf = await pdfjs.getDocument({ data: new Uint8Array(bytes) }).promise;
+      const pages = [];
+      try {
+        for (let n = 1; n <= pdf.numPages; n++) {
+          const page = await pdf.getPage(n);
+          const layer = await page.getTextContent();
+          const lines = [];
+          let current = '', lastY = null;
+          for (const item of layer.items) {
+            if (typeof item.str !== 'string') continue;
+            const y = Array.isArray(item.transform) ? item.transform[5] : null;
+            if (lastY !== null && y !== null && Math.abs(y - lastY) > 2.5) {
+              lines.push(current.trim());
+              current = '';
+            }
+            if (current && !item.str.startsWith(' ')) current += ' ';
+            current += item.str;
+            if (item.hasEOL) { lines.push(current.trim()); current = ''; }
+            if (y !== null) lastY = y;
+          }
+          if (current) lines.push(current.trim());
+          pages.push(lines.join('\n'));
+          page.cleanup?.();
+        }
+      } finally {
+        await pdf.destroy();
+      }
+      const txt = '\uFEFF' + pages.join('\n\n------ Trang tiếp theo ------\n\n');
+      return { blob: new Blob([txt], { type: 'text/plain;charset=utf-8' }),
+        extension: 'txt', filename: file.name.replace(/\.pdf$/i, '') + '.txt',
+        note: 'Đã trích xuất lớp chữ có sẵn. PDF ảnh cần OCR riêng.' };
+    }
+    throw new Error('Định dạng này cần engine PDF HDV cục bộ');
+  }
+
+  function showDownload(result, output) {
+    const url = URL.createObjectURL(result.blob);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'res';
+    const heading = document.createElement('b');
+    heading.textContent = 'Đã tạo tệp. ';
+    const detail = document.createElement('span');
+    detail.textContent = (result.note || '') + ' Kích thước: ' + sz(result.blob.size) + '. ';
+    const row = document.createElement('div');
+    row.style.marginTop = '12px';
+    const link = document.createElement('a');
+    link.className = 'btn';
+    link.href = url;
+    link.download = result.filename;
+    link.textContent = 'Tải xuống';
+    link.addEventListener('click', () => setTimeout(() => URL.revokeObjectURL(url), 120000), {once:true});
+    row.append(link);
+    wrapper.append(heading, detail, row);
+    output.replaceChildren(wrapper);
+  }
+
   async function runLocal() {
     const name = tool[0];
     const [endpoint] = supported.get(name);
@@ -54,10 +136,16 @@
     status.textContent = 'Đang kiểm tra engine tại máy của bạn…';
     output.append(status);
     try {
+      const target = formatForTool(name);
+      if (name === 'Giảm dung lượng PDF' || target === 'txt' && !['PDF OCR'].includes(name)) {
+        status.textContent = 'Đang xử lý trực tiếp trên trình duyệt…';
+        const result = await runInBrowser(name, files[0], target);
+        showDownload(result, output);
+        return;
+      }
       const ready = await fetch(URL_BASE + '/api/capabilities', { signal: AbortSignal.timeout(4500), cache: 'no-store' });
       if (!ready.ok) throw new Error('Engine cục bộ chưa sẵn sàng');
       const capabilities = await ready.json();
-      const target = formatForTool(name);
       const isOcr = name === 'PDF OCR';
       if (isOcr) {
         const lang = document.getElementById('ocr-lang')?.value || 'vie+eng';
