@@ -48,7 +48,7 @@ test('standalone page follows reference layout with text inspector on right',()=
  assert.match(css,/\.po-left-col\{display:none!important\}/);
  assert.match(css,/\.po-workspace/);
  assert.match(organizer,/po-text-layer/);
- assert.match(shell,/hvd-text-dock/);
+ assert.match(shell,/hdv-text-dock/);
  assert.match(shell,/aria-label/);
 });
 test('sidebar does not advertise paragraph reflow or digitally signed text modification',()=>{
