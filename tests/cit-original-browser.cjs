@@ -82,7 +82,11 @@ async function main(){
   assert.match(await editor.innerText(),/CIT ORIGINAL LINE/);
   assert.equal(await page.locator('#fLine').isVisible(),true);
   assert.equal(await page.locator('#fPara').isVisible(),true);
-  await editor.fill('CIT NATIVE EDITED');
+  await editor.click();
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.insertText('CIT NATIVE EDITED');
+  await page.waitForTimeout(600);
+  console.log('CIT editor after natural keyboard input:',JSON.stringify(await editor.innerText()));
   await page.screenshot({path:path.join(results,'02-cit-original-editing.png'),fullPage:true});
   const wait=page.waitForEvent('download',{timeout:120000});
   await page.locator('#save').click();
@@ -96,6 +100,7 @@ async function main(){
     const p=await reader.getPage(1);
     text=(await p.getTextContent()).items.map(i=>i.str).join(' ');
   }finally{await reader.destroy();}
+  console.log('CIT exported PDF text:',JSON.stringify(text));
   assert.match(text,/CIT NATIVE EDITED/,'New PDF must contain new glyph text');
   assert.doesNotMatch(text,/CIT ORIGINAL LINE/,'Original text must be removed');
   assert.match(text,/SECOND CAD LINE/,'Other vector text must remain');
