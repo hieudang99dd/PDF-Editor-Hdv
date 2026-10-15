@@ -133,3 +133,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - **Kiểm thử:** Python unit kiểm tra cách brand và giữ copyright, Vite build pinned source, Chromium mở `/studio/` kiểm tra logo/title/font panel/Undo-Redo và thay chữ PDF thật, PyMuPDF kiểm tra chữ đầu ra và hình học, Node smoke test HVD.
 - **Đã đạt:** [CI native editor](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38758092102) = `success`; Node smoke [38758215338](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38758215338) = `success`. Commit chứa frontend đã đóng gói: [c8c0ce3](https://github.com/hieudang99dd/PDF-Editor-Hdv/commit/c8c0ce35c1fbe95cb5b0d2a8d54d508e7716bfdd).
 - **Cần theo dõi** Pages legacy build trên commit mới nhất đến khi GitHub xác nhận thành công. Kiểm chứng PDF A0/A1, font Type3 và file CAD thực vẫn là công việc QA tiếp theo.
+
+## 2026-10-15 — Thiết kế lại trang chủ PDF HVD (UI v2)
+
+- Nguồn yêu cầu: ảnh chụp giao diện hiện tại; mục tiêu giao diện chuyên nghiệp, tiết kiệm diện tích, rõ ràng thứ bậc, phù hợp desktop/tablet/mobile.
+- Tệp mới: `hvd-ui-v2.css` (responsive typography, layout 4/2/1 cột, hero gọn, theme, thẻ công cụ và trạng thái); `hvd-ui-v2.js` (đặt tên tiếng Việt rõ nghĩa, công cụ thường dùng, tìm kiếm, lọc nhóm, đánh dấu web/PC/chưa phát triển).
+- `index.html` nạp hai tệp này sau script gốc, không thay đổi xử lý tệp, thư viện PDF hay thuật toán. Tác vụ vẫn giữ `data-i` gốc nên dùng lại `openTool`/router.
+- Danh mục nổi bật không bị lặp trong danh mục bên dưới khi đang xem Tất cả.
+- Hạn chế: trạng thái web/PC dựa trên registry frontend, chưa có health-check thời gian thực; nhãn 'Trình duyệt' chỉ cho biết phương thức xử lý, không đảm bảo mọi file PDF đều được hỗ trợ. Các chức năng chưa triển khai được vô hiệu hóa ở catalog.
+- QA: workflow Pages smoke tại commit `d01971f8` đã đạt; workflow commit cuối `398c8b63` và Pages deployment cần kiểm tra khi hoàn tất.
