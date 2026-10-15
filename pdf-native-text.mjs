@@ -112,6 +112,17 @@ export class NativeTextEditor {
     async rewrite(source, pages) {
         const engine=this.engine;
         if(!pages.some(p=>p.edits.length)) return {bytes:source,operations:[]};
+        // Never rewrite signed documents. Standard signatures have /ByteRange in
+        // the source PDF; rewriting their byte offsets invalidates verification.
+        const signedMarker=[47,66,121,116,101,82,97,110,103,101];
+        for(let i=0;i<=source.length-signedMarker.length;i++){
+            if(source[i]!==47)continue;
+            let found=true;
+            for(let j=1;j<signedMarker.length;j++){
+                if(source[i+j]!==signedMarker[j]){found=false;break;}
+            }
+            if(found) fail('PDF có chữ ký số (/ByteRange): không sửa chữ gốc để tránh làm mất hiệu lực chữ ký.');
+        }
         let bytes=source;
         // Same protection pipeline as CIT, but errors abort this edit instead of silently proceeding.
         bytes=await consolidateContentArrays(bytes) || bytes;
