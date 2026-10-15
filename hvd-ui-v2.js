@@ -19,7 +19,7 @@ for(const t of T){const change=aliases.get(t[0]);if(change){t[0]=change[0];t[1]=
 const prior=home;
 const originalSoon=(t)=>!(t[4].startsWith('cit-')||['merge','range','rot','organize','img','pdf2jpg','pdf2png','wm','pnum','sign','flatten'].includes(t[4])||['Nén PDF','Chuyển đổi định dạng PDF','Nhận dạng văn bản (OCR)','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
 const localNames=new Set(['Nhận dạng văn bản (OCR)','PDF sang Word','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF']);
-const featured=['Ghép PDF','Nén PDF','Chỉnh sửa PDF','Chuyển đổi định dạng PDF','PDF sang Word','PDF sang JPG','Ảnh sang PDF','Tách PDF'];
+const featured=['Chỉnh sửa văn bản PDF','Ghép PDF','Nén PDF','Chỉnh sửa PDF','Chuyển đổi định dạng PDF','PDF sang Word','PDF sang JPG','Ảnh sang PDF'];
 const renderCatalog=()=>{
  const term=q.value.trim().toLocaleLowerCase('vi');
  const chips=document.querySelector('#chips');
