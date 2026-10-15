@@ -62,8 +62,12 @@
     if(this.activeEditDiv&&!await this.finishTextEdit())return;
     const page=this.pages.find(p=>p.id===this.focusedPageId);
     if(!page||page.type!=='pdf'){if(typeof toast==='function')toast('Chọn một trang PDF để sửa.');return;}
-    const boxes=Array.from(document.querySelectorAll('#po-text-layer .po-text-box'))
-      .filter(d=>d._pageId===page.id&&d._textRun&&!d._textRun.blocked)
+    const visible=Array.from(document.querySelectorAll('#po-text-layer .po-text-box'))
+      .filter(d=>d._pageId===page.id&&d._textRun);
+    const skipped=visible.filter(d=>d._textRun.blocked);
+    const type3Count=skipped.filter(d=>/Type ?3/i.test(d._textRun.blocked)).length;
+    const boxes=visible
+      .filter(d=>!d._textRun.blocked)
       .sort((a,b)=>b._textRun.y-a._textRun.y||a._textRun.x-b._textRun.x);
     if(!boxes.length){if(typeof toast==='function')toast('Bật Chỉnh sửa nội dung và đợi lớp chữ tải xong; font Type3/ảnh không được sửa tự động.');return;}
     const modal=document.getElementById('po-batch-modal');
@@ -92,7 +96,8 @@
     }
     modal.querySelector('#po-batch-info').textContent='Trang '+(page.pageIndex+1)+' — '+this.batchRows.length+
       ' vùng chữ được nhận diện'+(boxes.length>500?' (giới hạn 500 vùng đầu)':'')+
-      '. Chỉ dòng được chọn và có thay đổi mới được áp dụng.';
+      '. Đã khóa '+skipped.length+' vùng phức tạp (Type3: '+type3Count+') để tránh sai hình học.'+
+      ' Chỉ dòng được chọn và có thay đổi mới được áp dụng.';
     status(modal,'Kiểm tra văn bản mới từng dòng rồi nhấn Áp dụng. Giới hạn 80 dòng mỗi giao dịch.');
     modal.style.display='flex';this.refreshCITBatchCount();
   };
