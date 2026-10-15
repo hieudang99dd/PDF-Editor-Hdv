@@ -1,0 +1,34 @@
+import{G as y,K as v,g as C,o as L,p,x as z}from"./main-BXxz4Mq1.js";import"./lucide-init-D4AekmMs.js";import"./simple-mode-footer-BImfuh2j.js";import{n as $}from"./password-prompt-DJeNkiWA.js";import{t as P}from"./load-pdf-document-BRP6y7yA.js";import"./mobileMenu-BbvchnXs.js";var c={file:null,pdfDoc:null},d=[];function w(t,e){return(t/e).toFixed(3)}function S(t,e,n){const o=t*e;let s,i;switch(n){case"in":s=o/5184,i="in²";break;case"mm":s=o/5184*(25.4*25.4),i="mm²";break;case"px":{const a=1.3333333333333333;s=o*(a*a),i="px²";break}default:s=o,i="pt²";break}return`${s.toFixed(2)} ${i}`}function B(){const t=d.length,e=new Map;d.forEach(o=>{const s=`${o.width.toFixed(2)}x${o.height.toFixed(2)}`,i=`${o.standardSize} (${o.orientation})`;e.set(s,{count:(e.get(s)?.count||0)+1,label:i,width:o.width,height:o.height})});const n=e.size>1;return{totalPages:t,uniqueSizesCount:e.size,uniqueSizes:Array.from(e.values()),hasMixedSizes:n}}function I(){const t=document.getElementById("dimensions-summary");if(!t)return;const e=B();let n=`
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <p class="text-sm text-gray-400 mb-1">Total Pages</p>
+        <p class="text-2xl font-bold text-white">${e.totalPages}</p>
+      </div>
+      <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <p class="text-sm text-gray-400 mb-1">Unique Page Sizes</p>
+        <p class="text-2xl font-bold text-white">${e.uniqueSizesCount}</p>
+      </div>
+      <div class="bg-gray-900 border border-gray-700 rounded-lg p-4">
+        <p class="text-sm text-gray-400 mb-1">Document Type</p>
+        <p class="text-2xl font-bold ${e.hasMixedSizes?"text-yellow-400":"text-green-400"}">
+          ${e.hasMixedSizes?"Mixed Sizes":"Uniform"}
+        </p>
+      </div>
+    </div>
+  `;e.hasMixedSizes&&(n+=`
+      <div class="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-4 mb-4">
+        <div class="flex items-start gap-3">
+          <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0"></i>
+          <div>
+            <h4 class="text-yellow-200 font-semibold mb-2">Mixed Page Sizes Detected</h4>
+            <p class="text-sm text-gray-300 mb-3">This document contains pages with different dimensions:</p>
+            <ul class="space-y-1 text-sm text-gray-300">
+              ${e.uniqueSizes.map(o=>`
+                <li>• ${o.label}: ${o.count} page${o.count>1?"s":""}</li>
+              `).join("")}
+            </ul>
+          </div>
+        </div>
+      </div>
+    `),t.innerHTML=n,e.hasMixedSizes&&y({icons:v})}function b(t){const e=document.getElementById("dimensions-table-body");e&&(e.textContent="",d.forEach(n=>{const o=p(n.width,t),s=p(n.height,t),i=w(n.width,n.height),a=S(n.width,n.height,t),r=document.createElement("tr"),l=document.createElement("td");l.className="px-4 py-3 text-white",l.textContent=String(n.pageNum);const m=document.createElement("td");m.className="px-4 py-3 text-gray-300",m.textContent=`${o} x ${s} ${t}`;const u=document.createElement("td");u.className="px-4 py-3 text-gray-300",u.textContent=n.standardSize;const f=document.createElement("td");f.className="px-4 py-3 text-gray-300",f.textContent=n.orientation;const x=document.createElement("td");x.className="px-4 py-3 text-gray-300",x.textContent=i;const h=document.createElement("td");h.className="px-4 py-3 text-gray-300",h.textContent=a;const g=document.createElement("td");g.className="px-4 py-3 text-gray-300",g.textContent=`${n.rotation}°`,r.append(l,m,u,f,x,h,g),e.appendChild(r)}))}function N(){const t=document.getElementById("units-select")?.value||"pt",e=[["Page #",`Width (${t})`,`Height (${t})`,"Standard Size","Orientation","Aspect Ratio",`Area (${t}²)`,"Rotation"].join(",")];d.forEach(a=>{const r=p(a.width,t),l=p(a.height,t),m=w(a.width,a.height),u=S(a.width,a.height,t),f=[a.pageNum,r,l,a.standardSize,a.orientation,m,u,`${a.rotation}°`];e.push(f.join(","))});const n=e.join(`
+`),o=new Blob([n],{type:"text/csv;charset=utf-8;"}),s=URL.createObjectURL(o),i=document.createElement("a");i.href=s,i.download="page-dimensions.csv",document.body.appendChild(i),i.click(),document.body.removeChild(i),URL.revokeObjectURL(s)}function k(){if(!c.pdfDoc)return;d=[],c.pdfDoc.getPages().forEach((o,s)=>{const{width:i,height:a}=o.getSize(),r=o.getRotation().angle||0;d.push({pageNum:s+1,width:i,height:a,orientation:i>a?"Landscape":"Portrait",standardSize:z(i,a),rotation:r})});const t=document.getElementById("dimensions-results"),e=document.getElementById("units-select");I(),b(e.value),t&&t.classList.remove("hidden"),e.addEventListener("change",o=>{b(o.target.value)});const n=document.getElementById("export-csv-btn");n&&n.addEventListener("click",N),y({icons:v})}function M(){c.file=null,c.pdfDoc=null,d=[];const t=document.getElementById("file-display-area");t&&(t.innerHTML="");const e=document.getElementById("dimensions-results");e&&e.classList.add("hidden");const n=document.getElementById("file-input");n&&(n.value="")}async function A(){const t=document.getElementById("file-display-area");if(t&&(t.innerHTML="",c.file)){const e=document.createElement("div");e.className="flex items-center justify-between bg-gray-700 p-3 rounded-lg text-sm";const n=document.createElement("div");n.className="flex flex-col overflow-hidden";const o=document.createElement("div");o.className="truncate font-medium text-gray-200 text-sm mb-1",o.textContent=c.file.name;const s=document.createElement("div");s.className="text-xs text-gray-400",s.textContent=C(c.file.size),n.append(o,s);const i=document.createElement("button");i.className="ml-4 text-red-400 hover:text-red-300 flex-shrink-0",i.innerHTML='<i data-lucide="trash-2" class="w-4 h-4"></i>',i.onclick=function(){M()},e.append(n,i),t.appendChild(e),y({icons:v})}}async function E(t){if(t&&t.length>0){const e=t[0];if(e.type==="application/pdf"||e.name.toLowerCase().endsWith(".pdf"))try{const n=await $(e);if(!n)return;n.pdf.destroy(),c.file=n.file,c.pdfDoc=await P(n.bytes),A(),k()}catch(n){console.error("Error loading PDF:",n),L("Error","Failed to load PDF file.")}}}document.addEventListener("DOMContentLoaded",function(){const t=document.getElementById("file-input"),e=document.getElementById("drop-zone"),n=document.getElementById("back-to-tools");n&&n.addEventListener("click",function(){window.location.href="./"}),t&&e&&(t.addEventListener("change",function(o){E(o.target.files)}),e.addEventListener("dragover",function(o){o.preventDefault(),e.classList.add("bg-gray-700")}),e.addEventListener("dragleave",function(o){o.preventDefault(),e.classList.remove("bg-gray-700")}),e.addEventListener("drop",function(o){o.preventDefault(),e.classList.remove("bg-gray-700"),E(o.dataTransfer?.files)}),t.addEventListener("click",function(){t.value=""}))});

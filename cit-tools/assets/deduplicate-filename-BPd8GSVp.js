@@ -1,0 +1,1 @@
+function d(t,n){if(!n.has(t))return n.add(t),t;const i=t.lastIndexOf("."),o=i>0,l=o?t.slice(0,i):t,s=o?t.slice(i):"";let c=1,e=`${l} (${c})${s}`;for(;n.has(e);)c++,e=`${l} (${c})${s}`;return n.add(e),e}function r(t,n){return`${t}_${n}`}export{r as n,d as t};

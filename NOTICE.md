@@ -47,3 +47,16 @@ WASM SHA-256:
 HDV is not an official CIT-PDF or BentoPDF distribution. No commercial license
 or permission to distribute this combined application as proprietary software
 is supplied. See `CIT-INTEGRATION.md` for implemented features and limitations.
+
+## Extended CIT browser tools (2026-10-15)
+
+The 119-tool web integration is served from `cit-tools/`. Corresponding browser
+source, HDV changes, build configuration and lockfile are provided in
+`vendor/cit-tools-source-1.0.0.tar.gz`. Host integrations and tests are in this
+repository. See `CIT-TOOLS.md`, `cit-tools/ENGINES.lock.json`, and
+`cit-tools/THIRD-PARTY-LICENSES.txt`. Additional engine packages retain their
+original license files in `cit-tools/engines/`; LibreOffice is MPL-2.0,
+Tesseract is Apache-2.0, and AGPL processing components remain AGPL. The browser
+source archive includes upstream authors' notices; engine binaries are upstream
+prebuilt artifacts. HDV does not claim to have rebuilt their C++ dependencies or
+verified the completeness of upstream native corresponding-source distributions.

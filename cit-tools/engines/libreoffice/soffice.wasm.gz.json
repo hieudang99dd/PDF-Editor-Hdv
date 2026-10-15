@@ -1,0 +1,67 @@
+{
+  "source": "Cuongyd196/cit-pdf@3c9c138d980a417de7439f383f37882a1d730ab6",
+  "bytes": 48763638,
+  "sha256": "36a7d3171b99961c04eb804a5faa5be5079b670935df2b068a1746a7ddc449b8",
+  "parts": [
+    {
+      "name": "soffice.wasm.gz.part0",
+      "bytes": 4194304,
+      "sha256": "8db74ea6148c48316f67ca30bcea2b6637127d84ad1a2cf58a6b52abe5ef31da"
+    },
+    {
+      "name": "soffice.wasm.gz.part1",
+      "bytes": 4194304,
+      "sha256": "5ae6fcb1f2aa034f3abf782c0f6574df877e3377c7edd0bed2b751aa3262d370"
+    },
+    {
+      "name": "soffice.wasm.gz.part2",
+      "bytes": 4194304,
+      "sha256": "a4ccbf22aa829c1b8f3a04914f76a53cb519e0de362eaab366e449b3e7f668ee"
+    },
+    {
+      "name": "soffice.wasm.gz.part3",
+      "bytes": 4194304,
+      "sha256": "1d1c093c20b174e123360b7e00a3c707a52dfa4cbaeb71deeda2d3d84b92a41c"
+    },
+    {
+      "name": "soffice.wasm.gz.part4",
+      "bytes": 4194304,
+      "sha256": "17d374020859e749eee4abb0f778b51873464cf19dde0bc3195d7e2e9bbcfdd7"
+    },
+    {
+      "name": "soffice.wasm.gz.part5",
+      "bytes": 4194304,
+      "sha256": "3c1e51ab4adf69d9ae6ce57817e1afca471546f44316bfe502f63231efd427f8"
+    },
+    {
+      "name": "soffice.wasm.gz.part6",
+      "bytes": 4194304,
+      "sha256": "63ce37d7c57b7a69c79127ab9edf6ae86ae5662c5227a6157627c65b46c153b6"
+    },
+    {
+      "name": "soffice.wasm.gz.part7",
+      "bytes": 4194304,
+      "sha256": "5d600c3b51ae78e0ff99e0c1dbecb55f07c3aba9f3c321fa0ca4d63689d86e3f"
+    },
+    {
+      "name": "soffice.wasm.gz.part8",
+      "bytes": 4194304,
+      "sha256": "35afbea102ed8af43a474669f8c771ee41ffca8220ca35acb82e1584f2149700"
+    },
+    {
+      "name": "soffice.wasm.gz.part9",
+      "bytes": 4194304,
+      "sha256": "c7a66acc1cc2cbafd410f433b9d90110a82593755219cae21648584227eb678d"
+    },
+    {
+      "name": "soffice.wasm.gz.part10",
+      "bytes": 4194304,
+      "sha256": "0133cedba9119f89d7ab22edfa78e08b689163b06b9034e6c587195cd11f95df"
+    },
+    {
+      "name": "soffice.wasm.gz.part11",
+      "bytes": 2626294,
+      "sha256": "32d514d817561cce3e499cc14b799e66ebf13a97468009a3dcc86388913d0863"
+    }
+  ]
+}

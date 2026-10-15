@@ -1,0 +1,1 @@
+import{t as n}from"./wasm-provider-DrdKE9ts.js";function s(o){const r=n.getUrl(o);if(r)return console.log(`[WASM Config] Using configured URL for ${o}: ${r}`),r;console.warn(`[WASM Config] No URL configured for ${o}. Feature unavailable.`)}function e(o){return n.isConfigured(o)}export{e as n,s as t};

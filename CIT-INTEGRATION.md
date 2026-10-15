@@ -1,4 +1,6 @@
-# Đánh giá và tích hợp CIT-PDF 1.0.0 vào HDV
+# Đánh giá lõi sửa chữ CIT-PDF 1.0.0 vào HDV
+
+> Cập nhật: bộ 119 công cụ web đã được tích hợp tiếp. Xem [CIT-TOOLS.md](CIT-TOOLS.md) để biết phạm vi và kiểm thử hiện tại. Báo cáo dưới đây mô tả riêng đợt thay engine sửa chữ, các mục “chưa bật” nói về trình sửa bảng HDV.
 
 Ngày: 2026-10-15. Tham chiếu tag `1.0.0`, không dùng nhánh `main` thay đổi theo thời gian.
 
@@ -29,7 +31,7 @@ Vì vậy bản tích hợp dùng engine CIT cùng các ràng buộc hình học
 | Cascade paragraph growth | Không bật: có thể làm lệch nội dung trong bảng kỹ thuật |
 | Rich paragraph nhiều dòng/nhiều style | Chưa bật; báo không hỗ trợ khi không tách an toàn được vùng đang chọn |
 | Accessibility/tag surgery | Chưa tích hợp; không tuyên bố bảo toàn cấu trúc accessibility/PDF/UA sau chỉnh sửa |
-| OCR, Office, Ghostscript, cpdf, ký số, Electron | Chưa tích hợp: thuộc công cụ/engine khác, không phải thuật toán sửa chữ thay thế tương đương |
+| OCR, Office, Ghostscript, cpdf, ký số | Đã tích hợp tiếp trong mô-đun web; xem CIT-TOOLS.md. Electron desktop không áp dụng |
 
 ## Luồng xử lý
 

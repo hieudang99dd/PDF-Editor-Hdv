@@ -1,0 +1,37 @@
+{
+  "citSource": "Cuongyd196/cit-pdf@3c9c138d980a417de7439f383f37882a1d730ab6",
+  "packages": [
+    {
+      "name": "@bentopdf/pymupdf-wasm",
+      "version": "0.11.16",
+      "integrity": "sha512-GPxxH2BokrS49fJa17mrt3hTBGRIDlMkLfJwk+tk45+ICTmIzcti7ACXT2JHK3FUJX916OQvnrJQb29ZajN3CA==",
+      "shasum": "afe77d1dfdd627221e7753a11b774d6f4b5aed34",
+      "unpackedSize": 56275067
+    },
+    {
+      "name": "@bentopdf/gs-wasm",
+      "version": "0.1.1",
+      "integrity": "sha512-EAliG+AxKLf46lOoDreddjOQtyTZGekJ2KRUXjygMFeg8vimOX44QKpim+t3HGHn0eXKbtsItcdN7qcjMSiuYQ==",
+      "shasum": "a0ea0d27d9b87f581f06e19fc180101b0982ddc2",
+      "unpackedSize": 15615267
+    },
+    {
+      "name": "@tesseract.js-data/eng",
+      "version": "1.0.0",
+      "integrity": "sha512-mbTumm6KQPUHyzTPQaF3ObXYnx0SqqfV2nabqFVQBwD6Kl7PhGSLSzOlfFTWy0P3BjghaSKA2W9GB19Jk+ZcTg==",
+      "shasum": "285a3f1fb419e8e67bdee93ce288b02bb9097f0a",
+      "unpackedSize": 13876967
+    },
+    {
+      "name": "@tesseract.js-data/vie",
+      "version": "1.0.0",
+      "integrity": "sha512-hFxBtxSiCw6+64uxf0psrlLvcYA5kQimYhTSx1RwjbD5jSxe1bWg3EmipAozkzELQIFAMkJC5vu+ONGRem7YLA==",
+      "shasum": "c1726c7ee2ac6442a32634671884bb8f7c4a0f6d",
+      "unpackedSize": 5271361
+    }
+  ],
+  "ocrCore": "tesseract.js-core@7.0.0",
+  "ocrJS": "tesseract.js@7.0.0",
+  "foreignOCRModels": "tesseract-ocr/tessdata_fast@87416418657359cb625c412a48b6e1d6d41c29bd",
+  "office": "Original CIT 1.0.0 assets, chunk manifest SHA-256 per file and per chunk"
+}

@@ -1,0 +1,1077 @@
+{
+  "source": "Cuongyd196/cit-pdf",
+  "ref": "3c9c138d980a417de7439f383f37882a1d730ab6",
+  "tools": [
+    {
+      "id": "view-pdf",
+      "name": "Xem PDF",
+      "description": "Đọc PDF: thu phóng, tìm kiếm, chuyển trang và in.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "View PDF"
+    },
+    {
+      "id": "edit-pdf-text",
+      "name": "Chỉnh sửa văn bản PDF",
+      "description": "Nhấp vào bất kỳ đoạn văn nào và chỉnh sửa ngay tại chỗ với tính năng tự động dàn lại văn bản, phông chữ và kiểu dáng.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Edit PDF Text"
+    },
+    {
+      "id": "pdf-workflow",
+      "name": "Trình xây dựng quy trình PDF",
+      "description": "Xây dựng quy trình xử lý PDF tùy chỉnh bằng trình chỉnh sửa nút trực quan.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "PDF Workflow Builder"
+    },
+    {
+      "id": "pdf-multi-tool",
+      "name": "Công cụ đa năng PDF",
+      "description": "Gộp, Chia, Sắp xếp, Xóa, Xoay, Thêm trang trống, Trích xuất và Nhân đôi trong một giao diện thống nhất.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "PDF Multi Tool"
+    },
+    {
+      "id": "merge-pdf",
+      "name": "Gộp PDF",
+      "description": "Kết hợp nhiều PDF thành một tệp. Giữ nguyên Bookmark.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Merge PDF"
+    },
+    {
+      "id": "split-pdf",
+      "name": "Chia PDF",
+      "description": "Trích xuất một phạm vi trang thành PDF mới.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Split PDF"
+    },
+    {
+      "id": "compress-pdf",
+      "name": "Nén PDF",
+      "description": "Giảm kích thước tệp PDF của bạn.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Compress PDF"
+    },
+    {
+      "id": "edit-pdf",
+      "name": "Trình chỉnh sửa PDF",
+      "description": "Annotate, highlight, redact, comment, add shapes/images, search, and view PDFs.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "PDF Editor"
+    },
+    {
+      "id": "jpg-to-pdf",
+      "name": "JPG sang PDF",
+      "description": "Tạo PDF từ hình ảnh JPG, JPEG và JPEG2000 (JP2/JPX).",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "JPG to PDF"
+    },
+    {
+      "id": "sign-pdf",
+      "name": "Ký PDF",
+      "description": "Vẽ, gõ hoặc tải lên chữ ký của bạn.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Sign PDF"
+    },
+    {
+      "id": "crop-pdf",
+      "name": "Cắt PDF",
+      "description": "Cắt lề của mọi trang trong PDF của bạn.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Crop PDF"
+    },
+    {
+      "id": "extract-pages",
+      "name": "Trích xuất trang",
+      "description": "Lưu một lựa chọn trang dưới dạng tệp mới.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Extract Pages"
+    },
+    {
+      "id": "organize-pdf",
+      "name": "Sắp xếp & Nhân đôi",
+      "description": "Duplicate, reorder, and delete pages.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Organize & Duplicate"
+    },
+    {
+      "id": "delete-pages",
+      "name": "Xóa trang",
+      "description": "Xóa các trang cụ thể khỏi tài liệu của bạn.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Delete Pages"
+    },
+    {
+      "id": "bookmark",
+      "name": "Chỉnh sửa Bookmark",
+      "description": "Add, edit, import, delete and extract PDF bookmarks.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Edit Bookmarks"
+    },
+    {
+      "id": "table-of-contents",
+      "name": "Tạo trang mục lục",
+      "description": "Tạo trang mục lục từ bookmark có trong PDF.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Table of Contents"
+    },
+    {
+      "id": "page-numbers",
+      "name": "Số trang",
+      "description": "Chèn số trang vào tài liệu của bạn.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Page Numbers"
+    },
+    {
+      "id": "add-page-labels",
+      "name": "Thêm nhãn trang",
+      "description": "Áp dụng nhãn trang PDF với số La Mã, tiền tố và giá trị bắt đầu tùy chỉnh.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Add Page Labels"
+    },
+    {
+      "id": "bates-numbering",
+      "name": "Đánh số Bates",
+      "description": "Thêm số Bates tuần tự trên một hoặc nhiều tệp PDF.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Bates Numbering"
+    },
+    {
+      "id": "add-watermark",
+      "name": "Thêm Watermark",
+      "description": "Đóng dấu văn bản hoặc hình ảnh lên các trang PDF của bạn.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Add Watermark"
+    },
+    {
+      "id": "header-footer",
+      "name": "Đầu trang & Chân trang",
+      "description": "Thêm văn bản vào đầu và cuối trang.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Header & Footer"
+    },
+    {
+      "id": "invert-colors",
+      "name": "Đảo ngược màu",
+      "description": "Tạo phiên bản \"chế độ tối\" cho PDF của bạn.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Invert Colors"
+    },
+    {
+      "id": "scanner-effect",
+      "name": "Hiệu ứng máy quét",
+      "description": "Làm cho PDF trông giống như tài liệu đã quét.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Scanner Effect"
+    },
+    {
+      "id": "adjust-colors",
+      "name": "Điều chỉnh màu sắc",
+      "description": "Tinh chỉnh độ sáng, tương phản, độ bão hòa và nhiều hơn nữa.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Adjust Colors"
+    },
+    {
+      "id": "background-color",
+      "name": "Màu nền",
+      "description": "Thay đổi màu nền của PDF của bạn.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Background Color"
+    },
+    {
+      "id": "text-color",
+      "name": "Đổi màu văn bản",
+      "description": "Change the color of text in your PDF.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Change Text Color"
+    },
+    {
+      "id": "add-stamps",
+      "name": "Thêm tem",
+      "description": "Thêm tem hình ảnh vào PDF của bạn bằng thanh công cụ ghi chú.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Add Stamps"
+    },
+    {
+      "id": "remove-annotations",
+      "name": "Xóa ghi chú",
+      "description": "Loại bỏ bình luận, tô sáng và liên kết.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Remove Annotations"
+    },
+    {
+      "id": "form-filler",
+      "name": "Điền biểu mẫu PDF",
+      "description": "Fill in forms directly in the browser. Also supports XFA forms.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "PDF Form Filler"
+    },
+    {
+      "id": "form-creator",
+      "name": "Tạo biểu mẫu PDF",
+      "description": "Create fillable PDF forms with drag-and-drop text fields.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Create PDF Form"
+    },
+    {
+      "id": "remove-blank-pages",
+      "name": "Xóa trang trống",
+      "description": "Tự động phát hiện và xóa trang trống.",
+      "group": "Chỉnh sửa",
+      "office": false,
+      "network": false,
+      "originalName": "Remove Blank Pages"
+    },
+    {
+      "id": "image-to-pdf",
+      "name": "Hình ảnh sang PDF",
+      "description": "Chuyển đổi JPG, PNG, BMP, GIF, TIFF, PNM, PGM, PBM, PPM, PAM, JXR, JPX, JP2, PSD, SVG, HEIC, WebP sang PDF.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "Images to PDF"
+    },
+    {
+      "id": "png-to-pdf",
+      "name": "PNG sang PDF",
+      "description": "Tạo PDF từ một hoặc nhiều hình ảnh PNG.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PNG to PDF"
+    },
+    {
+      "id": "webp-to-pdf",
+      "name": "WebP sang PDF",
+      "description": "Tạo PDF từ một hoặc nhiều hình ảnh WebP.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "WebP to PDF"
+    },
+    {
+      "id": "svg-to-pdf",
+      "name": "SVG sang PDF",
+      "description": "Tạo PDF từ một hoặc nhiều hình ảnh SVG.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "SVG to PDF"
+    },
+    {
+      "id": "bmp-to-pdf",
+      "name": "BMP sang PDF",
+      "description": "Tạo PDF từ một hoặc nhiều hình ảnh BMP.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "BMP to PDF"
+    },
+    {
+      "id": "heic-to-pdf",
+      "name": "HEIC sang PDF",
+      "description": "Tạo PDF từ một hoặc nhiều hình ảnh HEIC.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "HEIC to PDF"
+    },
+    {
+      "id": "tiff-to-pdf",
+      "name": "TIFF sang PDF",
+      "description": "Tạo PDF từ một hoặc nhiều hình ảnh TIFF.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "TIFF to PDF"
+    },
+    {
+      "id": "txt-to-pdf",
+      "name": "Văn bản sang PDF",
+      "description": "Convert a plain text file into a PDF.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "Text to PDF"
+    },
+    {
+      "id": "markdown-to-pdf",
+      "name": "Markdown sang PDF",
+      "description": "Viết hoặc dán Markdown và xuất nó thành PDF được định dạng đẹp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "Markdown to PDF"
+    },
+    {
+      "id": "json-to-pdf",
+      "name": "JSON sang PDF",
+      "description": "Chuyển đổi tệp JSON sang định dạng PDF.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "JSON to PDF"
+    },
+    {
+      "id": "odt-to-pdf",
+      "name": "ODT sang PDF",
+      "description": "Chuyển đổi tệp OpenDocument Text sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "ODT to PDF"
+    },
+    {
+      "id": "csv-to-pdf",
+      "name": "CSV sang PDF",
+      "description": "Chuyển đổi tệp bảng tính CSV sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "CSV to PDF"
+    },
+    {
+      "id": "rtf-to-pdf",
+      "name": "RTF sang PDF",
+      "description": "Chuyển đổi tài liệu Rich Text Format sang PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "RTF to PDF"
+    },
+    {
+      "id": "word-to-pdf",
+      "name": "Word sang PDF",
+      "description": "Chuyển đổi tài liệu Word (DOCX, DOC, ODT, RTF) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "Word to PDF"
+    },
+    {
+      "id": "excel-to-pdf",
+      "name": "Excel sang PDF",
+      "description": "Chuyển đổi bảng tính Excel (XLSX, XLS, ODS, CSV) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "Excel to PDF"
+    },
+    {
+      "id": "powerpoint-to-pdf",
+      "name": "PowerPoint sang PDF",
+      "description": "Chuyển đổi bài thuyết trình PowerPoint (PPTX, PPT, ODP) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "PowerPoint to PDF"
+    },
+    {
+      "id": "xps-to-pdf",
+      "name": "XPS sang PDF",
+      "description": "Chuyển đổi tài liệu XPS/OXPS sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "XPS to PDF"
+    },
+    {
+      "id": "mobi-to-pdf",
+      "name": "MOBI sang PDF",
+      "description": "Chuyển đổi sách điện tử MOBI sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "MOBI to PDF"
+    },
+    {
+      "id": "epub-to-pdf",
+      "name": "EPUB sang PDF",
+      "description": "Chuyển đổi sách điện tử EPUB sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "EPUB to PDF"
+    },
+    {
+      "id": "fb2-to-pdf",
+      "name": "FB2 sang PDF",
+      "description": "Chuyển đổi sách điện tử FictionBook (FB2) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "FB2 to PDF"
+    },
+    {
+      "id": "cbz-to-pdf",
+      "name": "CBZ sang PDF",
+      "description": "Chuyển đổi kho lưu trữ truyện tranh (CBZ/CBR) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "CBZ to PDF"
+    },
+    {
+      "id": "wpd-to-pdf",
+      "name": "WPD sang PDF",
+      "description": "Chuyển đổi tài liệu WordPerfect (WPD) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "WPD to PDF"
+    },
+    {
+      "id": "wps-to-pdf",
+      "name": "WPS sang PDF",
+      "description": "Chuyển đổi tài liệu WPS Office sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "WPS to PDF"
+    },
+    {
+      "id": "xml-to-pdf",
+      "name": "XML sang PDF",
+      "description": "Chuyển đổi tài liệu XML sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "XML to PDF"
+    },
+    {
+      "id": "pages-to-pdf",
+      "name": "Pages sang PDF",
+      "description": "Chuyển đổi tài liệu Apple Pages sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "Pages to PDF"
+    },
+    {
+      "id": "odg-to-pdf",
+      "name": "ODG sang PDF",
+      "description": "Chuyển đổi tệp OpenDocument Graphics (ODG) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "ODG to PDF"
+    },
+    {
+      "id": "ods-to-pdf",
+      "name": "ODS sang PDF",
+      "description": "Chuyển đổi tệp OpenDocument Spreadsheet (ODS) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "ODS to PDF"
+    },
+    {
+      "id": "odp-to-pdf",
+      "name": "ODP sang PDF",
+      "description": "Chuyển đổi tệp OpenDocument Presentation (ODP) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "ODP to PDF"
+    },
+    {
+      "id": "pub-to-pdf",
+      "name": "PUB sang PDF",
+      "description": "Chuyển đổi tệp Microsoft Publisher (PUB) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "PUB to PDF"
+    },
+    {
+      "id": "vsd-to-pdf",
+      "name": "VSD sang PDF",
+      "description": "Chuyển đổi tệp Microsoft Visio (VSD, VSDX) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": true,
+      "network": false,
+      "originalName": "VSD to PDF"
+    },
+    {
+      "id": "psd-to-pdf",
+      "name": "PSD sang PDF",
+      "description": "Chuyển đổi tệp Adobe Photoshop (PSD) sang định dạng PDF. Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PSD to PDF"
+    },
+    {
+      "id": "email-to-pdf",
+      "name": "Email sang PDF",
+      "description": "Chuyển đổi tệp email (EML, MSG) sang định dạng PDF. Hỗ trợ xuất Outlook và định dạng email tiêu chuẩn.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "Email to PDF"
+    },
+    {
+      "id": "pdf-to-jpg",
+      "name": "PDF sang JPG",
+      "description": "Chuyển đổi mỗi trang PDF thành hình ảnh JPG.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to JPG"
+    },
+    {
+      "id": "pdf-to-png",
+      "name": "PDF sang PNG",
+      "description": "Chuyển đổi mỗi trang PDF thành hình ảnh PNG.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to PNG"
+    },
+    {
+      "id": "pdf-to-webp",
+      "name": "PDF sang WebP",
+      "description": "Chuyển đổi mỗi trang PDF thành hình ảnh WebP.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to WebP"
+    },
+    {
+      "id": "pdf-to-bmp",
+      "name": "PDF sang BMP",
+      "description": "Chuyển đổi mỗi trang PDF thành hình ảnh BMP.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to BMP"
+    },
+    {
+      "id": "pdf-to-tiff",
+      "name": "PDF sang TIFF",
+      "description": "Chuyển đổi mỗi trang PDF thành hình ảnh TIFF.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to TIFF"
+    },
+    {
+      "id": "pdf-to-cbz",
+      "name": "PDF sang CBZ",
+      "description": "Chuyển đổi PDF thành tệp CBZ (Kho lưu trữ truyện tranh) cho trình đọc truyện tranh.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to CBZ"
+    },
+    {
+      "id": "pdf-to-svg",
+      "name": "PDF sang SVG",
+      "description": "Chuyển đổi mỗi trang PDF thành đồ họa vector có thể mở rộng (SVG) với chất lượng hoàn hảo ở mọi kích thước.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to SVG"
+    },
+    {
+      "id": "pdf-to-csv",
+      "name": "PDF sang CSV",
+      "description": "Trích xuất bảng từ PDF và chuyển đổi sang định dạng CSV.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to CSV"
+    },
+    {
+      "id": "pdf-to-excel",
+      "name": "PDF sang Excel",
+      "description": "Trích xuất bảng từ PDF và chuyển đổi sang định dạng Excel (XLSX).",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to Excel"
+    },
+    {
+      "id": "pdf-to-greyscale",
+      "name": "PDF sang thang xám",
+      "description": "Chuyển đổi tất cả màu sắc sang đen trắng.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to Greyscale"
+    },
+    {
+      "id": "pdf-to-json",
+      "name": "PDF sang JSON",
+      "description": "Chuyển đổi tệp PDF sang định dạng JSON.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to JSON"
+    },
+    {
+      "id": "pdf-to-word",
+      "name": "PDF sang Word",
+      "description": "Chuyển đổi tệp PDF thành tài liệu Word có thể chỉnh sửa.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to Word"
+    },
+    {
+      "id": "extract-images",
+      "name": "Trích xuất hình ảnh",
+      "description": "Trích xuất tất cả hình ảnh nhúng từ tệp PDF của bạn.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "Extract Images"
+    },
+    {
+      "id": "pdf-to-markdown",
+      "name": "PDF sang Markdown",
+      "description": "Chuyển đổi văn bản và bảng PDF sang định dạng Markdown.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to Markdown"
+    },
+    {
+      "id": "prepare-pdf-for-ai",
+      "name": "Chuẩn bị PDF cho AI",
+      "description": "Trích xuất nội dung PDF dưới dạng JSON LlamaIndex cho quy trình RAG/LLM.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "Prepare PDF for AI"
+    },
+    {
+      "id": "pdf-to-text",
+      "name": "PDF sang Văn bản",
+      "description": "Trích xuất văn bản từ tệp PDF và lưu dưới dạng tệp văn bản (.txt). Hỗ trợ nhiều tệp.",
+      "group": "Chuyển đổi",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to Text"
+    },
+    {
+      "id": "ocr-pdf",
+      "name": "OCR PDF",
+      "description": "Làm cho PDF có thể tìm kiếm và sao chép được.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "OCR PDF"
+    },
+    {
+      "id": "alternate-merge",
+      "name": "Xen kẽ & Trộn trang",
+      "description": "Gộp PDF bằng cách xen kẽ trang từ mỗi PDF. Giữ nguyên Bookmark.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Alternate & Mix Pages"
+    },
+    {
+      "id": "duplex-collate",
+      "name": "Sắp xếp bản quét hai mặt",
+      "description": "Sắp xếp lại tệp PDF được quét thành hai khối (tất cả mặt trước, rồi tất cả mặt sau) thành đúng thứ tự trước/sau.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Duplex Collate"
+    },
+    {
+      "id": "overlay-pdf",
+      "name": "Chồng PDF",
+      "description": "Overlay or underlay pages from one PDF onto another.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "PDF Overlay"
+    },
+    {
+      "id": "add-attachments",
+      "name": "Thêm tệp đính kèm",
+      "description": "Nhúng một hoặc nhiều tệp vào PDF của bạn.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Add Attachments"
+    },
+    {
+      "id": "extract-attachments",
+      "name": "Trích xuất tệp đính kèm",
+      "description": "Trích xuất tất cả tệp được nhúng từ PDF thành ZIP.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Extract Attachments"
+    },
+    {
+      "id": "edit-attachments",
+      "name": "Chỉnh sửa tệp đính kèm",
+      "description": "Xem hoặc xóa tệp đính kèm trong PDF của bạn.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Edit Attachments"
+    },
+    {
+      "id": "pdf-layers",
+      "name": "Quản lý lớp PDF",
+      "description": "Xem, bật/tắt, thêm hoặc xóa các lớp OCG của tài liệu.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "PDF OCG"
+    },
+    {
+      "id": "extract-tables",
+      "name": "Trích xuất bảng PDF",
+      "description": "Trích xuất bảng từ tệp PDF và xuất dưới dạng CSV, JSON hoặc Markdown.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Extract Tables"
+    },
+    {
+      "id": "divide-pages",
+      "name": "Chia trang",
+      "description": "Chia trang theo chiều ngang hoặc chiều dọc.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Divide Pages"
+    },
+    {
+      "id": "add-blank-page",
+      "name": "Thêm trang trống",
+      "description": "Chèn trang trống ở bất kỳ đâu trong PDF của bạn.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Add Blank Page"
+    },
+    {
+      "id": "reverse-pages",
+      "name": "Đảo ngược trang",
+      "description": "Lật ngược thứ tự tất cả các trang trong tài liệu của bạn.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Reverse Pages"
+    },
+    {
+      "id": "rotate-pdf",
+      "name": "Xoay PDF",
+      "description": "Xoay trang theo bội số 90 độ.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Rotate PDF"
+    },
+    {
+      "id": "rotate-custom",
+      "name": "Xoay theo độ tùy chỉnh",
+      "description": "Xoay trang theo bất kỳ góc độ tùy chỉnh nào.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Rotate by Custom Degrees"
+    },
+    {
+      "id": "n-up-pdf",
+      "name": "In nhiều trang trên một tờ",
+      "description": "Bố trí nhiều trang PDF trên cùng một tờ giấy.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "N-Up PDF"
+    },
+    {
+      "id": "pdf-booklet",
+      "name": "Sách nhỏ PDF",
+      "description": "Sắp xếp lại các trang để in sách nhỏ hai mặt. Gấp và đóng ghim để tạo sách nhỏ.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "PDF Booklet"
+    },
+    {
+      "id": "combine-single-page",
+      "name": "Ghép thành một trang",
+      "description": "Stitch all pages into one continuous scroll.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Combine to Single Page"
+    },
+    {
+      "id": "view-metadata",
+      "name": "Xem Metadata",
+      "description": "Kiểm tra các thuộc tính ẩn của PDF của bạn.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "View Metadata"
+    },
+    {
+      "id": "edit-metadata",
+      "name": "Chỉnh sửa Metadata",
+      "description": "Thay đổi tác giả, tiêu đề và các thuộc tính khác.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Edit Metadata"
+    },
+    {
+      "id": "pdf-to-zip",
+      "name": "PDF sang ZIP",
+      "description": "Đóng gói nhiều tệp PDF vào một tệp ZIP.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "PDFs to ZIP"
+    },
+    {
+      "id": "compare-pdfs",
+      "name": "So sánh PDF",
+      "description": "So sánh hai PDF cạnh nhau.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Compare PDFs"
+    },
+    {
+      "id": "posterize-pdf",
+      "name": "Chia bản vẽ để in nhiều tờ",
+      "description": "Chia trang PDF khổ lớn thành các tờ giấy nhỏ để in ghép.",
+      "group": "Sắp xếp",
+      "office": false,
+      "network": false,
+      "originalName": "Posterize PDF"
+    },
+    {
+      "id": "pdf-to-pdfa",
+      "name": "PDF sang PDF/A",
+      "description": "Chuyển đổi PDF sang PDF/A để lưu trữ lâu dài.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "PDF to PDF/A"
+    },
+    {
+      "id": "fix-page-size",
+      "name": "Sửa kích thước trang",
+      "description": "Chuẩn hóa tất cả các trang về cùng một kích thước.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Fix Page Size"
+    },
+    {
+      "id": "linearize-pdf",
+      "name": "Tối ưu mở PDF trên web",
+      "description": "Sắp xếp dữ liệu PDF để tải và mở trang đầu nhanh hơn.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Linearize PDF"
+    },
+    {
+      "id": "page-dimensions",
+      "name": "Kích thước trang",
+      "description": "Phân tích kích thước trang, hướng và đơn vị.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Page Dimensions"
+    },
+    {
+      "id": "remove-restrictions",
+      "name": "Xóa hạn chế",
+      "description": "Xóa bảo vệ mật khẩu và hạn chế bảo mật liên quan đến tệp PDF được ký số.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Remove Restrictions"
+    },
+    {
+      "id": "repair-pdf",
+      "name": "Sửa chữa PDF",
+      "description": "Khôi phục dữ liệu từ tệp PDF bị hỏng hoặc hư hỏng.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Repair PDF"
+    },
+    {
+      "id": "rasterize-pdf",
+      "name": "Chuyển PDF thành trang ảnh",
+      "description": "Render nội dung trang thành ảnh trong PDF; bỏ khả năng chọn chữ.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Rasterize PDF"
+    },
+    {
+      "id": "deskew-pdf",
+      "name": "Chỉnh nghiêng PDF",
+      "description": "Tự động làm thẳng các trang quét bị nghiêng bằng OpenCV.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Deskew PDF"
+    },
+    {
+      "id": "font-to-outline",
+      "name": "Chuyển chữ thành đường vector",
+      "description": "Chuyển font thành đường nét để hiển thị nhất quán khi in.",
+      "group": "Nén",
+      "office": false,
+      "network": false,
+      "originalName": "Font to Outline"
+    },
+    {
+      "id": "protect-pdf",
+      "name": "Mã hóa PDF",
+      "description": "Khóa PDF của bạn bằng cách thêm mật khẩu.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Protect PDF"
+    },
+    {
+      "id": "sanitize-pdf",
+      "name": "Làm sạch PDF",
+      "description": "Xóa metadata, ghi chú, script và nhiều hơn nữa.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Sanitize PDF"
+    },
+    {
+      "id": "unlock-pdf",
+      "name": "Giải mã PDF",
+      "description": "Mở khóa PDF bằng cách xóa bảo vệ mật khẩu.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Unlock PDF"
+    },
+    {
+      "id": "flatten-pdf",
+      "name": "Làm phẳng PDF",
+      "description": "Làm cho trường form và ghi chú không thể chỉnh sửa.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Flatten PDF"
+    },
+    {
+      "id": "remove-metadata",
+      "name": "Xóa Metadata",
+      "description": "Loại bỏ dữ liệu ẩn khỏi PDF của bạn.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Remove Metadata"
+    },
+    {
+      "id": "change-permissions",
+      "name": "Thay đổi quyền",
+      "description": "Đặt hoặc thay đổi quyền người dùng trên PDF.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Change Permissions"
+    },
+    {
+      "id": "digital-sign-pdf",
+      "name": "Chữ ký số PDF",
+      "description": "Thêm chữ ký số mật mã vào PDF của bạn bằng chứng chỉ X.509. Hỗ trợ định dạng PKCS#12 (.pfx, .p12) và PEM. Khóa riêng của bạn không bao giờ rời khỏi trình duyệt.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Digital Signature"
+    },
+    {
+      "id": "validate-signature-pdf",
+      "name": "Xác minh chữ ký PDF",
+      "description": "Xác minh chữ ký số trong tệp PDF của bạn. Kiểm tra hiệu lực chứng chỉ, xem thông tin người ký và xác nhận tính toàn vẹn tài liệu. Tất cả xử lý diễn ra trong trình duyệt của bạn.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": false,
+      "originalName": "Validate Signature"
+    },
+    {
+      "id": "timestamp-pdf",
+      "name": "Đóng dấu thời gian PDF",
+      "description": "Thêm dấu thời gian RFC 3161 vào PDF của bạn thông qua máy chủ TSA đáng tin cậy. Chứng minh tài liệu của bạn tồn tại tại một thời điểm cụ thể. Không cần chứng chỉ.",
+      "group": "Ký & Bảo vệ",
+      "office": false,
+      "network": true,
+      "originalName": "Timestamp PDF"
+    }
+  ]
+}

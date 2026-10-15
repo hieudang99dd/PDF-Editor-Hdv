@@ -1,0 +1,42 @@
+{
+  "source": "Cuongyd196/cit-pdf@3c9c138d980a417de7439f383f37882a1d730ab6",
+  "bytes": 28604373,
+  "sha256": "2bb76a56f6ebf5dfe214dfb4ceb7ec1370b9d0d5d7c4d66796cf66f762c098e0",
+  "parts": [
+    {
+      "name": "soffice.data.gz.part0",
+      "bytes": 4194304,
+      "sha256": "e6b46e66c9997ad1f423bee29f996cbb60e6e3184f88f0ab7200c57d76b52b8b"
+    },
+    {
+      "name": "soffice.data.gz.part1",
+      "bytes": 4194304,
+      "sha256": "16ab4483ab37fc4ba974f4ae6a1daf303bea0683da716dd08e06ec806202157e"
+    },
+    {
+      "name": "soffice.data.gz.part2",
+      "bytes": 4194304,
+      "sha256": "a399d51a7c0691cb1730b1df75b68775f4c66d457ece38bfbe9d1297bcb1f07c"
+    },
+    {
+      "name": "soffice.data.gz.part3",
+      "bytes": 4194304,
+      "sha256": "1a3022dd9e9920f56b5b246fa4a325818ac47cb5d0d3635aae9178b6d4fa500a"
+    },
+    {
+      "name": "soffice.data.gz.part4",
+      "bytes": 4194304,
+      "sha256": "cf3dff0f2b74510cbe5a23050fa622f73149552b73bdd6e0ea433527fe42ff14"
+    },
+    {
+      "name": "soffice.data.gz.part5",
+      "bytes": 4194304,
+      "sha256": "0fc8762d5a3c149ba5c67f25fffec8f53456d5d2cea940d5579a5fcd5ec69b8d"
+    },
+    {
+      "name": "soffice.data.gz.part6",
+      "bytes": 3438549,
+      "sha256": "ab1cc839bd0dd9408f9ffa6560121e83fdf0ae58366aaef3e57e0232d1073055"
+    }
+  ]
+}

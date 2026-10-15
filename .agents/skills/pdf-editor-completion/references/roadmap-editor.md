@@ -247,3 +247,10 @@ Với mỗi file đầu ra: mở bằng **Chrome PDF viewer** và **một trình
 | Đặt/gỡ mật khẩu | Không với pdf-lib 1.17 | Cần thư viện khác (ví dụ qpdf-wasm); tạm gắn "Sắp ra mắt" |
 | Word/Excel/PPT ↔ PDF, PDF/A | Không đáng tin cậy | Gắn "Sắp ra mắt" |
 
+
+
+## [x] Bộ công cụ web CIT mở rộng — 2026-10-15
+
+Tích hợp 119 công cụ riêng biệt dưới `cit-tools/`, cùng host HDV, kèm nguồn trình duyệt, lockfile, giấy phép và manifest. Các engine chính phục vụ từ HDV, chỉ tải theo nhu cầu; cache tài nguyên chương trình, không cache tài liệu qua service worker. Office dùng các phần tải 4 MiB có SHA-256 và worker có COOP/COEP. OCR Anh/Việt đi kèm, ngôn ngữ khác/font đặc thù dùng nguồn cố định của upstream. Thêm tương thích byte-array PDF.js, fast path đọc PDF hợp lệ, sửa đường dẫn worker Office/GS, trì hoãn revoke Blob URL. Host chỉ tải thư viện editor khi mở editor; tìm kiếm không dấu. Bỏ nén localhost và QR giả.
+
+Kiểm chứng: 62 test Node; 119 giao diện mở; xuất và đọc lại AES-256, đảo trang, bỏ metadata, TXT, nén, DOCX, XLSX từ bảng, TIFF, PDF có lớp OCR Anh+Việt, DOCX→PDF. Hồi quy editor HDV đạt. Chưa kiểm tra toàn bộ định dạng/tùy chọn, ký số/TSA, PDF/A/UA, CAD phức tạp hoặc hiệu năng PDF lớn. Xem CIT-TOOLS.md.

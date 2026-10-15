@@ -1,0 +1,1 @@
+document.addEventListener("DOMContentLoaded",()=>{const e=document.getElementById("faq-modal"),t=document.getElementById("faq-open-btn");document.getElementById("faq-close-btn"),!(!e||!t)&&(t.classList.add("hidden"),e.remove())});
