@@ -21,8 +21,6 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
-  pages: write
-  id-token: write
 concurrency:
   group: cit-original-build-${{ github.ref }}
   cancel-in-progress: true
@@ -113,7 +111,7 @@ jobs:
           # workflow. Persisting generated assets prevents a subsequent
           # unrelated commit from reverting the online frontend.
           mkdir -p cit-native
-          rsync -a --delete cit-upstream/dist/ cit-native/
+          rsync -a --delete cit-stage/cit-native/ cit-native/
           if ! grep -q 'cit-native/edit-pdf-text.html' text-editor.html; then
             cp text-editor.html text-editor-hdv.html
           fi
@@ -139,12 +137,6 @@ jobs:
           test -d cit-stage/cit-native/assets
           test -e cit-stage/.nojekyll
           du -sh cit-stage
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-      - name: Upload the complete HVD + original CIT Pages site
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: cit-stage
-      - name: Publish original CIT frontend to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      # GitHub Pages already deploys the master branch when the bot commits
+      # the vetted distribution. Do not run a second concurrent Pages
+      # deployment here: it races and can overwrite a newer branch release.
