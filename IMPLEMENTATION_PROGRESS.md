@@ -98,3 +98,13 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - **E2E evidence**: workflow artifact `cit-original-browser-evidence` (PDF đầu vào/đầu ra + screenshot) cùng run trên.
 - **Licensing / reproducibility**: xem `CIT-ORIGINAL-FRONTEND.lock.json`, `CIT-ORIGINAL-FRONTEND.md`; AGPL-3.0.
 - **Scope**: tương đồng bằng cách build **cùng upstream frontend/engine**, không chỉ dựng giao diện tương tự. Không tuyên bố mọi PDF CAD bất kỳ đều sửa được. Đã chạy thử trong Chromium với artifact Pages; chưa kiểm tra tương tác trên CDN Github Pages trực tiếp từ môi trường này.
+
+### 2026-10-15 — ĐÃ KHẮC PHỤC trôi phiên bản Pages legacy (kết quả cuối)
+
+- GitHub Pages có **hai cơ chế**: custom Actions và legacy branch `master`. Vì `GITHUB_TOKEN` không có quyền đổi `build_type` (HTTP 403), không chỉ dùng `deploy-pages`.
+- Sau khi mọi test Chromium và PyMuPDF pass, CI đồng bộ **toàn bộ frontend CIT đã build nguyên bản** vào repo `master/cit-native/` rồi tạo commit bot `bee0f8291ebd38780aafbbfacbbfefc9128d17e5`.
+- Đường dẫn `master/text-editor.html` thay bằng redirect sang `./cit-native/edit-pdf-text.html`, giữ editor HVD cũ tại `master/text-editor-hdv.html`, thêm `.nojekyll` để Pages legacy phục vụ đúng asset.
+- Từ đây dù lần cập nhật tiếp theo vẫn kích hoạt Pages legacy, **frontend CIT hiện nằm sẵn trong chính nguồn của branch**, không còn phụ thuộc chỉ vào artifact tạm.
+- Workflow [38744823470](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38744823470): **success**; bước PDFium edit + PyMuPDF nội dung, Git push, upload, deploy đều thành công.
+- Commit nhúng CIT: https://github.com/hieudang99dd/PDF-Editor-Hdv/commit/bee0f8291ebd38780aafbbfacbbfefc9128d17e5
+- Cách phát triển: nguồn CIT gốc được ghim tag/commit trong `CIT-ORIGINAL-FRONTEND.lock.json`; `cit-native/` là **compiled distribution**, không phải file TypeScript source.
