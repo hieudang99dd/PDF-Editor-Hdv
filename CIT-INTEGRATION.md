@@ -1,5 +1,10 @@
 # Đánh giá và tích hợp CIT-PDF 1.0.0 vào HDV
 
+## Cập nhật đợt 2026-10-15 — Advanced Browser Tools
+
+Đã tích hợp thêm **14 thao tác chuyên biệt** (12 nhóm thuật toán) vào giao diện chính: đảo/lọc trang, ghép xen kẽ, N-up, crop, xem/sửa/xóa metadata, xóa chú thích, Bates, chèn trang trắng, overlay, xoay góc tự do. Nguồn và giới hạn: [CIT-ADVANCED-INTEGRATION.md](CIT-ADVANCED-INTEGRATION.md). Bộ **30 bài kiểm thử Node** chạy trên GitHub Actions đã đạt, gồm PDF thật và luồng giao diện. Nhóm này chạy trong browser không cần backend; đây **không phải** bản tích hợp toàn bộ 119 công cụ của CIT.
+
+
 Ngày: 2026-10-15. Tham chiếu tag `1.0.0`, không dùng nhánh `main` thay đổi theo thời gian.
 
 ## Kết quả đánh giá
@@ -29,7 +34,7 @@ Vì vậy bản tích hợp dùng engine CIT cùng các ràng buộc hình học
 | Cascade paragraph growth | Không bật: có thể làm lệch nội dung trong bảng kỹ thuật |
 | Rich paragraph nhiều dòng/nhiều style | Chưa bật; báo không hỗ trợ khi không tách an toàn được vùng đang chọn |
 | Accessibility/tag surgery | Chưa tích hợp; không tuyên bố bảo toàn cấu trúc accessibility/PDF/UA sau chỉnh sửa |
-| OCR, Office, Ghostscript, cpdf, ký số, Electron | Chưa tích hợp: thuộc công cụ/engine khác, không phải thuật toán sửa chữ thay thế tương đương |
+| OCR, Office, Ghostscript, cpdf, ký số, Electron | Không thuộc **engine sửa chữ CIT**; HVD có backend OCR/Office riêng nhưng chưa mang toàn bộ các module CIT tương ứng vào browser |
 
 ## Luồng xử lý
 
