@@ -59,7 +59,7 @@ jobs:
       - name: Compile ORIGINAL CIT frontend and WASM assets
         working-directory: cit-upstream
         env:
-          BASE_URL: /PDF-Editor-Hdv/cit-native/
+          BASE_URL: /PDF-Editor-Hdv/studio/
           VITE_USE_CDN: 'false'
           NODE_OPTIONS: --max-old-space-size=4096
         run: |
@@ -80,19 +80,19 @@ jobs:
           test -s cit-stage/text-editor.html
           test -s cit-stage/text-editor-hdv.html
           grep -q 'text-editor-shell.js' cit-stage/text-editor-hdv.html
-          if grep -q 'location.replace("./cit-native/edit-pdf-text.html"' cit-stage/text-editor-hdv.html; then
+          if grep -q 'location.replace("./studio/edit-pdf-text.html"' cit-stage/text-editor-hdv.html; then
             echo 'BUG: fallback editor was replaced with the CIT redirect'
             exit 1
           fi
-          test -s cit-stage/cit-native/edit-pdf-text.html
-          grep -q 'hvd-hub.js' cit-stage/cit-native/edit-pdf-text.html
-          grep -q 'hvd-hub.css' cit-stage/cit-native/edit-pdf-text.html
-          test -s cit-stage/cit-native/hvd-hub.js
-          test -s cit-stage/cit-native/hvd-hub.css
-          test -s cit-stage/cit-native/hvd-mark.svg
-          test -s cit-stage/cit-native/hvd-site.webmanifest
-          grep -q 'PDF HVD – Chỉnh sửa văn bản' cit-stage/cit-native/edit-pdf-text.html
-          if grep -q 'BentoPDF</title>' cit-stage/cit-native/edit-pdf-text.html; then
+          test -s cit-stage/studio/edit-pdf-text.html
+          grep -q 'hvd-hub.js' cit-stage/studio/edit-pdf-text.html
+          grep -q 'hvd-hub.css' cit-stage/studio/edit-pdf-text.html
+          test -s cit-stage/studio/hvd-hub.js
+          test -s cit-stage/studio/hvd-hub.css
+          test -s cit-stage/studio/hvd-mark.svg
+          test -s cit-stage/studio/hvd-site.webmanifest
+          grep -q 'PDF HVD – Chỉnh sửa văn bản' cit-stage/studio/edit-pdf-text.html
+          if grep -q 'BentoPDF</title>' cit-stage/studio/edit-pdf-text.html; then
             echo "Old product name remains in browser title"
             exit 1
           fi
@@ -128,16 +128,18 @@ jobs:
           # The repository is currently also published by the legacy master
           # workflow. Persisting generated assets prevents a subsequent
           # unrelated commit from reverting the online frontend.
-          mkdir -p cit-native
-          rsync -a --delete cit-stage/cit-native/ cit-native/
-          test -s cit-stage/cit-native/hvd-hub.js
+          mkdir -p studio
+          rsync -a --delete cit-stage/studio/ studio/
+          # Retire the previous exposed vendor path after successful QA.
+          rm -rf cit-native
+          test -s cit-stage/studio/hvd-hub.js
           test -s cit-stage/text-editor-hdv.html
-          if ! grep -q 'cit-native/edit-pdf-text.html' text-editor.html; then
+          if ! grep -Eq '(studio|cit-native)/edit-pdf-text.html' text-editor.html; then
             cp text-editor.html text-editor-hdv.html
           fi
           cp cit-stage/text-editor.html text-editor.html
           touch .nojekyll
-          git add -A cit-native text-editor.html text-editor-hdv.html .nojekyll
+          git add -A -- studio cit-native text-editor.html text-editor-hdv.html .nojekyll
           if git diff --cached --quiet; then
             echo "Original CIT bundle already matches the repository."
           else
@@ -153,8 +155,8 @@ jobs:
           test -s cit-stage/index.html
           test -s cit-stage/text-editor.html
           test -s cit-stage/text-editor-hdv.html
-          test -s cit-stage/cit-native/edit-pdf-text.html
-          test -d cit-stage/cit-native/assets
+          test -s cit-stage/studio/edit-pdf-text.html
+          test -d cit-stage/studio/assets
           test -e cit-stage/.nojekyll
           du -sh cit-stage
       # GitHub Pages already deploys the master branch when the bot commits
