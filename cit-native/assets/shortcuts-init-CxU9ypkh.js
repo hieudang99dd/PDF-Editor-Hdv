@@ -1,1 +1,0 @@
-import{r as e}from"./main-Bx_a-8ez.js";function t(){e.init(),console.log(`Global shortcuts initialized`)}export{t};

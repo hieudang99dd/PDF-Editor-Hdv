@@ -1,0 +1,1 @@
+import{n as e,t}from"./lucide-kftKO4oO.js";document.addEventListener(`DOMContentLoaded`,()=>{t({icons:e})});

@@ -1,0 +1,19 @@
+{
+  "name": "PDF HVD – Trình chỉnh sửa PDF",
+  "short_name": "PDF HVD",
+  "description": "Chỉnh sửa văn bản PDF, giữ định dạng và xuất PDF ngay trên trình duyệt.",
+  "lang": "vi",
+  "start_url": "https://hieudang99dd.github.io/PDF-Editor-Hdv/text-editor.html",
+  "scope": "https://hieudang99dd.github.io/PDF-Editor-Hdv/",
+  "display": "standalone",
+  "background_color": "#161c22",
+  "theme_color": "#0d9488",
+  "icons": [
+    {
+      "src": "/PDF-Editor-Hdv/studio/hvd-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
