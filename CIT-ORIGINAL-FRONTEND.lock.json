@@ -1,0 +1,28 @@
+{
+  "upstream_repository": "https://github.com/Cuongyd196/cit-pdf",
+  "upstream_tag": "1.0.0",
+  "upstream_commit": "3c9c138d980a417de7439f383f37882a1d730ab6",
+  "package": "bento-pdf",
+  "frontend_stack": [
+    "Vite 8",
+    "TypeScript",
+    "edit-pdf-text-page.ts",
+    "edit-pdf-text-dock.ts",
+    "src/js/editcore/app.js",
+    "CIT PDFium WASM",
+    "bentopdf-viewer"
+  ],
+  "license": "AGPL-3.0-only",
+  "site_base": "/PDF-Editor-Hdv/cit-native/",
+  "native_text_entry": "cit-native/edit-pdf-text.html",
+  "public_alias": "text-editor.html",
+  "fallback_old_editor": "text-editor-hdv.html",
+  "build_workflow": ".github/workflows/cit-original-build.yml",
+  "requires_build": true,
+  "verification": [
+    "scripts/cit-original/verify_build.py",
+    "tests/cit-original-browser.cjs",
+    "scripts/cit-original/verify_pdf.py"
+  ],
+  "implementation_note": "Full upstream Vite frontend is built from pinned upstream source. Do not manually recreate controls; site stage contains original unmodified compiled HTML/CSS/JS and WASM. HVD older editor retained as fallback."
+}
