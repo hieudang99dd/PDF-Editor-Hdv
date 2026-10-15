@@ -55,6 +55,6 @@ test('standalone page follows reference layout with text inspector on right',()=
 test('sidebar does not advertise paragraph reflow or digitally signed text modification',()=>{
  assert.match(shell,/không cho chữ mới vượt đường biên/);
  assert.match(shell,/Type3/);
- assert.match(shell,/reflow tự do/);
+ assert.match(shell,/Tài liệu CAD giữ nguyên baseline/);
  assert.match(shell,/Sửa nhiều dòng/);
 });
