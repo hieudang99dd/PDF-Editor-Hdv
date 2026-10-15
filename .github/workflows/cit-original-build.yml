@@ -53,11 +53,13 @@ jobs:
         shell: bash
         run: |
           python3 scripts/cit-original/verify_build.py cit-upstream/dist
-      - name: Prepare original frontend at its GitHub Pages subpath
+      - name: Assemble final HVD Pages site with original CIT frontend
         shell: bash
         run: |
-          mkdir -p cit-stage/PDF-Editor-Hdv/cit-native
-          cp -a cit-upstream/dist/. cit-stage/PDF-Editor-Hdv/cit-native/
+          python3 scripts/cit-original/publish_site.py cit-upstream/dist cit-stage
+          test -s cit-stage/text-editor.html
+          test -s cit-stage/text-editor-hdv.html
+          test -s cit-stage/cit-native/edit-pdf-text.html
       - name: Install browser acceptance tools
         run: |
           npm install --no-save playwright@1.57.0
