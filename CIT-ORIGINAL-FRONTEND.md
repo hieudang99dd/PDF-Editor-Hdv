@@ -44,3 +44,13 @@ Test không chứng minh **mọi** PDF CAD A0/A1, Unicode subset, Type3 glyph ha
 ## Khôi phục khi cần
 
 Bản editor HVD trước đây vẫn lưu trong repo tại `text-editor.html` và trong artifact site tại `text-editor-hdv.html`. Nếu CI build/deploy thất bại, Pages không nên đổi route chính. Khi muốn quay lại HVD, sửa `scripts/cit-original/publish_site.py` bỏ phần thay alias hoặc chuyển Pages về nguồn legacy, kiểm thử lại trước khi quảng bá.
+
+## Nghiệm thu và xuất bản thực tế
+
+- Bản chuẩn đã xác nhận qua Chromium (frontend nguyên gốc) và PyMuPDF (PDF thật); 9 bước kiểm tra nguyên lý thao tác và kết quả đầu ra.
+- GitHub Actions: https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38744102098 — kết luận **success**, deploy-pages báo **Reported success!**.
+- Commit triển khai: `c3cade1d0f42f637e708b982d90ac228ccb3c290`.
+- Trang chính: https://hieudang99dd.github.io/PDF-Editor-Hdv/text-editor.html (đi đến frontend CIT).
+- Trình CIT gốc: https://hieudang99dd.github.io/PDF-Editor-Hdv/cit-native/edit-pdf-text.html
+- Đường dự phòng HVD: https://hieudang99dd.github.io/PDF-Editor-Hdv/text-editor-hdv.html
+- Chưa dùng được khả năng quan sát trực tiếp từ môi trường trợ lý đối với CDN GitHub Pages; xác minh thực tế nguồn xuất bản thông qua GitHub Pages deployment và browser test đối với chính artifact đã đóng gói.
