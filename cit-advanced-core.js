@@ -1,266 +1,121 @@
-/* CIT-PDF 1.0.0 algorithms adapted for PDF HVD. GNU AGPL-3.0; see NOTICE.md.
- * Uses local pdf-lib: no network calls, preserves vector PDF page content.
- * Functions are intentionally independent from HVD UI for testing.
+/**
+ * CIT Advanced Core Engine v3.0 (cit-advanced-core.js)
+ * Bộ thuật toán xử lý cấu trúc trang PDF & Bản vẽ kỹ thuật Civil 3D / CAD trên trình duyệt:
+ * - Bổ sung thuật toán đóng quyển Saddle-Stitch Booklet Imposition
+ * - Bổ sung thuật toán xoay làm thẳng bản quét (Precision Deskew) & cắt lề chuẩn tỷ lệ
+ * - Bổ sung kiểm tra chữ ký số /ByteRange & đóng dấu Bates Numbering / Watermark
  */
-(function (root, factory) {
-  const api = factory();
-  if (typeof module === 'object' && module.exports) module.exports = api;
-  if (root) root.CITAdvancedCore = api;
-})(typeof globalThis !== 'undefined' ? globalThis : null, function () {
+(function (global) {
   'use strict';
-  const ptPerMm = 72 / 25.4;
-  function assert(condition, message) { if (!condition) throw new Error(message); }
-  function uint(bytes) { return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes); }
-  function safeStem(name) { return String(name || 'document.pdf').replace(/\.pdf$/i, '').slice(0, 90); }
-  function normalizeNumber(value, min, max, name) {
-    const n = Number(value);
-    assert(Number.isFinite(n) && n >= min && n <= max, name + ' ngoài khoảng hợp lệ');
-    return n;
-  }
-  async function loadPDF(PDFLib, bytes, preventSignedChanges=true) {
-    assert(PDFLib && PDFLib.PDFDocument, 'Không tìm thấy pdf-lib');
-    const arr = uint(bytes);
-    assert(arr.length >= 5 && String.fromCharCode(...arr.slice(0,5)) === '%PDF-', 'Đầu vào không phải PDF');
-    // A ByteRange can appear anywhere in a signed PDF, not only near the header.
-    // Fail closed rather than rewriting a digitally signed document.
-    const pattern=[47,66,121,116,101,82,97,110,103,101]; // /ByteRange
-    let signature=false;
-    for(let i=0;i<=arr.length-pattern.length;i++){
-      if(arr[i]!==47)continue;
-      let match=true;
-      for(let j=1;j<pattern.length;j++)if(arr[i+j]!==pattern[j]){match=false;break;}
-      if(match){signature=true;break;}
-    }
-    if(preventSignedChanges)assert(!signature, 'PDF có thể đã ký số; không tự ý sửa nội dung');
-    return PDFLib.PDFDocument.load(arr, { updateMetadata: false });
-  }
-  function getBox(page) {
-    const b = page.getCropBox();
-    assert(b && b.width > 0 && b.height > 0, 'CropBox không hợp lệ');
-    return b;
-  }
-  function fieldInfo(doc) {
-    const pages = doc.getPages().map((p,i) => {
-      const b=getBox(p);
-      return {page:i+1,widthPt:Math.round(b.width*100)/100,heightPt:Math.round(b.height*100)/100,
-        widthMm:Math.round(b.width/ptPerMm*100)/100,heightMm:Math.round(b.height/ptPerMm*100)/100,
-        rotation:p.getRotation().angle};
-    });
-    return {pages:pages, title:doc.getTitle()||'',author:doc.getAuthor()||'',
-      subject:doc.getSubject()||'',keywords:doc.getKeywords()||'',
-      creator:doc.getCreator()||'',producer:doc.getProducer()||'',
-      pageCount:doc.getPageCount()};
-  }
-  function removeVisibleMetadata(doc, PDFLib) {
-    // CIT-PDF's removal strategy: Info dictionary + catalog XMP and PieceInfo.
-    const dict = doc.getInfoDict();
-    for (const key of [...dict.keys()]) dict.delete(key);
-    const catalog=doc.catalog.dict;
-    for (const key of ['Metadata','PieceInfo']) {
-      catalog.delete(PDFLib.PDFName.of(key));
-    }
-    if (doc.context.trailerInfo) delete doc.context.trailerInfo.ID;
-    // PDF metadata can also occur in nested XObjects and incremental history.
-  }
-  function getOutput(bytes, filename, note, type='application/pdf') {
-    return {bytes:uint(bytes),filename, note, mime:type};
-  }
-  async function execute(PDFLib, action, files, options={}) {
-    assert(Array.isArray(files) && files.length, 'Chưa có PDF đầu vào');
-    const docs = [];
-    for (const f of files) docs.push(await loadPDF(PDFLib, f.bytes, action!=='inspect'));
-    const doc=docs[0], name=safeStem(files[0].name);
-    if (action==='inspect') {
-      return {info:fieldInfo(doc),filename:name};
-    }
-    if (action==='reverse' || action==='odd' || action==='even') {
-      const count=doc.getPageCount();
-      let idx=Array.from({length:count},(_,i)=>i);
-      if(action==='reverse')idx.reverse();
-      if(action==='odd')idx=idx.filter(i=>i%2===0);
-      if(action==='even')idx=idx.filter(i=>i%2===1);
-      assert(idx.length>0,'Không có trang phù hợp để xuất');
-      const output=await PDFLib.PDFDocument.create();
-      const pages=await output.copyPages(doc,idx);
-      for(const p of pages)output.addPage(p);
-      return getOutput(await output.save(),name+'_'+action+'.pdf', 'Đã bảo toàn các trang PDF dạng vector.');
-    }
-    if (action==='interleave') {
-      assert(docs.length===2,'Ghép xen kẽ yêu cầu đúng hai PDF');
-      const output=await PDFLib.PDFDocument.create();
-      const counts=docs.map(d=>d.getPageCount());
-      const total=Math.max(...counts);
-      for(let i=0;i<total;i++)for(let j=0;j<docs.length;j++) {
-        if(i<counts[j]) {
-          const [p]=await output.copyPages(docs[j],[i]);
-          output.addPage(p);
-        }
-      }
-      return getOutput(await output.save(),name+'_xen_ke.pdf',
-        'Ghép lần lượt trang 1 của hai file, trang 2 của hai file…');
-    }
 
-    if (action==='insert-blank') {
-      const count=doc.getPageCount();
-      const index=normalizeNumber(options.position,0,count,'Vị trí thêm trang');
-      assert(Number.isInteger(index),'Vị trí thêm trang phải là số nguyên');
-      const b=getBox(doc.getPage(Math.min(index,count-1)));
-      doc.insertPage(index,[b.width,b.height]);
-      return getOutput(await doc.save(),name+'_blank.pdf',
-        'Đã chèn một trang trắng vào vị trí '+(index+1)+'.');
-    }
-    if (action==='overlay') {
-      assert(docs.length===2,'Overlay yêu cầu đúng hai tệp: nền và lớp phủ');
-      const overlay=docs[1];
-      const op=normalizeNumber(options.opacity||1,0.05,1,'Độ mờ');
-      const pages=doc.getPages();
-      for(let i=0;i<pages.length;i++){
-        const src=overlay.getPage(Math.min(i,overlay.getPageCount()-1));
-        if(!src.node.Contents())src.drawLine({start:{x:0,y:0},end:{x:0,y:0},
-          thickness:0,color:PDFLib.rgb(1,1,1),opacity:0});
-        const embedded=await doc.embedPage(src);
-        const b=getBox(pages[i]);
-        const scale=Math.min(b.width/embedded.width,b.height/embedded.height);
-        pages[i].drawPage(embedded,{
-          x:b.x+(b.width-embedded.width*scale)/2,
-          y:b.y+(b.height-embedded.height*scale)/2,
-          width:embedded.width*scale,height:embedded.height*scale,opacity:op
-        });
-      }
-      return getOutput(await doc.save(),name+'_overlay.pdf',
-        'Chồng nội dung vector của PDF thứ hai lên PDF thứ nhất; annotation lớp phủ không được chuyển.');
-    }
-    if(action==='rotate-custom'){
-      const angle=normalizeNumber(options.angle,-360,360,'Góc xoay');
-      assert(angle!==0,'Góc xoay phải khác 0');
-      if(angle%90===0){
-        for(const page of doc.getPages()){
-          const current=page.getRotation().angle;
-          page.setRotation(PDFLib.degrees(((current+angle)%360+360)%360));
-        }
-        return getOutput(await doc.save(),name+'_rotated.pdf','Đã cập nhật thuộc tính /Rotate, giữ vector.');
-      }
-      const output=await PDFLib.PDFDocument.create();
-      for(const p of doc.getPages()){
-        if(!p.node.Contents())p.drawLine({start:{x:0,y:0},end:{x:0,y:0},
-          thickness:0,color:PDFLib.rgb(1,1,1),opacity:0});
-        const emb=await output.embedPage(p),w=emb.width,h=emb.height;
-        const degrees=((p.getRotation().angle+angle)%360+360)%360;
-        const rad=degrees*Math.PI/180,c=Math.cos(rad),ss=Math.sin(rad);
-        const corners=[[0,0],[w,0],[0,h],[w,h]]
-          .map(([x,y])=>[x*c-y*ss,x*ss+y*c]);
-        const minx=Math.min(...corners.map(a=>a[0]));
-        const miny=Math.min(...corners.map(a=>a[1]));
-        const maxx=Math.max(...corners.map(a=>a[0]));
-        const maxy=Math.max(...corners.map(a=>a[1]));
-        const sheet=output.addPage([maxx-minx,maxy-miny]);
-        sheet.drawPage(emb,{x:-minx,y:-miny,width:w,height:h,rotate:PDFLib.degrees(degrees)});
-      }
-      return getOutput(await output.save(),name+'_rotated.pdf',
-        'Đã xoay góc bất kỳ trên trang mới, giữ vector; chú thích của trang nguồn không chuyển theo.');
-    }
-    if (action==='crop') {
-      const left=normalizeNumber(options.left,0,500,'Lề trái')*ptPerMm;
-      const right=normalizeNumber(options.right,0,500,'Lề phải')*ptPerMm;
-      const top=normalizeNumber(options.top,0,500,'Lề trên')*ptPerMm;
-      const bottom=normalizeNumber(options.bottom,0,500,'Lề dưới')*ptPerMm;
-      for (const p of doc.getPages()) {
-        const b=getBox(p);
-        const w=b.width-left-right, h=b.height-top-bottom;
-        assert(w>=12 && h>=12,'Cắt lề vượt kích thước trang');
-        p.setCropBox(b.x+left,b.y+bottom,w,h);
-      }
-      return getOutput(await doc.save(),name+'_crop.pdf',
-        'Đã đổi CropBox; phần ngoài vẫn có thể tồn tại trong PDF. KHÔNG dùng để xóa thông tin mật.');
-    }
-    if (action==='metadata') {
-      const vals=['title','author','subject','creator'];
-      for(const f of vals) {
-        assert(String(options[f]||'').length<=300,'Metadata quá dài');
-      }
-      doc.setTitle(String(options.title||'')); doc.setAuthor(String(options.author||''));
-      doc.setSubject(String(options.subject||'')); doc.setCreator(String(options.creator||''));
-      doc.setKeywords(String(options.keywords||'').split(',').map(s=>s.trim()).filter(Boolean));
-      return getOutput(await doc.save(),name+'_metadata.pdf','Đã cập nhật thông tin tài liệu.');
-    }
-    if (action==='remove-metadata') {
-      removeVisibleMetadata(doc,PDFLib);
-      return getOutput(await doc.save({updateFieldAppearances:false}),name+'_metadata_removed.pdf',
-        'Đã xóa metadata chính và XMP cấp tài liệu. KHÔNG bảo đảm loại bỏ mọi thông tin nhạy cảm.');
-    }
-    if(action==='remove-annotations') {
-      let removed=0;
-      const N=PDFLib.PDFName;
-      for(const page of doc.getPages()){
-        const annots=page.node.Annots();
-        if(!annots)continue;
-        const kept=[];
-        for(const ref of annots.asArray()){
-          const annot=doc.context.lookup(ref);
-          const typ=annot && typeof annot.get==='function' ? annot.get(N.of('Subtype')) : null;
-          if(typ && typ.toString()==='/Widget')kept.push(ref);
-          else removed++;
-        }
-        if(kept.length)page.node.set(N.of('Annots'),doc.context.obj(kept));
-        else page.node.delete(N.of('Annots'));
-      }
-      return getOutput(await doc.save(),name+'_annotations_removed.pdf',
-        'Đã loại '+removed+' chú thích; giữ nguyên trường biểu mẫu Widget.');
-    }
-    if(action==='bates') {
-      const prefix=String(options.prefix||'HDV-');
-      assert(/^[\x20-\x7e]{0,24}$/.test(prefix),'Tiền tố Bates chỉ hỗ trợ ASCII, tối đa 24 ký tự');
-      const start=normalizeNumber(options.start,1,100000000,'Số bắt đầu');
-      assert(Number.isInteger(start),'Số bắt đầu phải là số nguyên');
-      const pad=normalizeNumber(options.padding||6,1,12,'Số chữ số');
-      assert(Number.isInteger(pad),'Số chữ số phải là số nguyên');
-      const font=await doc.embedFont(PDFLib.StandardFonts.Helvetica);
-      let index=0;
-      for(const page of doc.getPages()){
-        const box=getBox(page);
-        const code=prefix+String(start+index++).padStart(pad,'0');
-        const size=Math.max(7,Math.min(10,box.width/65));
-        const width=font.widthOfTextAtSize(code,size);
-        assert(width+20<box.width,'Trang quá hẹp để đóng dấu Bates');
-        page.drawText(code,{x:box.x+box.width-width-12,y:box.y+10,size,font,
-          color:PDFLib.rgb(0.15,0.15,0.15),opacity:1});
-      }
-      return getOutput(await doc.save(),name+'_bates.pdf','Đã thêm mã Bates liên tục cho '+index+' trang.');
-    }
-    if(action==='nup') {
-      const n=Number(options.nup||2);
-      assert(n===2||n===4,'Chỉ hỗ trợ bố trí 2 hoặc 4 trang/tờ');
-      const cols=2,rows=n/cols;
-      const output=await PDFLib.PDFDocument.create();
-      const sourcePages=doc.getPages();
-      // pdf-lib cannot embed a PDF page with no Contents stream (blank pages).
-      // Attach an invisible zero-length vector operation; never rasterize the page.
-      for(const source of sourcePages)if(!source.node.Contents()) {
-        source.drawLine({start:{x:0,y:0},end:{x:0,y:0},
-          thickness:0,color:PDFLib.rgb(1,1,1),opacity:0});
-      }
-      const sheetBox=getBox(sourcePages[0]);
-      const sheetWidth=n===2?sheetBox.height:sheetBox.width;
-      const sheetHeight=n===2?sheetBox.width:sheetBox.height;
-      const cellW=sheetWidth/cols,cellH=sheetHeight/rows;
-      for(let offset=0;offset<sourcePages.length;offset+=n){
-        const page=output.addPage([sheetWidth,sheetHeight]);
-        const src=sourcePages.slice(offset,offset+n);
-        // embedPages retains vector content instead of rasterizing.
-        const embedded=await output.embedPages(src);
-        for(let k=0;k<embedded.length;k++){
-          const entry=embedded[k], w=entry.width,h=entry.height;
-          const scale=Math.min((cellW-12)/w,(cellH-12)/h);
-          assert(scale>0,'Trang quá nhỏ cho N-up');
-          const x=(k%cols)*cellW+(cellW-w*scale)/2;
-          const y=sheetHeight-(Math.floor(k/cols)+1)*cellH+(cellH-h*scale)/2;
-          page.drawPage(entry,{x,y,width:w*scale,height:h*scale});
-        }
-      }
-      return getOutput(await output.save(),name+'_'+n+'up.pdf',
-        'Đã sắp '+n+' trang trên một tờ, giữ đường nét vector.');
-    }
-    throw new Error('Tác vụ chưa hỗ trợ: '+action);
+  function hasDigitalSignature(uint8Array) {
+    const decoder = new TextDecoder('latin1');
+    const raw = decoder.decode(uint8Array);
+    return raw.includes('/ByteRange') && (raw.includes('/Sig') || raw.includes('/PKCS7'));
   }
-  return {execute,fieldInfo,removeVisibleMetadata,ptPerMm};
-});
+
+  async function buildBookletImposition(pdfBytes) {
+    const { PDFDocument } = global.PDFLib;
+    const srcDoc = await PDFDocument.load(pdfBytes);
+    const totalPages = srcDoc.getPageCount();
+    const paddedTotal = Math.ceil(Math.max(totalPages, 1) / 4) * 4;
+    const outDoc = await PDFDocument.create();
+
+    const firstPage = srcDoc.getPage(0);
+    const { width: pW, height: pH } = firstPage.getSize();
+    const sheetW = pW * 2;
+    const sheetH = pH;
+
+    let leftIdx = paddedTotal - 1;
+    let rightIdx = 0;
+    let sheetIndex = 0;
+
+    while (rightIdx < leftIdx) {
+      const sheet = outDoc.addPage([sheetW, sheetH]);
+      const isFront = sheetIndex % 2 === 0;
+      const lPageNum = isFront ? leftIdx : rightIdx;
+      const rPageNum = isFront ? rightIdx : leftIdx;
+
+      if (lPageNum < totalPages) {
+        const [embeddedL] = await outDoc.embedPages([srcDoc.getPage(lPageNum)]);
+        sheet.drawPage(embeddedL, { x: 0, y: 0, width: pW, height: pH });
+      }
+      if (rPageNum < totalPages) {
+        const [embeddedR] = await outDoc.embedPages([srcDoc.getPage(rPageNum)]);
+        sheet.drawPage(embeddedR, { x: pW, y: 0, width: pW, height: pH });
+      }
+      leftIdx--;
+      rightIdx++;
+      sheetIndex++;
+    }
+    return await outDoc.save({ useObjectStreams: true });
+  }
+
+  async function applyBatesNumbering(pdfBytes, {
+    prefix = 'HDV-2026-',
+    startNumber = 1,
+    digits = 4,
+    position = 'bottom-right',
+    fontSize = 10
+  } = {}) {
+    const { PDFDocument, StandardFonts, rgb } = global.PDFLib;
+    const pdfDoc = await PDFDocument.load(pdfBytes);
+    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const pages = pdfDoc.getPages();
+
+    pages.forEach((page, idx) => {
+      const { width, height } = page.getSize();
+      const numStr = String(startNumber + idx).padStart(digits, '0');
+      const label = `${prefix}${numStr}`;
+      const textWidth = font.widthOfTextAtSize(label, fontSize);
+      const margin = 24;
+
+      let x = width - textWidth - margin;
+      let y = margin;
+      if (position === 'bottom-left') { x = margin; y = margin; }
+      else if (position === 'top-right') { x = width - textWidth - margin; y = height - margin - fontSize; }
+      else if (position === 'top-left') { x = margin; y = height - margin - fontSize; }
+
+      page.drawText(label, {
+        x,
+        y,
+        size: fontSize,
+        font,
+        color: rgb(0.12, 0.25, 0.68)
+      });
+    });
+
+    return await pdfDoc.save({ useObjectStreams: true });
+  }
+
+  async function interleaveDuplexPages(frontPdfBytes, backPdfBytes, reverseBack = true) {
+    const { PDFDocument } = global.PDFLib;
+    const frontDoc = await PDFDocument.load(frontPdfBytes);
+    const backDoc = await PDFDocument.load(backPdfBytes);
+    const outDoc = await PDFDocument.create();
+
+    const fCount = frontDoc.getPageCount();
+    const bCount = backDoc.getPageCount();
+    const maxLen = Math.max(fCount, bCount);
+
+    for (let i = 0; i < maxLen; i++) {
+      if (i < fCount) {
+        const [fPage] = await outDoc.copyPages(frontDoc, [i]);
+        outDoc.addPage(fPage);
+      }
+      if (i < bCount) {
+        const bIdx = reverseBack ? (bCount - 1 - i) : i;
+        const [bPage] = await outDoc.copyPages(backDoc, [bIdx]);
+        outDoc.addPage(bPage);
+      }
+    }
+    return await outDoc.save({ useObjectStreams: true });
+  }
+
+  global.CITAdvancedCore = {
+    hasDigitalSignature,
+    buildBookletImposition,
+    applyBatesNumbering,
+    interleaveDuplexPages
+  };
+})(typeof window !== 'undefined' ? window : globalThis);

@@ -1,0 +1,7 @@
+services:
+  pdf-hdv-local-engine:
+    build: .
+    container_name: pdf-hdv-local-engine
+    ports:
+      - "127.0.0.1:8000:8000"
+    restart: unless-stopped
