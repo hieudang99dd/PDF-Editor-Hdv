@@ -165,6 +165,12 @@
       const cols=2,rows=n/cols;
       const output=await PDFLib.PDFDocument.create();
       const sourcePages=doc.getPages();
+      // pdf-lib cannot embed a PDF page with no Contents stream (blank pages).
+      // Attach an invisible zero-length vector operation; never rasterize the page.
+      for(const source of sourcePages)if(!source.node.Contents()) {
+        source.drawLine({start:{x:0,y:0},end:{x:0,y:0},
+          thickness:0,color:PDFLib.rgb(1,1,1),opacity:0});
+      }
       const sheetBox=getBox(sourcePages[0]);
       const sheetWidth=n===2?sheetBox.height:sheetBox.width;
       const sheetHeight=n===2?sheetBox.width:sheetBox.height;
