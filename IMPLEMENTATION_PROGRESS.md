@@ -67,3 +67,14 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Added `tests/rich-native.test.cjs`, `tests/batch-text.test.cjs`, expanded `tests/native-text.test.cjs` for true WASM mixed-font and digital signatures; expanded GitHub Actions smoke suite to include all three and `tests/text-layout.test.cjs`.
 - Verified GitHub CI **84/84 passing** in workflow after changes; follow final commit check for Pages. Details in [CIT-TEXT-EDITING-UPDATE.md](CIT-TEXT-EDITING-UPDATE.md).
 - Important scope: edits multiple original one-line boxes in one transaction, **not** full multiline paragraph reflow. Font Type3 converted to vector outlines, arbitrary WYSIWYG restyling of multiple runs, and full PDF/A/PDF/UA compatibility are not claimed.
+
+## 2026-10-15 — Separate CIT Native Text workspace
+
+- Created independent, static GitHub Pages route [text-editor.html](text-editor.html) with [text-editor-shell.js](text-editor-shell.js) and [text-editor.css](text-editor.css); added main-site tool card **Chỉnh sửa Text chuyên sâu** plus header shortcut.
+- Based layout on user-provided CIT-PDF desktop screenshot: top file/export/undo controls, central PDF document, bottom page/zoom navigation, persistent right-hand font/color/size/style/align inspector.
+- Native algorithm is **not duplicated**: reuses upstream-derived PdfEngine/PDFium worker already integrated through NativeTextClient, PDFTextLayout checks, original Organizer persistence/history and batch editor.
+- Fixed focus handoff from inline native editor to new right-hand dock so clicking font, color or size no longer auto-commits via blur before user presses Apply.
+- Explicitly disabled unsafe/cosmetic controls: no fake paragraph spacing, no automatic rich paragraph reflow; Type3 and fragile text remain guarded.
+- Added [tests/text-editor-route.test.cjs](tests/text-editor-route.test.cjs) to Node CI and [tests/text-editor-live.cjs](tests/text-editor-live.cjs) in Chromium CI for real PDF replacement/export validation.
+- User operation now starts directly from separate module, without page organization. Legacy organizer retained for backward compatibility.
+- Ref specification, licensing and QA boundary: [CIT-TEXT-WORKSPACE.md](CIT-TEXT-WORKSPACE.md). Check live-browser workflow status before marking deployment fully accepted.
