@@ -47,3 +47,14 @@ WASM SHA-256:
 HDV is not an official CIT-PDF or BentoPDF distribution. No commercial license
 or permission to distribute this combined application as proprietary software
 is supplied. See `CIT-INTEGRATION.md` for implemented features and limitations.
+
+## Additional CIT-inspired browser operations (2026-10-15)
+
+The browser-side algorithms in `cit-advanced-core.js` and their HVD UI adapter
+`cit-advanced-ui.js` are adaptations informed by CIT-PDF 1.0.0 modules:
+`src/js/logic/reverse-pages-page.ts`, `n-up-pdf-page.ts`,
+`crop-pdf-page.ts`, `alternate-merge-page.ts`, `edit-metadata-page.ts`,
+`remove-metadata-page.ts`, `remove-annotations-page.ts`,
+`bates-numbering-page.ts`, and `src/js/utils/pdf-operations.ts`.
+The code is integrated under the existing project's AGPL-3.0 license.
+Full feature matrix and limitations: `CIT-ADVANCED-INTEGRATION.md`.
