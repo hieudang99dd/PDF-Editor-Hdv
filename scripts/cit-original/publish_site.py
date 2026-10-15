@@ -19,7 +19,7 @@ upstream_dist = pathlib.Path(sys.argv[1]).resolve()
 dest = pathlib.Path(sys.argv[2]).resolve()
 excluded = {
     ".git", ".github", "node_modules", "cit-upstream", "cit-stage",
-    "tests", "test-results", "scripts", "backend", "__pycache__", ".venv"
+    "tests", "test-results", "scripts", "backend", "__pycache__", ".venv", "cit-native"
 }
 if not (upstream_dist / "edit-pdf-text.html").is_file():
     raise SystemExit("No original CIT Vite editor to publish")
@@ -36,14 +36,42 @@ for item in root.iterdir():
     elif item.is_file() and item.suffix not in {".zip", ".pyc"}:
         shutil.copy2(item, dest / item.name)
 
-# Keep a separate path for the previously implemented HVD PDFium editor.
+# Preserve the real HVD editor as fallback; never overwrite it with the
+# primary CIT redirect on subsequent builds. This was possible once master
+# itself contained the redirected text-editor.html from an earlier release.
 legacy_editor = dest / "text-editor.html"
+fallback_editor = dest / "text-editor-hdv.html"
 if legacy_editor.exists():
-    legacy_editor.rename(dest / "text-editor-hdv.html")
+    current_html = legacy_editor.read_text(encoding="utf-8")
+    if "cit-native/edit-pdf-text.html" in current_html:
+        legacy_editor.unlink()
+        if not fallback_editor.is_file() or "cit-native/edit-pdf-text.html" in fallback_editor.read_text(encoding="utf-8"):
+            raise SystemExit("Missing real HVD native text fallback; refusing to publish")
+    elif fallback_editor.is_file():
+        legacy_editor.unlink()
+    else:
+        legacy_editor.rename(fallback_editor)
+if not fallback_editor.is_file():
+    raise SystemExit("HVD fallback editor is unavailable")
 
-# Do not modify the original CIT html/css/js/wasm. Keeping bytewise identical
-# build products makes source equivalence and regression audit possible.
-shutil.copytree(upstream_dist, dest / "cit-native", dirs_exist_ok=True)
+# Keep Vite-generated CIT JS/CSS/WASM untouched. Only add two external HVD
+# navigation/branding assets to the generated HTML (not the CIT algorithms).
+# The original Vite output is still built from a pinned upstream commit.
+cit_dir = dest / "cit-native"
+shutil.copytree(upstream_dist, cit_dir)
+for name in ("hvd-hub.js", "hvd-hub.css"):
+    shutil.copy2(root / "scripts" / "cit-original" / name, cit_dir / name)
+cit_html_path = cit_dir / "edit-pdf-text.html"
+cit_html = cit_html_path.read_text(encoding="utf-8")
+if 'href="hvd-hub.css"' not in cit_html:
+    if "</head>" not in cit_html:
+        raise SystemExit("CIT frontend missing </head>; refusing unsafe HTML patch")
+    cit_html = cit_html.replace("</head>", '  <link rel="stylesheet" href="hvd-hub.css">\n  </head>', 1)
+if 'src="hvd-hub.js"' not in cit_html:
+    if "</body>" not in cit_html:
+        raise SystemExit("CIT frontend missing </body>; refusing unsafe HTML patch")
+    cit_html = cit_html.replace("</body>", '  <script defer src="hvd-hub.js"></script>\n  </body>', 1)
+cit_html_path.write_text(cit_html, encoding="utf-8")
 (dest / ".nojekyll").write_text("", encoding="utf-8")
 
 target = "./cit-native/edit-pdf-text.html"
@@ -63,7 +91,8 @@ meta = {
     "upstream_repo": "https://github.com/Cuongyd196/cit-pdf",
     "upstream_tag": "1.0.0",
     "upstream_commit": "3c9c138d980a417de7439f383f37882a1d730ab6",
-    "engine": "original pinned CIT Vite+PDFium build, unmodified",
+    "engine": "original pinned CIT Vite+PDFium runtime, unmodified algorithms",
+    "hvd_bridge": "external navigation and branding CSS/JS only",
     "path": "/PDF-Editor-Hdv/cit-native/edit-pdf-text.html",
     "legacy_fallback": "/PDF-Editor-Hdv/text-editor-hdv.html",
     "license": "AGPL-3.0-only"
