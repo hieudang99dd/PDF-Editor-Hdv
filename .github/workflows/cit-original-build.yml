@@ -53,6 +53,25 @@ jobs:
         shell: bash
         run: |
           python3 scripts/cit-original/verify_build.py cit-upstream/dist
+      - name: Prepare original frontend at its GitHub Pages subpath
+        shell: bash
+        run: |
+          mkdir -p cit-stage/PDF-Editor-Hdv/cit-native
+          cp -a cit-upstream/dist/. cit-stage/PDF-Editor-Hdv/cit-native/
+      - name: Install browser acceptance tools
+        run: |
+          npm install --no-save playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Real PDF text editing in original CIT Chromium UI
+        timeout-minutes: 6
+        run: node tests/cit-original-browser.cjs
+      - name: Upload UI screenshots and edited PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cit-original-browser-evidence
+          path: test-results/cit-original/
+          if-no-files-found: ignore
       - name: Upload native frontend bundle for publication
         uses: actions/upload-artifact@v4
         with:
