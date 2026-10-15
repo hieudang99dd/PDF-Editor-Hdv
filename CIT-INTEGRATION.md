@@ -1,5 +1,9 @@
 # Đánh giá và tích hợp CIT-PDF 1.0.0 vào HDV
 
+## Nâng cấp thuật toán sửa chữ CIT (2026-10-15)
+
+Đã bổ sung sửa **nhiều dòng gốc trong một lượt** (batch/Undo atomic), tìm và xem trước thay thế, bảo toàn các style run kế bên khi sửa run riêng biệt trong paragraph rich text, kiểm tra chữ ký số trước khi rewrite và chỉ thị rõ vùng Type3 không chỉnh sửa an toàn. Chi tiết: [CIT-TEXT-EDITING-UPDATE.md](CIT-TEXT-EDITING-UPDATE.md). **Chưa có paragraph reflow tự do hoặc native edit cho mọi font Type3.**
+
 ## Cập nhật đợt 2026-10-15 — Advanced Browser Tools
 
 Đã tích hợp thêm **14 thao tác chuyên biệt** (12 nhóm thuật toán) vào giao diện chính: đảo/lọc trang, ghép xen kẽ, N-up, crop, xem/sửa/xóa metadata, xóa chú thích, Bates, chèn trang trắng, overlay, xoay góc tự do. Nguồn và giới hạn: [CIT-ADVANCED-INTEGRATION.md](CIT-ADVANCED-INTEGRATION.md). Bộ **30 bài kiểm thử Node** chạy trên GitHub Actions đã đạt, gồm PDF thật và luồng giao diện. Nhóm này chạy trong browser không cần backend; đây **không phải** bản tích hợp toàn bộ 119 công cụ của CIT.
