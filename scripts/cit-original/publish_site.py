@@ -20,7 +20,7 @@ upstream_dist = pathlib.Path(sys.argv[1]).resolve()
 dest = pathlib.Path(sys.argv[2]).resolve()
 excluded = {
     ".git", ".github", "node_modules", "cit-upstream", "cit-stage",
-    "tests", "test-results", "scripts", "backend", "__pycache__", ".venv", "cit-native"
+    "tests", "test-results", "scripts", "backend", "__pycache__", ".venv", "studio", "cit-native"
 }
 if not (upstream_dist / "edit-pdf-text.html").is_file():
     raise SystemExit("No original CIT Vite editor to publish")
@@ -44,9 +44,9 @@ legacy_editor = dest / "text-editor.html"
 fallback_editor = dest / "text-editor-hdv.html"
 if legacy_editor.exists():
     current_html = legacy_editor.read_text(encoding="utf-8")
-    if "cit-native/edit-pdf-text.html" in current_html:
+    if "studio/edit-pdf-text.html" in current_html or "cit-native/edit-pdf-text.html" in current_html:
         legacy_editor.unlink()
-        if not fallback_editor.is_file() or "cit-native/edit-pdf-text.html" in fallback_editor.read_text(encoding="utf-8"):
+        if not fallback_editor.is_file() or any(p in fallback_editor.read_text(encoding="utf-8") for p in ("studio/edit-pdf-text.html", "cit-native/edit-pdf-text.html")):
             raise SystemExit("Missing real HVD native text fallback; refusing to publish")
     elif fallback_editor.is_file():
         legacy_editor.unlink()
@@ -58,14 +58,14 @@ if not fallback_editor.is_file():
 # Keep Vite-generated CIT JS/CSS/WASM untouched. Only add two external HVD
 # navigation/branding assets to the generated HTML (not the CIT algorithms).
 # The original Vite output is still built from a pinned upstream commit.
-cit_dir = dest / "cit-native"
+cit_dir = dest / "studio"
 shutil.copytree(upstream_dist, cit_dir)
 for name in ("hvd-hub.js", "hvd-hub.css", "hvd-mark.svg"):
     shutil.copy2(root / "scripts" / "cit-original" / name, cit_dir / name)
 brand_frontend(cit_dir)
 (dest / ".nojekyll").write_text("", encoding="utf-8")
 
-target = "./cit-native/edit-pdf-text.html"
+target = "./studio/edit-pdf-text.html"
 redirect = f"""<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport"
 content="width=device-width,initial-scale=1">
@@ -84,12 +84,12 @@ meta = {
     "upstream_commit": "3c9c138d980a417de7439f383f37882a1d730ab6",
     "engine": "original pinned CIT Vite+PDFium runtime, unmodified algorithms",
     "hvd_bridge": "PDF HVD branding, SEO and navigation; copyright retained in NOTICE.md",
-    "path": "/PDF-Editor-Hdv/cit-native/edit-pdf-text.html",
+    "path": "/PDF-Editor-Hdv/studio/edit-pdf-text.html",
     "legacy_fallback": "/PDF-Editor-Hdv/text-editor-hdv.html",
     "license": "AGPL-3.0-only"
 }
-(dest / "cit-native" / "hvd-vendor-lock.json").write_text(
+(dest / "studio" / "hvd-vendor-lock.json").write_text(
     json.dumps(meta, ensure_ascii=False, indent=2), encoding="utf-8")
 print("HVD + original CIT stage:", dest)
-print("CIT editor:", dest / "cit-native" / "edit-pdf-text.html")
+print("CIT editor:", dest / "studio" / "edit-pdf-text.html")
 print("Legacy editor:", dest / "text-editor-hdv.html")
