@@ -13,8 +13,8 @@
     "bentopdf-viewer"
   ],
   "license": "AGPL-3.0-only",
-  "site_base": "/PDF-Editor-Hdv/cit-native/",
-  "native_text_entry": "cit-native/edit-pdf-text.html",
+  "site_base": "/PDF-Editor-Hdv/studio/",
+  "native_text_entry": "studio/edit-pdf-text.html",
   "public_alias": "text-editor.html",
   "fallback_old_editor": "text-editor-hdv.html",
   "build_workflow": ".github/workflows/cit-original-build.yml",
