@@ -174,3 +174,8 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Gộp các thao tác trang, ghép, đánh số/Bates/watermark, chuyển đổi Office, xuất ảnh, N-up/Overlay, metadata thành nhóm có submenu; lựa chọn vẫn gọi đúng `openTool(i)` cũ.
 - Ẩn tính năng chưa có engine bằng allowlist; không xóa mã nguồn/thuật toán, không sửa `T`, `organizer.js`, PDFium/CIT hay Local Engine. OCR/Office/TIFF tiếp tục gắn nhãn cần PC; không hứa chạy toàn bộ trên Pages.
 - Thay `hvd-ui-v2.js`, CSS, cache phiên bản của `index.html`, cập nhật kiểm thử `tests/home-layout.test.cjs` và ghi tiến độ; chờ CI và Pages xác thực.
+
+### CI sửa Text native sau khi tinh gọn danh mục
+
+- Test Chromium cũ kiểm tra `#shortcut-text` vốn đã bị bỏ khỏi header theo quyết định UI trước đó, gây báo lỗi giả ở bước quay về trang HVD.
+- Sửa `tests/cit-original-browser.cjs` để xác minh trang đích bằng `#logo` có chữ PDF HVD và tồn tại `#tools` thay vì nút header đã bị xóa. Không thay đổi thao tác PDFium, file kết quả hoặc kiểm tra nội dung PDF.

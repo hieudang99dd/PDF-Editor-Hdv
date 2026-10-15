@@ -133,8 +133,10 @@ async function main(){
     await nav.locator('#back-to-tools').waitFor();
     await nav.locator('#back-to-tools').click();
     await nav.waitForURL(/\/PDF-Editor-Hdv\/index\.html$/,{timeout:20000});
-    assert.equal(await nav.locator('#shortcut-text').count(),1,
-      'Return destination must be PDF HVD, not the upstream CIT hub');
+    assert.equal((await nav.locator('#logo').textContent()).trim(),'PDF HVD',
+      'Return destination must have the PDF HVD brand, not the upstream CIT hub');
+    assert.equal(await nav.locator('#tools').count(),1,
+      'Return destination must show the HVD tool catalog');
   }finally{await nav.close();}
   console.log('PASS: original CIT frontend, exact inspector, original WASM PDF text rewrite, native export');
  }finally{
