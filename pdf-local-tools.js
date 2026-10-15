@@ -15,6 +15,9 @@
   ]);
   T.push(['PDF sang TXT', 'Trích xuất chữ thành văn bản UTF-8', 'Chuyển đổi', 'TXT', 'local', '.pdf']);
   T.push(['PDF sang TIFF', 'Xuất TIFF nhiều trang, 150 DPI', 'Chuyển đổi', 'TIF', 'local', '.pdf']);
+  OPT.compress = `<label>Tối ưu an toàn cho bản vẽ kỹ thuật</label>
+    <div class="r"><label><input type="radio" name="lv" value="basic" checked> Nén cấu trúc, giữ nguyên hình học vector và chất lượng ảnh</label></div>
+    <small>Chế độ nén JPEG giảm chất lượng chưa được triển khai.</small>`;
   OPT.fmt = `<label>Định dạng đầu ra<select id="fmt-sel">
     <option value="docx">Word (.docx) – văn bản có thể sửa, không bảo đảm bố cục</option>
     <option value="txt">Văn bản (.txt)</option>
