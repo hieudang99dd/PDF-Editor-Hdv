@@ -104,3 +104,30 @@ test('CIT blocks signature ByteRange found at end of PDF',async()=>{
  marked.set(Buffer.from('\n/ByteRange [0 1 2 3]\n'),source.bytes.length);
  await assert.rejects(run('reverse',{name:'signed.pdf',bytes:marked}),/ký số/);
 });
+
+test('CIT inserts blank page at a specified index',async()=>{
+ const output=await read(await run('insert-blank',await fixture([200,220]),{position:1}));
+ assert.equal(output.getPageCount(),3);
+ assert.deepEqual(widths(output),[200,220,220]);
+});
+test('CIT supports 45 degree vector rotation with correct page box',async()=>{
+ const result=await read(await run('rotate-custom',await fixture([200]),{angle:45}));
+ assert.equal(result.getPageCount(),1);
+ const b=result.getPage(0).getSize();
+ assert.ok(b.width>200 && b.height>300);
+});
+test('CIT supports 90 degree rotation via page Rotate attribute',async()=>{
+ const result=await read(await run('rotate-custom',await fixture([200]),{angle:90}));
+ assert.equal(result.getPage(0).getRotation().angle,90);
+ assert.equal(result.getPage(0).getSize().width,200);
+});
+test('CIT overlays a second PDF while retaining base page count',async()=>{
+ const base=await fixture([200,220]);
+ const overlay=await fixture([210,240,270]);
+ const result=await read(await run('overlay',[base,overlay],{opacity:0.5}));
+ assert.equal(result.getPageCount(),2);
+ assert.deepEqual(widths(result),[200,220]);
+});
+test('CIT overlay refuses a single source file',async()=>{
+ await assert.rejects(run('overlay',await fixture()),/hai tệp/);
+});
