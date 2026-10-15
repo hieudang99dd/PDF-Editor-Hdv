@@ -131,3 +131,12 @@ test('CIT overlays a second PDF while retaining base page count',async()=>{
 test('CIT overlay refuses a single source file',async()=>{
  await assert.rejects(run('overlay',await fixture()),/hai tệp/);
 });
+
+test('CIT read-only PDF inspector is allowed even with signature markers',async()=>{
+ const source=await fixture([200]);
+ const marked=new Uint8Array(source.bytes.length+80);
+ marked.set(source.bytes);
+ marked.set(Buffer.from('\n/ByteRange [0 1 2 3]\n'),source.bytes.length);
+ const info=await run('inspect',{name:'signed.pdf',bytes:marked});
+ assert.equal(info.info.pageCount,1);
+});
