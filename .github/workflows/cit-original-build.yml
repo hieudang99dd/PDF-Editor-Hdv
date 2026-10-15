@@ -77,7 +77,16 @@ jobs:
           python3 scripts/cit-original/publish_site.py cit-upstream/dist cit-stage
           test -s cit-stage/text-editor.html
           test -s cit-stage/text-editor-hdv.html
+          grep -q 'text-editor-shell.js' cit-stage/text-editor-hdv.html
+          if grep -q 'location.replace("./cit-native/edit-pdf-text.html"' cit-stage/text-editor-hdv.html; then
+            echo 'BUG: fallback editor was replaced with the CIT redirect'
+            exit 1
+          fi
           test -s cit-stage/cit-native/edit-pdf-text.html
+          grep -q 'hvd-hub.js' cit-stage/cit-native/edit-pdf-text.html
+          grep -q 'hvd-hub.css' cit-stage/cit-native/edit-pdf-text.html
+          test -s cit-stage/cit-native/hvd-hub.js
+          test -s cit-stage/cit-native/hvd-hub.css
       - name: Install browser acceptance tools
         run: |
           npm install --no-save playwright@1.57.0
@@ -112,6 +121,8 @@ jobs:
           # unrelated commit from reverting the online frontend.
           mkdir -p cit-native
           rsync -a --delete cit-stage/cit-native/ cit-native/
+          test -s cit-stage/cit-native/hvd-hub.js
+          test -s cit-stage/text-editor-hdv.html
           if ! grep -q 'cit-native/edit-pdf-text.html' text-editor.html; then
             cp text-editor.html text-editor-hdv.html
           fi
