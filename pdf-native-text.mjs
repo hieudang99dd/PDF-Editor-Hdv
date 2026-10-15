@@ -8,27 +8,77 @@ const canonical = s => s.normalize('NFC').replace(/\s+/g, ' ').trim();
 const fail = message => { throw new Error(message); };
 
 // Do not guess by text alone: identical labels occur throughout engineering tables.
+// Match selected text in the correct native paragraph. For a rich paragraph, a
+// unique native run may correspond to one PDF.js text box. Never choose by text alone.
 export function findParagraph(engine, paragraphs, edit) {
-    const at = engine.toModel(edit.x, edit.y);
-    const matches = paragraphs.filter(p => canonical(textOf(p)) === canonical(edit.originalText) &&
-        Math.hypot(p.box.x - at.x, p.firstBaseline - at.y) < 2);
-    if(matches.length !== 1) return null;
-    const p = matches[0];
-    if(!p.editable || p.vertical || p.lines.length !== 1) return null;
-    return p;
+    const at=engine.toModel(edit.x,edit.y);
+    const found=paragraphs.filter(p=>{
+        if(!p.editable||p.vertical||p.lines?.length!==1)return false;
+        if(Math.abs(p.firstBaseline-at.y)>=2)return false;
+        const whole=canonical(textOf(p))===canonical(edit.originalText);
+        const segments=p.runs.filter(r=>canonical(r.text)===canonical(edit.originalText));
+        if(!whole&&segments.length!==1)return false;
+        if(whole)return Math.abs(p.box.x-at.x)<2;
+        // Full paragraph may begin to the left of selected styled run.
+        return at.x>=p.box.x-1.5 && at.x<=p.box.x+(p.box.w||0)+1.5;
+    });
+    return found.length===1?found[0]:null;
 }
-
-export function replacementRuns(paragraph, edit) {
-    const old = paragraph.runs;
-    // Each HDV region has one style. Refuse to flatten a rich paragraph by accident.
-    const base = old[0];
-    const keys = ['family','bold','italic','size','rgba','underline','strike','script','renderMode','strokeRgba','strokeWidth','hScale','rise'];
-    if(old.some(r => keys.some(k => r[k] !== base[k])))
-        fail('Vùng này có nhiều định dạng nội bộ. Hãy chọn cụm chữ nhỏ hơn; chưa áp dụng thay đổi.');
-    const color = parseInt(edit.color.slice(1), 16);
-    return [{...base, sourceIndex:0, text:edit.newText, size:edit.nativeSize,
-        family:edit.nativeFamily || base.family, bold:edit.bold, italic:edit.italic,
-        underline:edit.underline, rgba:((color << 8) | 255) >>> 0}];
+const richKeys=['family','bold','italic','size','rgba','underline','strike','script',
+    'renderMode','strokeRgba','strokeWidth','hScale','rise'];
+const sameStyle=(a,b)=>richKeys.every(k=>a[k]===b[k]);
+const rgbValue=hex=>Number.parseInt(hex?.replace('#',''),16);
+function richMutation(old,edit) {
+    if(edit.fontFamily!=='original'||edit.nativeFamily)
+        fail('Đoạn nhiều định dạng: chỉ hỗ trợ sửa nội dung với font gốc, không thay font cả đoạn.');
+    const target=old.map((r,i)=>canonical(r.text)===canonical(edit.originalText)?i:-1)
+        .filter(i=>i!==-1);
+    if(target.length===1)return {index:target[0],text:edit.newText};
+    if(target.length>1)fail('Nội dung lặp lại trong đoạn nhiều định dạng. Hãy chọn cụm chữ duy nhất.');
+    if(canonical(old.map(r=>r.text).join(''))!==canonical(edit.originalText))
+        fail('Chưa xác định chính xác vị trí chữ trong đoạn nhiều định dạng.');
+    const oldCP=[...old.map(r=>r.text).join('')], newCP=[...edit.newText];
+    let prefix=0;
+    while(prefix<oldCP.length&&prefix<newCP.length&&oldCP[prefix]===newCP[prefix])prefix++;
+    let suffix=0;
+    while(suffix<oldCP.length-prefix&&suffix<newCP.length-prefix &&
+        oldCP[oldCP.length-1-suffix]===newCP[newCP.length-1-suffix])suffix++;
+    let pos=0;
+    const changes=[];
+    for(let i=0;i<old.length;i++){
+        const a=pos,b=pos+[...old[i].text].length;pos=b;
+        if(prefix>=a&&prefix<=b&&oldCP.length-suffix>=a&&oldCP.length-suffix<=b)
+            changes.push({index:i,from:prefix-a,to:oldCP.length-suffix-a});
+    }
+    if(changes.length!==1)
+        fail('Nội dung thay thế đi qua ranh giới font hoặc kiểu chữ. Hãy sửa riêng từng phần.');
+    const c=changes[0],prev=[...old[c.index].text];
+    return {index:c.index,text:prev.slice(0,c.from).join('')+
+        newCP.slice(prefix,newCP.length-suffix).join('')+prev.slice(c.to).join('')};
+}
+export function replacementRuns(paragraph,edit) {
+    const old=paragraph.runs;
+    if(!old?.length)fail('Không đọc được các run văn bản của PDF.');
+    const base=old[0];
+    const mixed=old.some(r=>!sameStyle(r,base));
+    if(!mixed){
+        const color=rgbValue(edit.color);
+        if(!Number.isFinite(color))fail('Màu chữ không hợp lệ.');
+        return [{...base,sourceIndex:0,text:edit.newText,size:edit.nativeSize,
+            family:edit.nativeFamily||base.family,bold:edit.bold,italic:edit.italic,
+            underline:edit.underline,rgba:((color<<8)|255)>>>0}];
+    }
+    const change=richMutation(old,edit);
+    const selected=old[change.index];
+    const selectedColor=(selected.rgba>>>8)&0xffffff;
+    // A rich edit only changes its selected run's literal characters. All styles,
+    // geometry, stroke/render modes, script offsets and other runs remain intact.
+    if(!!edit.bold!==!!selected.bold||!!edit.italic!==!!selected.italic||
+       !!edit.underline!==!!selected.underline||
+       Math.abs(edit.nativeSize-selected.size)>0.08||
+       rgbValue(edit.color)!==selectedColor)
+       fail('Đoạn nhiều định dạng: chỉ được đổi chữ; màu, font và cỡ chữ phải giữ nguyên.');
+    return old.map((r,i)=>({...r,sourceIndex:i,text:i===change.index?change.text:r.text}));
 }
 
 export function validatePreview(paragraph, preview, edit, engine) {
@@ -103,6 +153,12 @@ export class NativeTextEditor {
                         continue;
                     }
                     let runs=replacementRuns(paragraph,edit);
+                    const isRich=paragraph.runs.length>1 &&
+                        paragraph.runs.some(r=>!sameStyle(r,paragraph.runs[0]));
+                    // For rich text, selected PDF.js text box may cover just one styled
+                    // run. Validate the whole paragraph against its original bounds.
+                    const safeEdit=isRich?{...edit,maxWidth:Math.max(edit.maxWidth,
+                        paragraph.box.w||0)}:edit;
                     if(edit.nativeFamily) {
                         const key=edit.nativeFamily+'|'+(edit.bold?'1':'0')+(edit.italic?'1':'0');
                         if(!sfntCovers(PdfEngine.localFonts.get(key) || new Uint8Array(),[...edit.newText].map(c=>c.codePointAt(0))))
@@ -112,19 +168,20 @@ export class NativeTextEditor {
                     let preview=engine.previewParagraph(paragraph.id,runs,fmt);
                     // Native shaping can differ slightly from fontkit. Shrink only on explicit opt-in.
                     const nativeWidth=preview?.lines?.[0]?.cx?.at(-1) ?? preview?.width;
-                    if(edit.overflow==='shrink' && nativeWidth>edit.maxWidth-0.8) {
+                    if(!isRich && edit.overflow==='shrink' && nativeWidth>edit.maxWidth-0.8) {
                         runs=runs.map(r=>({...r,size:r.size*(edit.maxWidth-0.8)/nativeWidth}));
                         if(runs[0].size<Math.max(1,edit.size*0.6)) fail('Nội dung quá dài, cần thu nhỏ dưới 60% cỡ chữ.');
                         preview=engine.previewParagraph(paragraph.id,runs,fmt);
                     }
-                    validatePreview(paragraph,preview,edit,engine);
+                    validatePreview(paragraph,preview,safeEdit,engine);
                     const result=engine.editStep('HDV edit original text',()=>{
                         const result=engine.commitParagraph(paragraph.id,runs,fmt);
                         if(!result) return null;
                         const width=result.lines?.[0]?.w ?? result.box.w;
                         const offset=edit.align==='center' ? (edit.maxWidth-width)/2 : edit.align==='right' ? edit.maxWidth-width : 0;
                         const angle=edit.angle*Math.PI/180;
-                        const at=engine.toModel(edit.x+Math.cos(angle)*offset,edit.y+Math.sin(angle)*offset);
+                        const at=isRich?{x:paragraph.box.x,y:paragraph.firstBaseline}:
+                            engine.toModel(edit.x+Math.cos(angle)*offset,edit.y+Math.sin(angle)*offset);
                         const dx=at.x-result.box.x,dy=at.y-result.firstBaseline;
                         if(Math.abs(dx)>0.01 || Math.abs(dy)>0.01) {
                             if(!engine.moveParagraph(result.id,dx,dy)) fail('Không giữ được vị trí dòng gốc.');
@@ -135,7 +192,7 @@ export class NativeTextEditor {
                     if(!result || result.ok===false) fail('Không ghi được thay đổi chữ gốc vào PDF.');
                     if(Math.abs(result.firstBaseline-paragraph.firstBaseline)>0.2)
                         fail('Engine không giữ được đường chân chữ gốc; chưa áp dụng thay đổi.');
-                    validatePreview(paragraph,result,edit,engine);
+                    validatePreview(paragraph,result,safeEdit,engine);
                     operations.push({pageIndex:page.pageIndex,id:edit.id,method:engine.lastSplicePlan()?.kind || 'native'});
                 }
                 engine.M._FPDFPage_SetRotation(engine.page,rotation);
