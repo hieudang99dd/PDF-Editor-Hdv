@@ -31,3 +31,13 @@ Nguồn: Cuongyd196/cit-pdf, tag 1.0.0, commit 3c9c138d980a417de7439f383f37882a1
 ### Ranh giới kỹ thuật
 
 GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy native nên phải có backend localhost (hoặc máy chủ riêng). Nếu triển khai cloud, cần thiết kế xác thực, cách ly, hàng đợi, giới hạn CPU/tệp và chính sách dữ liệu. Không tự kích hoạt tải lên cloud.
+
+## 2026-10-15: GitHub Pages online stability patch
+
+- Verified that GitHub Pages deployment workflows completed successfully; this is distinct from browser-level feature testing.
+- Reworked pdf-local-tools.js: browser-only lossless-structure PDF optimization and PDF→TXT text-layer extraction do **not** make calls to localhost:8000.
+- Added truthful UI labels: PC-only OCR/Office/TIFF and hybrid Web/PC conversion, rather than promising all operations run on GitHub Pages.
+- Updated index.html asset URL to version the local bridge and invalidate stale browser caches.
+- Added tests/pages-smoke.test.cjs and GitHub Action pages-smoke.yml on each push for static scripts and browser-only flows.
+- Browser PDF optimization may rewrite PDF internals and invalidate digital signatures; signed/archival PDFs should be retained and tested separately. PDF→TXT cannot OCR scanned images.
+- Remaining verification: real Chrome on Windows; external website fetching from this environment is restricted, so deployment success must not be confused with pixel-perfect live-browser confirmation.
