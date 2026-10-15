@@ -58,3 +58,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 
 - Bỏ chế độ giả lập "PDF sang QR" từng tạo đường dẫn không có thật `pdfhub.local`; đánh nhãn chưa hỗ trợ khi chưa có máy chủ chia sẻ thật.
 - Trình duyệt không tải tài liệu lên server chỉ bằng thao tác tạo mã QR; không sử dụng QR để hàm ý chia sẻ thực.
+
+## 2026-10-15 — Native CIT Text: multi-line batch & rich-run protection
+
+- Integrated new `pdf-batch-text.js` into `index.html` and the existing `PDFOrganizer`. Provides editing across many **existing** text lines in one atomic batch, with preview find/replace, per-line selection and a single Undo step.
+- Adapted `pdf-native-text.mjs` to preserve sibling style runs when a uniquely identified run within a mixed-font paragraph is replaced; retained strict native baseline and table boundaries. Rejected text mutations spanning style boundaries.
+- Implemented signed-PDF preflight guard (ByteRange) in native rewrite; Type3/fragile text remains protected and uneditable if source cannot be safely identified.
+- Added `tests/rich-native.test.cjs`, `tests/batch-text.test.cjs`, expanded `tests/native-text.test.cjs` for true WASM mixed-font and digital signatures; expanded GitHub Actions smoke suite to include all three and `tests/text-layout.test.cjs`.
+- Verified GitHub CI **84/84 passing** in workflow after changes; follow final commit check for Pages. Details in [CIT-TEXT-EDITING-UPDATE.md](CIT-TEXT-EDITING-UPDATE.md).
+- Important scope: edits multiple original one-line boxes in one transaction, **not** full multiline paragraph reflow. Font Type3 converted to vector outlines, arbitrary WYSIWYG restyling of multiple runs, and full PDF/A/PDF/UA compatibility are not claimed.
