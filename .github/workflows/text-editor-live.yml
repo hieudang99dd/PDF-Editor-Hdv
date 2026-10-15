@@ -1,0 +1,38 @@
+name: CIT Text Editor Browser QA
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'text-editor.html'
+      - 'text-editor.css'
+      - 'text-editor-shell.js'
+      - 'organizer.js'
+      - 'pdf-batch-text.js'
+      - 'pdf-native-*.mjs'
+      - 'tests/text-editor-live.cjs'
+      - '.github/workflows/text-editor-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium browser test runtime
+        run: |
+          npm install --no-save playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Exercise real browser PDF edit and download
+        run: node tests/text-editor-live.cjs
+      - name: Upload QA screenshot and PDF artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cit-text-editor-browser
+          path: test-results/text-editor/
+          if-no-files-found: ignore
