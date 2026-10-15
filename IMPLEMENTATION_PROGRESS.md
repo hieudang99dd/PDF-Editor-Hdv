@@ -108,3 +108,17 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Workflow [38744823470](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38744823470): **success**; bước PDFium edit + PyMuPDF nội dung, Git push, upload, deploy đều thành công.
 - Commit nhúng CIT: https://github.com/hieudang99dd/PDF-Editor-Hdv/commit/bee0f8291ebd38780aafbbfacbbfefc9128d17e5
 - Cách phát triển: nguồn CIT gốc được ghim tag/commit trong `CIT-ORIGINAL-FRONTEND.lock.json`; `cit-native/` là **compiled distribution**, không phải file TypeScript source.
+
+## 2026-10-15 — Frontend CIT × PDF HVD: bản nâng cấp điều hướng, fallback, CI
+
+- **Hướng nâng cấp**: dùng frontend CIT-PDF v1.0.0 (đóng băng SHA upstream `3c9c138d980a417de7439f383f37882a1d730ab6`) với nguyên các module biên tập, WASM, font, reflow, Undo/Redo và Export; không tự tạo bản sao HTML/JS mới.
+- **HVD bridge**: tạo `scripts/cit-original/hvd-hub.js` và `hvd-hub.css`; bổ sung nút quay về HVD trong toolbar CIT và landing, bắt sự kiện `#back-to-tools` ở capture phase để không chuyển nhầm đến trang CIT.
+- **An toàn PDF**: không chỉnh các thuật toán `editcore`, `PdfEngine`, engine worker, rich paragraphs; module HVD chỉ điều hướng và nhận diện. Font/layout/Export là của upstream CIT.
+- **Đã sửa bug lớn** trong `publish_site.py`: từ lần build thứ hai, `text-editor.html` đã là redirect; trước đây có thể đổi tên redirect thành `text-editor-hdv.html` và phá fallback. Mới có fail-closed guard và kiểm chứng fallback thật.
+- **Bundle sạch**: không copy lại `cit-native/` cũ; build từ upstream sạch rồi thêm bridge. CI persist chính `cit-stage/cit-native` đã kiểm tra lên `master`.
+- **Deploy nhất quán**: loại bỏ lần xuất bản Pages từ riêng pipeline CIT để không chạy đua với `pages build and deployment` mặc định từ master. Chỉ commit code đã kiểm thử, để nguồn master xuất bản tự động.
+- **Bộ test**: `tests/hvd-cit-hub.test.cjs` (unit navigation/capture, không can thiệp PDF engine) và `tests/cit-original-browser.cjs` (Chromium native CIT real PDF, panel font, HVD route, export); PyMuPDF độc lập tiếp tục xác minh text gốc bị thay và dòng bên cạnh còn nguyên.
+- **Xác nhận QA**: workflow CIT [38754383598](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38754383598) **success** (bao gồm real Chromium và PyMuPDF); smoke test HVD [38754383650](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38754383650) **success**.
+- **Bot build đã đồng bộ GitHub**: commit `8af167eea08572d326e508ebd1c02a5a42227bfb` chứa `cit-native/hvd-hub.js`, `hvd-hub.css`, HTML CIT tích hợp mới, route chính và fallback.
+- **GitHub Pages**: theo dõi workflow `38754751823` cho bản bot build. Nếu workflow chưa báo xanh thì chưa khẳng định CDN trực tiếp đã cập nhật mới.
+- **Giới hạn**: chưa QA từng loại file CAD thực có font Type3, table hỗn hợp, PDF ký số; nguồn frontend gốc CIT được kế thừa chứ không mặc nhiên là engine sửa được mọi PDF.
