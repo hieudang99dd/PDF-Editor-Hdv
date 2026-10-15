@@ -28,12 +28,12 @@
     if(!original||document.getElementById('po-tb-batch-text'))return;
     const button=el('button','po-tool-btn','☷ Sửa nhiều dòng');
     button.id='po-tb-batch-text';
-    button.title='Sửa nhiều dòng PDF gốc bằng CIT PDFium; mọi dòng được kiểm tra trước khi ghi';
+    button.title='Sửa nhiều dòng PDF gốc; mọi dòng được kiểm tra trước khi ghi';
     original.after(button);
     const modal=el('div','po-modal-overlay');modal.id='po-batch-modal';
     modal.style.display='none';modal.style.zIndex='10050';
     modal.innerHTML='<div class="po-modal" role="dialog" aria-modal="true" style="width:min(94vw,960px);max-width:960px;max-height:92vh;display:flex;flex-direction:column;">'+
-      '<h3 class="po-modal-title">Chỉnh sửa nhiều dòng — CIT Native PDF Text</h3>'+
+      '<h3 class="po-modal-title">Chỉnh sửa nhiều dòng — PDF HVD</h3>'+
       '<p style="font-size:12px;margin:5px 0;color:var(--po-text-muted)">Sửa các vùng chữ gốc của cùng một trang trong một giao dịch. Giữ tọa độ, font và đường bảng; không tự dàn lại đoạn, không sửa Type3 chưa an toàn.</p>'+
       '<div style="display:flex;flex-wrap:wrap;gap:8px;margin:10px 0">'+
       '<input id="po-batch-find" type="text" placeholder="Tìm nội dung" style="flex:1;min-width:120px;padding:8px">'+
