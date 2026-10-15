@@ -18,4 +18,4 @@ jobs:
         with:
           node-version: "22"
       - name: Check static HTML and browser PDF fallback
-        run: node --test tests/pages-smoke.test.cjs
+        run: node --test tests/pages-smoke.test.cjs tests/cit-advanced.test.cjs
