@@ -57,6 +57,7 @@ test('legal information opens on user click and closes on close button',()=>{
     console
   };
   listeners.handlers={};
+  listeners.focus=()=>{};
   listeners.addEventListener=(name,fn)=>{listeners.handlers[name]??=[];listeners.handlers[name].push(fn)};
   vm.createContext(x);
   new vm.Script(script,{filename:'hvd-legal.js'}).runInContext(x);
