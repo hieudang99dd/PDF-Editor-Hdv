@@ -71,7 +71,7 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
   </section>
   <div class="wrap"><div class="chips" id="chips"></div><div id="tools"></div></div>
 
-  <footer>Toàn bộ quá trình xử lý PDF diễn ra ngay trên trình duyệt của bạn. Các tính năng gắn nhãn "Sắp ra mắt" đang được phát triển. <a href="https://github.com/hieudang99dd/PDF-Editor-Hdv" target="_blank" rel="noopener">Mã nguồn</a> · <a href="LICENSE">AGPL-3.0</a> · <a href="NOTICE.md">Ghi nhận tác giả</a></footer>
+  <footer>Công cụ cơ bản chạy ngay trong trình duyệt; chuyển đổi Office, OCR và nén nâng cao sử dụng engine cục bộ khi bạn bật localhost. Các tính năng gắn nhãn "Sắp ra mắt" đang được phát triển. <a href="https://github.com/hieudang99dd/PDF-Editor-Hdv" target="_blank" rel="noopener">Mã nguồn</a> · <a href="LICENSE">AGPL-3.0</a> · <a href="NOTICE.md">Ghi nhận tác giả</a></footer>
 </main>
 
 <main id="ws">
@@ -132,7 +132,7 @@ function home(){const q=$('#q').value.trim().toLowerCase();
  let h='';for(const c of Object.keys(C)){if(cat!='Tất cả'&&cat!=c)continue;
   const l=T.map((t,i)=>[t,i]).filter(([t])=>t[2]==c&&(t[0]+t[1]).toLowerCase().includes(q));if(!l.length)continue;
   h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
-   const isSim = !['merge', 'range', 'rot', 'organize', 'qr', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]);
+   const isSim = !(['merge', 'range', 'rot', 'organize', 'qr', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]) || ['Giảm dung lượng PDF','Chuyển đổi PDF','PDF OCR','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
    const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` : '';
    return `<button class="tool" data-i="${i}"><div class="ic" style="background:${C[c]}">${t[3]}</div><div style="flex:1"><b>${t[0]}</b><span>${t[1]}</span></div>${badge}</button>`;
   }).join('')+`</div>`}
@@ -648,6 +648,7 @@ if(window.pdfjsLib){
 }
 </script>
 <script src="Sortable.min.js"></script>
+<script src="pdf-local-tools.js"></script>
 <script>if(!window.Sortable){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"><\/script>');}</script>
 <script src="jszip.min.js"></script>
 <script>if(!window.JSZip){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"><\/script>');}</script>
