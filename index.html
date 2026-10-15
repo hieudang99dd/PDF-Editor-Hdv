@@ -134,8 +134,10 @@ function home(){const q=$('#q').value.trim().toLowerCase();
   h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
    const isSim = !(['merge', 'range', 'rot', 'organize', 'qr', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]) || ['Giảm dung lượng PDF','Chuyển đổi PDF','PDF OCR','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
    const needsPC = ['PDF OCR','PDF sang Word','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]);
+   const hybrid = t[0] === 'Chuyển đổi PDF';
    const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` :
-    needsPC ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Cần engine PC</span>` : '';
+    needsPC ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Cần engine PC</span>` :
+    hybrid ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Web / PC</span>` : '';
    return `<button class="tool" data-i="${i}"><div class="ic" style="background:${C[c]}">${t[3]}</div><div style="flex:1"><b>${t[0]}</b><span>${t[1]}</span></div>${badge}</button>`;
   }).join('')+`</div>`}
  $('#tools').innerHTML=h||'<p style="color:var(--mute)">Không tìm thấy công cụ phù hợp. Thử từ khóa khác.</p>'}
