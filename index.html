@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Bộ công cụ PDF trực tuyến</title>
+<title>PDF HVD – Bộ công cụ PDF và chỉnh sửa Text CIT</title>
 <style>
 :root{--bg:#f6f7fb;--card:#fff;--ink:#1a1f36;--mute:#667085;--line:#e1e5ee;--acc:#e8453c;--accs:#fdeceb;--navy:#1a1f36;--ok:#1f9d55;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1220;--card:#181c2f;--ink:#eceef8;--mute:#9aa1bd;--line:#2a3050;--acc:#ff6a61;--accs:#3a1f27;--navy:#090b16}}
@@ -57,7 +57,7 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
 </head>
 <body>
 <header>
-  <button class="logo" id="logo">PDF Hub</button>
+  <button class="logo" id="logo">PDF HVD</button>
   <nav id="nav"></nav>
   <button class="btn" id="shortcut-text" style="background:#0f9d8a;color:#fff" onclick="location.href='./text-editor.html'">T Chỉnh Text</button>
   <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
@@ -105,7 +105,7 @@ const T=[
 ['Xóa trang PDF','Bỏ các trang không cần','Sắp xếp','🗑','range','.pdf'],
 ['Trích xuất trang','Lấy riêng một số trang','Sắp xếp','⇥','range','.pdf'],
 ['Sắp xếp PDF','Kéo thả để đổi thứ tự trang','Sắp xếp','☰','organize','.pdf'],
-['Chỉnh sửa Text chuyên sâu','Sửa trực tiếp chữ PDF gốc bằng CIT PDFium, panel định dạng riêng như CIT','Chỉnh sửa','T','cit-text-route','.pdf'],
+['Chỉnh sửa Text chuyên sâu','Frontend gốc CIT v1.0.0: sửa Text thực, font, dàn đoạn, Undo/Redo và xuất PDF','Chỉnh sửa','T','cit-text-route','.pdf'],
 ['Chỉnh sửa PDF','Thêm chữ, ảnh, chữ ký, che trắng, highlight, vẽ tay','Chỉnh sửa','✎','organize','.pdf'],
 ['Trình chú thích PDF','Tô sáng, che trắng, vẽ tay, ghi chú','Chỉnh sửa','▬','organize','.pdf'],
 ['Trình đọc PDF','Xem và duyệt nhanh tài liệu','Chỉnh sửa','👁','organize','.pdf'],
