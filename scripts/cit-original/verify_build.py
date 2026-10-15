@@ -30,7 +30,7 @@ for node in required_nodes:
         raise SystemExit(f"FAIL: missing real CIT editor DOM element {node}")
 if "{{>" in html:
     raise SystemExit("FAIL: uncompiled Vite handlebars markup")
-base = "/PDF-Editor-Hdv/cit-native/"
+base = "/PDF-Editor-Hdv/studio/"
 if base not in html:
     raise SystemExit("FAIL: GitHub Pages subpath not embedded")
 bundles = list((dist / "assets").glob("*.js"))
