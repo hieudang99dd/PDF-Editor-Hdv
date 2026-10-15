@@ -34,6 +34,8 @@ jobs:
     steps:
       - name: Checkout HVD
         uses: actions/checkout@v4
+      - name: Validate HVD brand-only transformation and copyright preservation
+        run: python3 -m unittest discover -s tests -p 'test_brand_site.py' -v
       - name: Checkout exact CIT-PDF v1.0.0 source
         shell: bash
         run: |
@@ -87,6 +89,13 @@ jobs:
           grep -q 'hvd-hub.css' cit-stage/cit-native/edit-pdf-text.html
           test -s cit-stage/cit-native/hvd-hub.js
           test -s cit-stage/cit-native/hvd-hub.css
+          test -s cit-stage/cit-native/hvd-mark.svg
+          test -s cit-stage/cit-native/hvd-site.webmanifest
+          grep -q 'PDF HVD – Chỉnh sửa văn bản' cit-stage/cit-native/edit-pdf-text.html
+          if grep -q 'BentoPDF</title>' cit-stage/cit-native/edit-pdf-text.html; then
+            echo "Old product name remains in browser title"
+            exit 1
+          fi
       - name: Install browser acceptance tools
         run: |
           npm install --no-save playwright@1.57.0
