@@ -2206,7 +2206,7 @@ class PDFOrganizer {
                     }
                 });
                 div.addEventListener('blur',e=>{
-                    if(document.getElementById('po-format-toolbar').contains(e.relatedTarget)) return;
+                    if(document.getElementById('po-format-toolbar').contains(e.relatedTarget) || e.relatedTarget?.closest?.('.hdv-text-dock')) return;
                     if(this.activeEditDiv===div) this.commitEdit(div);
                 });
                 layer.appendChild(div);
