@@ -6,9 +6,23 @@ on:
       - ".github/workflows/cit-original-build.yml"
       - "scripts/cit-original/**"
       - "tests/cit-original-browser.cjs"
+      - 'index.html'
+      - 'text-editor.html'
+      - 'text-editor-shell.js'
+      - 'text-editor.css'
+      - 'organizer.js'
+      - 'pdf-native-*.mjs'
+      - 'pdf-text-layout.js'
+      - 'pdf-batch-text.js'
+      - 'cit-advanced-*.js'
+      - 'pdf-local-tools.js'
+      - 'vendor/**'
+      - 'fonts/**'
   workflow_dispatch:
 permissions:
   contents: read
+  pages: write
+  id-token: write
 concurrency:
   group: cit-original-build-${{ github.ref }}
   cancel-in-progress: true
@@ -88,3 +102,40 @@ jobs:
           path: cit-upstream/dist/
           retention-days: 7
           if-no-files-found: error
+      - name: Confirm Pages tree contains HVD and CIT original engine
+        shell: bash
+        run: |
+          test -s cit-stage/index.html
+          test -s cit-stage/text-editor.html
+          test -s cit-stage/text-editor-hdv.html
+          test -s cit-stage/cit-native/edit-pdf-text.html
+          test -d cit-stage/cit-native/assets
+          test -e cit-stage/.nojekyll
+          du -sh cit-stage
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+      - name: Upload the complete HVD + original CIT Pages site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: cit-stage
+      - name: Activate GitHub Actions as Pages publishing source
+        shell: bash
+        env:
+          GH_PAGES_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status="$(curl --retry 3 -sS -o /tmp/pages-settings.json -w '%{http_code}' \
+            -X PUT -H 'Accept: application/vnd.github+json' \
+            -H "Authorization: Bearer ${GH_PAGES_TOKEN}" \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" \
+            -d '{"build_type":"workflow"}')"
+          if [ "$status" != 204 ]; then
+            echo "Pages build source could not be changed (HTTP $status)"
+            cat /tmp/pages-settings.json
+            echo "If your repository disallows API changes, use Settings → Pages → Source → GitHub Actions."
+            exit 1
+          fi
+      - name: Publish original CIT frontend to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
