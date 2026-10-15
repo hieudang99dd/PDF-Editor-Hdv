@@ -11,7 +11,7 @@ import pathlib
 import re
 import sys
 
-PAGE_BASE = "/PDF-Editor-Hdv/cit-native/"
+PAGE_BASE = "/PDF-Editor-Hdv/studio/"
 SITE_ROOT = "https://hieudang99dd.github.io"
 SITE_URL = SITE_ROOT + "/PDF-Editor-Hdv/"
 APP_TITLE = "PDF HVD – Chỉnh sửa văn bản"
@@ -44,7 +44,7 @@ def rebrand_page(html: str, page_name: str) -> str:
     html = re.sub(r"(<title[^>]*>)(.*?)(</title>)", title_repl, html, count=1, flags=re.S | re.I)
     parsed = re.search(r"<title>([^<]+)</title>", html)
     actual = title or (parsed.group(1).strip() if parsed else "PDF HVD – Công cụ PDF")
-    canonical = SITE_URL + "text-editor.html" if page_name == "edit-pdf-text.html" else SITE_URL + "cit-native/" + page_name
+    canonical = SITE_URL + "text-editor.html" if page_name == "edit-pdf-text.html" else SITE_URL + "studio/" + page_name
     for key,val in {
         "title":actual, "author":"PDF HVD",
         "apple-mobile-web-app-title":"PDF HVD"
