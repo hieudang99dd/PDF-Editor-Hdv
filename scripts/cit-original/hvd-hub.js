@@ -43,7 +43,7 @@
   function brandImages() {
     for (const id of ['nav-logo', 'footer-logo']) {
       const node = document.getElementById(id);
-      if (node instanceof HTMLImageElement) {
+      if (node && typeof HTMLImageElement !== 'undefined' && node instanceof HTMLImageElement) {
         node.src = new URL('hvd-mark.svg', window.location.href).href;
         node.alt = 'PDF HVD';
       }
