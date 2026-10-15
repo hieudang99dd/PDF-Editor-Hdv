@@ -78,3 +78,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Added [tests/text-editor-route.test.cjs](tests/text-editor-route.test.cjs) to Node CI and [tests/text-editor-live.cjs](tests/text-editor-live.cjs) in Chromium CI for real PDF replacement/export validation.
 - User operation now starts directly from separate module, without page organization. Legacy organizer retained for backward compatibility.
 - Ref specification, licensing and QA boundary: [CIT-TEXT-WORKSPACE.md](CIT-TEXT-WORKSPACE.md). Check live-browser workflow status before marking deployment fully accepted.
+
+### CIT Text workspace – nghiệm thu Chromium và phát hành (2026-10-15)
+
+- ✅ **89/89 Node test** thành công, workflow [Pages smoke checks](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38715353221).
+- ✅ **Chromium E2E thành công**, workflow [CIT Text Editor Browser QA](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38715250412). Đã chạy 9 điểm kiểm tra: trang độc lập, panel bên phải, mở PDF, chọn text, chỉnh qua panel, commit PDFium, tải PDF, xác minh xóa text gốc và giữ text dòng khác.
+- ✅ Đã lưu artifact `cit-text-editor-browser` gồm PDF vào/ra và hai screenshot để QA trên GitHub Actions.
+- ✅ Đường vào riêng: `text-editor.html`; đường dẫn từ card và shortcut trong `index.html`.
+- ⚠ Chưa khẳng định parity toàn bộ frontend CIT v1.0.0: hỗ trợ văn bản an toàn giữ bố cục CAD, chưa chạy reflow tự do/Type3 nguy hiểm.
