@@ -20,6 +20,8 @@ class PDFOrganizer {
         this.dirHandle = null;
         this.isSaving = false;
         this.isChoosingDirectory = false;
+        this.textFontSources = new Map();
+        this.textAnalysisCache = new WeakMap();
         this.isTextMode = false;
         this.isEditMode = false;
         this.currentAnnTool = 'select';
@@ -57,7 +59,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=37';
+            link.href = 'organizer.css?v=38';
             document.head.appendChild(link);
         }
         
@@ -185,10 +187,9 @@ class PDFOrganizer {
                             <canvas id="po-ann-drawing-canvas" class="po-ann-drawing-canvas"></canvas>
                             <div id="po-format-toolbar" style="display:none;">
                                 <select id="po-ft-font" title="Phông chữ">
-                                    <option value="sans-serif">Mặc định</option>
-                                    <option value="Arial, sans-serif">Arial</option>
-                                    <option value="'Times New Roman', serif">Times New Roman</option>
-                                    <option value="'Courier New', monospace">Courier New</option>
+                                    <option value="original">Font gốc nếu khả dụng</option>
+                                    <option value="serif">Serif — Tinos</option>
+                                    <option value="sans-serif">Sans — Noto Sans</option>
                                 </select>
                                 <input type="number" id="po-ft-size" style="width:45px" title="Cỡ chữ" />
                                 <input type="color" id="po-ft-color" title="Màu chữ" value="#000000" />
@@ -201,7 +202,13 @@ class PDFOrganizer {
                                 <button id="po-ft-align-center" title="Căn giữa">↔️</button>
                                 <button id="po-ft-align-right" title="Căn phải">➡️</button>
                                 <div class="toolbar-sep"></div>
-                                <button class="btn-primary" id="po-ft-done" title="Lưu thay đổi">✔ Xong</button>
+                                <select id="po-ft-overflow" title="Khi chữ dài hơn vùng gốc">
+                                    <option value="reject">Giữ cỡ — báo tràn</option>
+                                    <option value="shrink">Thu nhỏ để vừa</option>
+                                </select>
+                                <button id="po-ft-cancel" title="Hủy lần sửa này (Esc)">Hủy</button>
+                                <button class="btn-primary" id="po-ft-done" title="Áp dụng thay đổi">✔ Xong</button>
+                                <div id="po-ft-status" role="status" aria-live="polite"></div>
                             </div>
                         </div>
                     </div>
@@ -305,55 +312,126 @@ class PDFOrganizer {
     }
 
     
-    commitEdit(div) {
-        if (!div || div.contentEditable === 'false') return;
-        const newText = div.innerText.replace(/\n\s*\n/g, '\n').trim();
-        const blockId = div.dataset.id;
-        
-        div.contentEditable = 'false';
+    readTextEditValues(div) {
+        return {text:div.innerText.replace(/\r\n/g, '\n'),size:Number(div.dataset.pdfSize),
+            fontFamily:div.dataset.fontFamily || 'original',color:div.dataset.color,
+            bold:div.dataset.bold==='1',italic:div.dataset.italic==='1',underline:div.dataset.underline==='1',
+            align:div.dataset.align || 'left',overflow:document.getElementById('po-ft-overflow').value};
+    }
+
+    textValuesEqual(a, b) {
+        return ['text','size','fontFamily','color','bold','italic','underline','align'].every(k=>a[k]===b[k]);
+    }
+
+    closeTextEditor(div) {
+        div.contentEditable='false';
         div.classList.remove('editing');
-        const tb = document.getElementById('po-format-toolbar');
-        if (tb) tb.style.display = 'none';
-        this.activeEditDiv = null;
-        // find block
-        const pData = this.pages.find(p => p.id === this.focusedPageId);
-        if (!pData) return;
-        
-        pData.textEdits = pData.textEdits.filter(e => e.id !== blockId);
-        // Compare with original block text? It's stored in div initially but hard to retrieve here.
-        // We just always save if it was edited.
-        pData.textEdits.push({
-            id: blockId,
-            newText,
-            pdfMinX: parseFloat(div.dataset.pdfMinX),
-            pdfMaxX: parseFloat(div.dataset.pdfMaxX),
-            pdfMinY: parseFloat(div.dataset.pdfMinY),
-            pdfMaxY: parseFloat(div.dataset.pdfMaxY),
-            x: parseFloat(div.dataset.pdfMinX),
-            y: parseFloat(div.dataset.pdfMaxY),
-            size: parseFloat(div.dataset.pdfSize) || 12,
-            width: parseFloat(div.dataset.pdfMaxX) - parseFloat(div.dataset.pdfMinX),
-            height: parseFloat(div.dataset.pdfMaxY) - parseFloat(div.dataset.pdfMinY),
-            align: div.dataset.align || 'left',
-            color: div.dataset.color || '#000000',
-            fontFamily: div.dataset.fontFamily || 'sans-serif',
-            bold: div.dataset.bold === '1',
-            italic: div.dataset.italic === '1',
-            underline: div.dataset.underline === '1'
-        });
-        div.classList.add('edited');
-        this.updateTextEditState();
-        this.pushHistory();
-        
-        // Bắt buộc re-render lại để cập nhật Canvas che đi text gốc
-        if (this.focusedPageId) {
-            this.focusPage(this.focusedPageId, true);
+        div.style.color='transparent';div.style.background='transparent';
+        if(this.activeEditDiv===div) this.activeEditDiv=null;
+        document.getElementById('po-format-toolbar').style.display='none';
+    }
+
+    cancelTextEdit(div = this.activeEditDiv) {
+        if(!div || div._committing) return;
+        div.innerText=div._startValues.text;
+        this.closeTextEditor(div);
+        // Rebuild only the overlay; the document and undo stack were never changed.
+        if(div._pageId===this.focusedPageId) this.focusPage(div._pageId,true);
+    }
+
+    commitEdit(div) {
+        if(div?._committing) return div._committing;
+        if(!div || div.contentEditable==='false') return Promise.resolve(true);
+        const task=this.applyTextEdit(div);
+        div._committing=task;
+        this.pendingTextCommit=task;
+        task.finally(()=>{div._committing=null; if(this.pendingTextCommit===task) this.pendingTextCommit=null;});
+        return task;
+    }
+
+    async finishTextEdit() {
+        if(this.activeEditDiv) return this.commitEdit(this.activeEditDiv);
+        if(this.pendingTextCommit) return this.pendingTextCommit;
+        return true;
+    }
+
+    async applyTextEdit(div) {
+        const run=div._textRun;
+        const page=this.pages.find(p=>p.id===div._pageId);
+        if(!run || !page) return false;
+        const values=this.readTextEditValues(div);
+        if(this.textValuesEqual(values,div._startValues)) {
+            this.closeTextEditor(div);
+            return true;
         }
-        if (typeof toast === 'function') {
-            toast('Đã lưu nội dung văn bản mới');
+        const original={text:run.text,size:run.size,fontFamily:'original',color:run.color,bold:run.bold,
+            italic:run.italic,underline:run.underline,align:'left',overflow:'reject'};
+        div.contentEditable='false';
+        const controls=document.getElementById('po-format-toolbar').querySelectorAll('input,select,button');
+        controls.forEach(control=>control.disabled=true);
+        try {
+            let edit=null;
+            if(!this.textValuesEqual(values,original)) {
+                edit=window.PDFTextLayout.makeEdit(run,values);
+                edit.originalBold=run.bold;edit.originalItalic=run.italic;
+                const font=await this.getTextEditFont(await this.getTextMeasureDoc(),edit);
+                window.PDFTextLayout.layout(edit,font.pdfFont); // Reject overflow before changing the document.
+            }
+            page.textEdits=(page.textEdits || []).filter(e=>e.id!==run.id);
+            if(edit) page.textEdits.push(edit);
+            this.closeTextEditor(div);
+            this.pushHistory();
+            this.updateTextEditState();
+            this.invalidateTextThumbnail(page);
+            if(this.focusedPageId===page.id) this.focusPage(page.id,true);
+            if(typeof toast==='function') toast('Đã áp dụng thay đổi, giữ nguyên dòng và vị trí gốc.');
+            return true;
+        } catch(e) {
+            document.getElementById('po-ft-status').textContent=e.message;
+            document.getElementById('po-ft-status').classList.add('po-text-error');
+            if(typeof toast==='function') toast(e.message);
+            if(this.focusedPageId===page.id) {this.activeEditDiv=div;div.contentEditable='true';div.focus();}
+            return false;
+        } finally {
+            controls.forEach(control=>control.disabled=false);
         }
     }
 
+    invalidateTextThumbnail(page) {
+        const sourceKey=`${page.fileIndex}:${page.pageIndex}`;
+        if(page.dataUrl?.startsWith('blob:') && this.thumbCache.get(sourceKey)!==page.dataUrl) URL.revokeObjectURL(page.dataUrl);
+        page.dataUrl=null;
+        // Source thumbnail cache is shared by duplicates; never cache an edited page there.
+        const card=document.querySelector(`.po-card-preview img[data-id="${page.id}"]`);
+        if(card) {card.removeAttribute('src');this.queueThumbnail(page.id,card);}
+    }
+
+    async previewActiveText() {
+        const div=this.activeEditDiv;
+        if(!div) return;
+        const status=document.getElementById('po-ft-status');
+        const token=(this.textStyleToken || 0)+1;this.textStyleToken=token;
+        try {
+            const values=this.readTextEditValues(div);
+            const edit=window.PDFTextLayout.makeEdit(div._textRun,values);
+            edit.originalBold=div._textRun.bold;edit.originalItalic=div._textRun.italic;
+            const font=await this.getTextEditFont(await this.getTextMeasureDoc(),edit);
+            const plan=window.PDFTextLayout.layout(edit,font.pdfFont);
+            await this.loadTextBrowserFont(font);
+            if(this.activeEditDiv!==div || this.textStyleToken!==token) return;
+            div.style.fontFamily=font.cssFamily;
+            div.style.fontSize=`${plan.size/div._viewportHeight*100}cqh`;
+            div.style.color=values.color;
+            status.classList.remove('po-text-error');
+            status.textContent=(font.original ? 'Dùng được font gốc. ' : (font.substituted ? `Thay font: ${font.label}. ` : `Font xuất: ${font.label}. `))+
+                (plan.size<values.size ? `Đã thu nhỏ còn ${plan.size.toFixed(2)} pt. ` : '')+
+                (div._textRun.colorKnown ? '' : 'Chưa xác định màu gốc, đang dùng màu đã chọn. ')+
+                'Giữ một dòng; Enter: áp dụng · Esc: hủy.';
+        } catch(e) {
+            if(this.activeEditDiv!==div || this.textStyleToken!==token) return;
+            status.classList.add('po-text-error');status.textContent=e.message;
+        }
+    }
 
     bindEvents() {
         const thumbSelect = document.getElementById('po-tb-thumb-size');
@@ -377,85 +455,47 @@ class PDFOrganizer {
 
         
         const tb = document.getElementById('po-format-toolbar');
-        if (tb) {
-            tb.addEventListener('mousedown', e => e.stopPropagation());
-            document.getElementById('po-ft-size').addEventListener('input', e => {
-                if (this.activeEditDiv) {
-                    const newSize = parseFloat(e.target.value) || 12;
-                    this.activeEditDiv.dataset.pdfSize = newSize;
-                    const origPdfSize = parseFloat(this.activeEditDiv.dataset.origPdfSize) || 12;
-                    const initialFontCqh = parseFloat(this.activeEditDiv.dataset.initialFontCqh);
-                    if (initialFontCqh && origPdfSize > 0) {
-                        this.activeEditDiv.style.fontSize = `${initialFontCqh * (newSize / origPdfSize)}cqh`;
-                    }
-                }
+        tb.addEventListener('mousedown',e=>{
+            e.stopPropagation();
+            // Keep the caret in the editor for toolbar buttons; inputs retain normal keyboard focus.
+            if(e.target.closest('button')) e.preventDefault();
+        });
+        const changeStyle=(id,key,event='input',convert=v=>v)=>{
+            document.getElementById(id).addEventListener(event,e=>{
+                if(!this.activeEditDiv) return;
+                this.activeEditDiv.dataset[key]=convert(e.target.value);
+                this.previewActiveText();
             });
-            document.getElementById('po-ft-color').addEventListener('input', e => {
-                if (this.activeEditDiv) {
-                    this.activeEditDiv.dataset.color = e.target.value;
-                    this.activeEditDiv.style.color = e.target.value;
-                }
-            });
-            document.getElementById('po-ft-font').addEventListener('change', e => {
-                if (this.activeEditDiv) {
-                    this.activeEditDiv.dataset.fontFamily = e.target.value;
-                    this.activeEditDiv.style.fontFamily = e.target.value;
-                }
-            });
-            const btnBold = document.getElementById('po-ft-bold');
-            if (btnBold) {
-                btnBold.addEventListener('click', () => {
-                    if (this.activeEditDiv) {
-                        const cur = this.activeEditDiv.dataset.bold === '1';
-                        this.activeEditDiv.dataset.bold = cur ? '0' : '1';
-                        this.activeEditDiv.style.fontWeight = cur ? 'normal' : 'bold';
-                        btnBold.classList.toggle('btn-active', !cur);
-                    }
-                });
-            }
-            const btnItalic = document.getElementById('po-ft-italic');
-            if (btnItalic) {
-                btnItalic.addEventListener('click', () => {
-                    if (this.activeEditDiv) {
-                        const cur = this.activeEditDiv.dataset.italic === '1';
-                        this.activeEditDiv.dataset.italic = cur ? '0' : '1';
-                        this.activeEditDiv.style.fontStyle = cur ? 'normal' : 'italic';
-                        btnItalic.classList.toggle('btn-active', !cur);
-                    }
-                });
-            }
-            const btnUnderline = document.getElementById('po-ft-underline');
-            if (btnUnderline) {
-                btnUnderline.addEventListener('click', () => {
-                    if (this.activeEditDiv) {
-                        const cur = this.activeEditDiv.dataset.underline === '1';
-                        this.activeEditDiv.dataset.underline = cur ? '0' : '1';
-                        this.activeEditDiv.style.textDecoration = cur ? 'none' : 'underline';
-                        btnUnderline.classList.toggle('btn-active', !cur);
-                    }
-                });
-            }
-            ['left', 'center', 'right'].forEach(a => {
-                document.getElementById('po-ft-align-' + a).addEventListener('click', () => {
-                    if (this.activeEditDiv) {
-                        this.activeEditDiv.dataset.align = a;
-                        this.activeEditDiv.style.textAlign = a;
-                        ['left', 'center', 'right'].forEach(x => document.getElementById('po-ft-align-' + x).classList.remove('btn-active'));
-                        document.getElementById('po-ft-align-' + a).classList.add('btn-active');
-                    }
-                });
-            });
-            document.getElementById('po-ft-done').addEventListener('click', () => {
-                if (this.activeEditDiv) {
-                    const div = this.activeEditDiv;
-                    div.blur(); // this will trigger commit if not handled
-                    this.commitEdit(div);
-                }
-            });
+        };
+        changeStyle('po-ft-size','pdfSize');
+        changeStyle('po-ft-color','color');
+        changeStyle('po-ft-font','fontFamily','change');
+        document.getElementById('po-ft-overflow').onchange=()=>this.previewActiveText();
+        for(const [name,key] of [['bold','bold'],['italic','italic'],['underline','underline']]) {
+            document.getElementById('po-ft-'+name).onclick=()=>{
+                const div=this.activeEditDiv;if(!div) return;
+                div.dataset[key]=div.dataset[key]==='1'?'0':'1';
+                div.style.fontWeight=div.dataset.bold==='1'?'bold':'normal';
+                div.style.fontStyle=div.dataset.italic==='1'?'italic':'normal';
+                div.style.textDecoration=div.dataset.underline==='1'?'underline':'none';
+                document.getElementById('po-ft-'+name).classList.toggle('btn-active',div.dataset[key]==='1');
+                this.previewActiveText();
+            };
         }
+        for(const align of ['left','center','right']) {
+            document.getElementById('po-ft-align-'+align).onclick=()=>{
+                if(!this.activeEditDiv) return;
+                this.activeEditDiv.dataset.align=align;this.activeEditDiv.style.textAlign=align;
+                for(const other of ['left','center','right']) document.getElementById('po-ft-align-'+other).classList.toggle('btn-active',other===align);
+                this.previewActiveText();
+            };
+        }
+        document.getElementById('po-ft-done').onclick=()=>this.commitEdit(this.activeEditDiv);
+        document.getElementById('po-ft-cancel').onclick=()=>this.cancelTextEdit();
 
         window.addEventListener('beforeunload', e => {
-            if (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1) {
+            const editing=this.activeEditDiv && !this.textValuesEqual(this.readTextEditValues(this.activeEditDiv),this.activeEditDiv._startValues);
+            if (editing || this.pendingTextCommit || (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1)) {
                 e.preventDefault();
                 e.returnValue = '';
             }
@@ -467,7 +507,8 @@ class PDFOrganizer {
             }
         }, { signal: this.abort.signal });
 
-        document.getElementById('po-back').onclick = () => {
+        document.getElementById('po-back').onclick = async () => {
+            if(!await this.finishTextEdit()) return;
             if (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1) {
                 if (!confirm('Bạn có thay đổi chưa lưu. Chắc chắn muốn thoát?')) return;
             }
@@ -1063,7 +1104,8 @@ class PDFOrganizer {
         }
     }
 
-    toggleEditMode(forceState) {
+    async toggleEditMode(forceState) {
+        if((forceState===false || (forceState===undefined && this.isEditMode)) && !await this.finishTextEdit()) return;
         this.isEditMode = (forceState !== undefined) ? forceState : !this.isEditMode;
         this.isTextMode = this.isEditMode;
         
@@ -1362,11 +1404,11 @@ class PDFOrganizer {
                 
                 try {
                     const arrayBuffer = await f.arrayBuffer();
-                    pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                    pdf = await pdfjsLib.getDocument({ data: arrayBuffer, fontExtraProperties: true }).promise;
                 } catch (readErr) {
                     console.warn('Đọc bằng arrayBuffer thất bại, thử lại bằng ObjectURL:', readErr);
                     if (!f.objUrl) f.objUrl = URL.createObjectURL(f);
-                    pdf = await pdfjsLib.getDocument(f.objUrl).promise;
+                    pdf = await pdfjsLib.getDocument({ url: f.objUrl, fontExtraProperties: true }).promise;
                 }
                 
                 this.pdfDocs[startIndex + i] = pdf;
@@ -1650,7 +1692,7 @@ class PDFOrganizer {
         
         const cacheKey = page.type === 'blank' ? page.id : `${page.fileIndex}:${page.pageIndex}`;
         
-        if (this.thumbCache.has(cacheKey)) {
+        if (!page.textEdits?.length && this.thumbCache.has(cacheKey)) {
             page.dataUrl = this.thumbCache.get(cacheKey);
             if (imgElement) imgElement.src = page.dataUrl;
             return;
@@ -1705,30 +1747,16 @@ class PDFOrganizer {
             await renderTask.promise;
             this.activeThumbTasks.delete(pageId);
             
-            if (page.textEdits && page.textEdits.length > 0) {
-                                ctx.fillStyle = 'white';
-                                page.textEdits.forEach(edit => {
-                                    const minX = edit.pdfMinX !== undefined ? edit.pdfMinX : edit.x;
-                                    const maxX = edit.pdfMaxX !== undefined ? edit.pdfMaxX : (edit.x + edit.width);
-                                    const minY = edit.pdfMinY !== undefined ? edit.pdfMinY : (edit.y - edit.height);
-                                    const maxY = edit.pdfMaxY !== undefined ? edit.pdfMaxY : edit.y;
-                                    const rect = vp.convertToViewportRectangle([minX, minY, maxX, maxY]);
-                                    const x = Math.min(rect[0], rect[2]);
-                                    const y = Math.min(rect[1], rect[3]);
-                                    const w = Math.abs(rect[2] - rect[0]);
-                                    const h = Math.abs(rect[3] - rect[1]);
-                                    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
-                                });
-                            }
-            
+            await this.paintTextEdits(ctx,vp,page);
+
             cvs.toBlob(blob => {
                 const url = URL.createObjectURL(blob);
                 page.dataUrl = url;
-                this.thumbCache.set(cacheKey, url);
+                if(!page.textEdits?.length) this.thumbCache.set(cacheKey, url);
                 if (imgElement) imgElement.src = url;
             }, 'image/jpeg', 0.8);
         } catch (e) {
-            console.error('Error rendering thumbnail', e);
+            if(e.name!=='RenderingCancelledException' && e.message!=='Rendering cancelled.') console.error('Error rendering thumbnail', e);
         }
     }
 
@@ -1778,6 +1806,7 @@ class PDFOrganizer {
     }
     
     undo() {
+        if(this.activeEditDiv || this.pendingTextCommit) {this.finishTextEdit().then(ok=>{if(ok)this.undo();});return;}
         if (this.historyIndex > 0) {
             this.historyIndex--;
             this.restoreState();
@@ -1785,6 +1814,7 @@ class PDFOrganizer {
     }
     
     redo() {
+        if(this.activeEditDiv || this.pendingTextCommit) {this.finishTextEdit().then(ok=>{if(ok)this.redo();});return;}
         if (this.historyIndex < this.history.length - 1) {
             this.historyIndex++;
             this.restoreState();
@@ -1800,7 +1830,7 @@ class PDFOrganizer {
             return {
                 ...p,
                 selected: selectedIds.has(p.id),
-                dataUrl: this.thumbCache.get(cacheKey) || null,
+                dataUrl: p.textEdits?.length ? null : (this.thumbCache.get(cacheKey) || null),
                 textEdits: p.textEdits ? JSON.parse(JSON.stringify(p.textEdits)) : [],
                 annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : []
             };
@@ -1843,6 +1873,8 @@ class PDFOrganizer {
         if (addedCount > 0) changesStr.push(`thêm ${addedCount} trang`);
         if (deletedOriginals.length > 0) changesStr.push(`xóa ${deletedOriginals.length} trang`);
         if (this.pages.some(p => p.rotation !== 0)) changesStr.push(`xoay trang`);
+        const textChanges=this.pages.reduce((n,p)=>n+(p.textEdits?.length || 0),0);
+        if(textChanges) changesStr.push(`sửa ${textChanges} vùng chữ`);
         
         const changesEl = document.getElementById('po-meta-changes');
         if (changesStr.length > 0) {
@@ -2070,510 +2102,193 @@ class PDFOrganizer {
     }
 
     
-    groupTextItems(items, styles, transform, Util, W, H, baseVp, pdfPage) {
-        let processedItems = [];
-        items.forEach((item, index) => {
-            if (!item.str || item.str.trim() === '') return;
-            const t_vp = Util.transform(transform, item.transform);
-            
-            const scaleX = Math.abs(transform[0]) || 1;
-            const scaleY = Math.abs(transform[3]) || 1;
-            
-            // FONT HEIGHT CALCULATION
-            let fontH = Math.hypot(t_vp[2], t_vp[3]);
-            if (fontH < 2 && item.height) {
-                fontH = item.height * scaleY; 
-            }
-            if (fontH < 1) fontH = 10;
-            
-            const origin_vp = [t_vp[4], t_vp[5]];
-            const vecX_vp = [t_vp[0], t_vp[1]];
-            
-            const advanceScale_vp = Math.hypot(vecX_vp[0], vecX_vp[1]) || scaleX;
-            const angle_vp = Math.atan2(t_vp[1], t_vp[0]);
-            
-            const dir_vp = [Math.cos(angle_vp), Math.sin(angle_vp)];
-            const normal_vp = [-Math.sin(angle_vp), Math.cos(angle_vp)];
-            
-            const lenX_user = Math.hypot(item.transform[0], item.transform[1]) || 1;
-            let width_vp = (item.width / lenX_user) * advanceScale_vp;
-            
-            if (width_vp < 0.1) width_vp = fontH * 0.5 * item.str.length;
-            if (fontH < 0.1 || width_vp < 0.1) return;
-
-            // Extract bold and italic from pdf font object and font name
-            let fontObj = null;
-            if (pdfPage && pdfPage.commonObjs && pdfPage.commonObjs.has(item.fontName)) {
-                try { fontObj = pdfPage.commonObjs.get(item.fontName); } catch(e) {}
-            }
-            const fnStr = (fontObj?.name || item.fontName || '').toLowerCase();
-            const isBold = !!(fontObj?.bold || fontObj?.black || /bold|black|heavy|w[6-9]|semibold/i.test(fnStr));
-            const isItalic = !!(fontObj?.italic || /italic|oblique/i.test(fnStr));
-            
-            processedItems.push({
-                ...item, index, t_vp, origin_vp, fontSize_vp: fontH, angle_vp, dir_vp, normal_vp, width_vp,
-                pdfX: item.transform[4], pdfY: item.transform[5],
-                pdfSize: Math.hypot(item.transform[2], item.transform[3]) || item.height || (fontH / scaleY),
-                isBold, isItalic, fontNameStr: fontObj?.name || item.fontName
-            });
-        });
-
-        // PASS 1: Group into single lines based on baseline collinearity
-        let lines = [];
-        processedItems.forEach(box => {
-            let merged = false;
-            for (const l of lines) {
-                if (Math.abs(box.angle_vp - l.angle_vp) > 0.05) continue; // Must have same rotation
-                if (Math.abs(box.fontSize_vp - l.fontSize_vp) > l.fontSize_vp * 0.3) continue; // Must be similar size
-                
-                const dx = box.origin_vp[0] - l.origin_vp[0];
-                const dy = box.origin_vp[1] - l.origin_vp[1];
-                
-                // Vertical distance from line's baseline
-                const vDist = Math.abs(dx * l.normal_vp[0] + dy * l.normal_vp[1]);
-                
-                if (vDist <= l.fontSize_vp * 0.35) { // Highly collinear
-                    const hStart = dx * l.dir_vp[0] + dy * l.dir_vp[1];
-                    const hEnd = hStart + box.width_vp;
-                    
-                    // Horizontal gap check
-                    const gap = Math.max(0, Math.max(l.minH - hEnd, hStart - l.maxH));
-                    
-                    if (gap <= l.fontSize_vp * 3.0) { // Allow reasonable gaps for spaces
-                        l.items.push({ ...box, hStart, hEnd });
-                        l.minH = Math.min(l.minH, hStart);
-                        l.maxH = Math.max(l.maxH, hEnd);
-                        merged = true;
-                        break;
-                    }
-                }
-            }
-            if (!merged) {
-                lines.push({
-                    items: [{ ...box, hStart: 0, hEnd: box.width_vp }],
-                    origin_vp: box.origin_vp, angle_vp: box.angle_vp, dir_vp: box.dir_vp, normal_vp: box.normal_vp,
-                    fontSize_vp: box.fontSize_vp, minH: 0, maxH: box.width_vp,
-                    pdfMinY: box.pdfY
-                });
-            }
-        });
-
-        // Format text inside each line and extract dominant style
-        lines.forEach(l => {
-            l.items.sort((a, b) => a.hStart - b.hStart);
-            let lineStr = "";
-            let boldChars = 0, italicChars = 0, totalChars = 0;
-            for (let i = 0; i < l.items.length; i++) {
-                const it = l.items[i];
-                const len = it.str.length;
-                totalChars += len;
-                if (it.isBold) boldChars += len;
-                if (it.isItalic) italicChars += len;
-                if (i === 0) { lineStr += it.str; }
-                else {
-                    const gap = it.hStart - l.items[i-1].hEnd;
-                    if (gap > l.fontSize_vp * 0.2) lineStr += " " + it.str;
-                    else lineStr += it.str;
-                }
-            }
-            l.text = lineStr;
-            l.isBold = boldChars > 0 && (boldChars / Math.max(1, totalChars) >= 0.25 || l.items.some(i => i.isBold));
-            l.isItalic = italicChars > 0 && (italicChars / Math.max(1, totalChars) >= 0.25 || l.items.some(i => i.isItalic));
-        });
-
-        // SORT LINES TOP-TO-BOTTOM BEFORE MULTI-LINE MERGE
-        lines.sort((a, b) => a.origin_vp[1] - b.origin_vp[1]);
-
-        // PASS 2: Group lines into Blocks
-        // In PDF documents, form fields, table cells, titles, and distinct labels/values must NOT be aggressively merged!
-        // Only merge lines if they have matching styles, sizes, and continuous paragraph spacing.
-        let blocks = [];
-        lines.forEach(line => {
-            let merged = false;
-            for (const b of blocks) {
-                if (Math.abs(b.angle_vp - line.angle_vp) > 0.05) continue;
-                if (Math.abs(b.fontSize_vp - line.fontSize_vp) > b.fontSize_vp * 0.12) continue;
-                // Style must match! Never merge bold with non-bold, or italic with non-italic!
-                if (b.isBold !== line.isBold || b.isItalic !== line.isItalic) continue;
-                
-                // Do not merge if previous line or current line ends/starts with a form colon or list marker
-                const lastLine = b.lineObjects[b.lineObjects.length - 1];
-                if (lastLine.text.trim().endsWith(':') || line.text.trim().startsWith(':')) continue;
-                if (/^[0-9]+[\.\)]|^[I|V|X]+[\.\)]/i.test(line.text.trim())) continue;
-
-                const dx_block = line.origin_vp[0] - b.origin_vp[0];
-                const dy_block = line.origin_vp[1] - b.origin_vp[1];
-                const vOffset = dx_block * b.normal_vp[0] + dy_block * b.normal_vp[1];
-                
-                const dx_last = line.origin_vp[0] - lastLine.origin_vp[0];
-                const dy_last = line.origin_vp[1] - lastLine.origin_vp[1];
-                const vDist = Math.abs(dx_last * b.normal_vp[0] + dy_last * b.normal_vp[1]);
-                
-                // Paragraph line spacing must be standard (0.8x to 1.7x fontSize)
-                if (vDist >= b.fontSize_vp * 0.8 && vDist <= b.fontSize_vp * 1.7) {
-                    const hOffset = dx_block * b.dir_vp[0] + dy_block * b.dir_vp[1];
-                    const lineMinH = line.minH + hOffset;
-                    const lineMaxH = line.maxH + hOffset;
-                    
-                    const leftAlign = Math.abs(lastLine.minH_block - lineMinH) < b.fontSize_vp * 0.8;
-                    const hOverlap = Math.min(lastLine.maxH_block, lineMaxH) - Math.max(lastLine.minH_block, lineMinH);
-                    
-                    if (leftAlign && (hOverlap > b.fontSize_vp * 3 || Math.abs(lastLine.maxH_block - lineMaxH) < b.fontSize_vp * 3)) {
-                        line.minH_block = lineMinH; line.maxH_block = lineMaxH;
-                        b.lineObjects.push(line);
-                        b.items.push(...line.items);
-                        b.minH = Math.min(b.minH, lineMinH);
-                        b.maxH = Math.max(b.maxH, lineMaxH);
-                        b.minV = Math.min(b.minV, vOffset - line.fontSize_vp);
-                        b.maxV = Math.max(b.maxV, vOffset + line.fontSize_vp * 0.25);
-                        merged = true;
-                        break;
-                    }
-                }
-            }
-            if (!merged) {
-                line.minH_block = line.minH; line.maxH_block = line.maxH;
-                blocks.push({
-                    lineObjects: [line], items: [...line.items],
-                    origin_vp: line.origin_vp, angle_vp: line.angle_vp, dir_vp: line.dir_vp, normal_vp: line.normal_vp,
-                    fontSize_vp: line.fontSize_vp,
-                    minH: line.minH, maxH: line.maxH, minV: -line.fontSize_vp, maxV: line.fontSize_vp * 0.25,
-                    isBold: line.isBold, isItalic: line.isItalic, isUnderline: false
-                });
-            }
-        });
-
-        // CALCULATE FINAL CSS TRANSFORMS
-        blocks.forEach(b => {
-            b.lineObjects.sort((a, c) => {
-                const dxA = a.origin_vp[0] - b.origin_vp[0]; const dyA = a.origin_vp[1] - b.origin_vp[1];
-                const vA = dxA * b.normal_vp[0] + dyA * b.normal_vp[1];
-                const dxC = c.origin_vp[0] - b.origin_vp[0]; const dyC = c.origin_vp[1] - b.origin_vp[1];
-                const vC = dxC * b.normal_vp[0] + dyC * b.normal_vp[1];
-                return vA - vC;
-            });
-            b.text = b.lineObjects.map(l => l.text).join('\n');
-            
-            const O = b.origin_vp;
-            // P1 is the Top-Left corner of the rotated box
-            const P1 = [ O[0] + b.minH * b.dir_vp[0] + b.minV * b.normal_vp[0], O[1] + b.minH * b.dir_vp[1] + b.minV * b.normal_vp[1] ];
-            
-            b.cssLeft = P1[0]; 
-            b.cssTop = P1[1];
-            b.cssWidth = b.maxH - b.minH; 
-            b.cssHeight = b.maxV - b.minV;
-            b.cssTransform = `rotate(${b.angle_vp * 180 / Math.PI}deg)`; // Use deg for better CSS compatibility
-            
-            // Standard coordinate properties for DOM & backwards-compatibility
-            b.left = b.cssLeft;
-            b.top = b.cssTop;
-            b.right = b.cssLeft + b.cssWidth;
-            b.bottom = b.cssTop + b.cssHeight;
-            b.width = b.cssWidth;
-            b.height = b.cssHeight;
-
-            // Calculate exact PDF User Space bounds using baseVp.convertToPdfPoint (handles any rotation /Rotate 0/90/180/270)
-            if (baseVp && typeof baseVp.convertToPdfPoint === 'function') {
-                const P2 = [ P1[0] + b.cssWidth * Math.cos(b.angle_vp), P1[1] + b.cssWidth * Math.sin(b.angle_vp) ];
-                const P3 = [ P2[0] - b.cssHeight * Math.sin(b.angle_vp), P2[1] + b.cssHeight * Math.cos(b.angle_vp) ];
-                const P4 = [ P1[0] - b.cssHeight * Math.sin(b.angle_vp), P1[1] + b.cssHeight * Math.cos(b.angle_vp) ];
-                const pts = [
-                    baseVp.convertToPdfPoint(P1[0], P1[1]),
-                    baseVp.convertToPdfPoint(P2[0], P2[1]),
-                    baseVp.convertToPdfPoint(P3[0], P3[1]),
-                    baseVp.convertToPdfPoint(P4[0], P4[1])
-                ];
-                b.pdfMinX = Math.min(...pts.map(p => p[0]));
-                b.pdfMaxX = Math.max(...pts.map(p => p[0]));
-                b.pdfMinY = Math.min(...pts.map(p => p[1]));
-                b.pdfMaxY = Math.max(...pts.map(p => p[1]));
-            } else {
-                let pdfMinX = Infinity, pdfMaxX = -Infinity, pdfMinY = Infinity, pdfMaxY = -Infinity;
-                b.items.forEach(i => {
-                    pdfMinX = Math.min(pdfMinX, i.pdfX);
-                    pdfMaxX = Math.max(pdfMaxX, i.pdfX + (i.width_vp / (Math.abs(transform[0]) || 1)));
-                    pdfMinY = Math.min(pdfMinY, i.pdfY);
-                    pdfMaxY = Math.max(pdfMaxY, i.pdfY + i.pdfSize);
-                });
-                b.pdfMinX = pdfMinX; b.pdfMaxX = pdfMaxX; b.pdfMinY = pdfMinY; b.pdfMaxY = pdfMaxY;
-            }
-            b.pdfSize = b.items[0].pdfSize;
-            b.size = b.fontSize_vp; 
-        });
-        return blocks;
-    }
-    async renderTextLayer(pdfPage, baseVp, pageData) {
-        const layer = document.getElementById('po-text-layer');
-        if (!layer) return;
-        const token = (this._textLayerToken = (this._textLayerToken || 0) + 1);
-        layer.innerHTML = '';
-        try {
-            const textContent = await pdfPage.getTextContent();
-            if (token !== this._textLayerToken) return;
-            if (!pageData.textEdits) pageData.textEdits = [];
-            const Util = window.pdfjsLib.Util;
-            const W = baseVp.width, H = baseVp.height;
-            const blocks = this.groupTextItems(textContent.items, textContent.styles, baseVp.transform, Util, W, H, baseVp, pdfPage);
-            blocks.forEach((block, index) => {
-                const blockId = 'block_' + index;
-                const edited = pageData.textEdits.find(e => e.id === blockId);
-                const div = document.createElement('div');
-                div.className = 'po-text-box' + (edited ? ' edited' : '');
-                if (block.lineObjects && block.lineObjects.length === 1) div.classList.add('single-line');
-                div.style.left = `${(block.cssLeft / W) * 100}%`;
-                div.style.top = `${(block.cssTop / H) * 100}%`;
-                div.style.width = `${(block.cssWidth / W) * 100}%`;
-                div.style.height = 'auto'; 
-                div.style.minHeight = `${(block.cssHeight / H) * 100}%`;
-                div.style.transformOrigin = '0 0';
-                div.style.transform = block.cssTransform || 'none';
-                const fontCqh = (block.size / H) * 100;
-                div.style.fontSize = `${fontCqh}cqh`;
-                div.dataset.initialFontCqh = fontCqh;
-                div.dataset.origPdfSize = block.pdfSize;
-                div.style.lineHeight = '1.15';
-                const firstItem = block.items[0];
-                div.style.fontFamily = firstItem.fontName && textContent.styles[firstItem.fontName] ? textContent.styles[firstItem.fontName].fontFamily : 'sans-serif';
-                div.textContent = edited ? edited.newText : block.text;
-                
-                div.dataset.id = blockId;
-                div.dataset.pdfMinX = block.pdfMinX;
-                div.dataset.pdfMaxY = block.pdfMaxY;
-                div.dataset.pdfMinY = block.pdfMinY;
-                div.dataset.pdfMaxX = block.pdfMaxX;
-                div.dataset.pdfSize = edited ? edited.size : block.pdfSize;
-                div.dataset.align = edited ? edited.align : 'left';
-                div.dataset.color = edited ? edited.color : '#000000';
-                div.dataset.fontFamily = edited ? edited.fontFamily : 'sans-serif';
-                
-                // Rich text styling (Bold, Italic, Underline)
-                const isBold = edited ? !!edited.bold : !!block.isBold;
-                const isItalic = edited ? !!edited.italic : !!block.isItalic;
-                const isUnderline = edited ? !!edited.underline : !!block.isUnderline;
-                
-                div.dataset.bold = isBold ? '1' : '0';
-                div.dataset.italic = isItalic ? '1' : '0';
-                div.dataset.underline = isUnderline ? '1' : '0';
-                
-                div.style.fontWeight = isBold ? 'bold' : 'normal';
-                div.style.fontStyle = isItalic ? 'italic' : 'normal';
-                div.style.textDecoration = isUnderline ? 'underline' : 'none';
-
-                if (edited) {
-                    div.style.textAlign = edited.align;
-                    div.style.color = edited.color;
-                    div.style.fontFamily = edited.fontFamily;
-                    if (edited.size && block.pdfSize > 0) {
-                        div.style.fontSize = `${fontCqh * (edited.size / block.pdfSize)}cqh`;
-                    }
-                }
-                div.spellcheck = false;
-
-                div.addEventListener('mousedown', e => { if (this.isTextMode) e.stopPropagation(); });
-
-                div.addEventListener('paste', (e) => {
-                    e.preventDefault();
-                    const text = (e.originalEvent || e).clipboardData.getData('text/plain');
-                    document.execCommand('insertText', false, text);
-                });
-                
-                div.addEventListener('click', (e) => {
-                    if (!this.isTextMode) return;
-                    e.stopPropagation();
-                    div.contentEditable = 'true';
-                    div.classList.add('editing');
-                    div.focus();
-                    
-                    const tb = document.getElementById('po-format-toolbar');
-                    if (tb) {
-                        tb.style.display = 'flex';
-                        const rect = div.getBoundingClientRect();
-                        const wrapperRect = document.getElementById('po-preview-wrapper').getBoundingClientRect();
-                        let top = rect.top - wrapperRect.top - 45;
-                        if (top < 0) {
-                            top = rect.bottom - wrapperRect.top + 8;
-                        }
-                        let left = rect.left - wrapperRect.left;
-                        const maxLeft = Math.max(0, wrapperRect.width - (tb.offsetWidth || 340));
-                        left = Math.max(0, Math.min(left, maxLeft));
-                        tb.style.top = top + 'px';
-                        tb.style.left = left + 'px';
-                        
-                        document.getElementById('po-ft-size').value = Math.round(parseFloat(div.dataset.pdfSize) || block.pdfSize);
-                        document.getElementById('po-ft-color').value = div.dataset.color || '#000000';
-                        document.getElementById('po-ft-font').value = div.dataset.fontFamily || 'sans-serif';
-                        
-                        const curBold = div.dataset.bold === '1';
-                        const curItalic = div.dataset.italic === '1';
-                        const curUnderline = div.dataset.underline === '1';
-                        const btnB = document.getElementById('po-ft-bold');
-                        if (btnB) btnB.classList.toggle('btn-active', curBold);
-                        const btnI = document.getElementById('po-ft-italic');
-                        if (btnI) btnI.classList.toggle('btn-active', curItalic);
-                        const btnU = document.getElementById('po-ft-underline');
-                        if (btnU) btnU.classList.toggle('btn-active', curUnderline);
-
-                        const align = div.dataset.align || 'left';
-                        ['left', 'center', 'right'].forEach(a => {
-                            const btn = document.getElementById('po-ft-align-' + a);
-                            if (a === align) btn.classList.add('btn-active');
-                            else btn.classList.remove('btn-active');
-                        });
-                        this.activeEditDiv = div;
-                    }
-                });
-                div.addEventListener('keydown', (e) => {
-                    e.stopPropagation();
-                    if (e.ctrlKey || e.metaKey) {
-                        if (e.key === 'b' || e.key === 'B') {
-                            e.preventDefault();
-                            const cur = div.dataset.bold === '1';
-                            div.dataset.bold = cur ? '0' : '1';
-                            div.style.fontWeight = cur ? 'normal' : 'bold';
-                            const btn = document.getElementById('po-ft-bold');
-                            if (btn) btn.classList.toggle('btn-active', !cur);
-                            return;
-                        }
-                        if (e.key === 'i' || e.key === 'I') {
-                            e.preventDefault();
-                            const cur = div.dataset.italic === '1';
-                            div.dataset.italic = cur ? '0' : '1';
-                            div.style.fontStyle = cur ? 'normal' : 'italic';
-                            const btn = document.getElementById('po-ft-italic');
-                            if (btn) btn.classList.toggle('btn-active', !cur);
-                            return;
-                        }
-                        if (e.key === 'u' || e.key === 'U') {
-                            e.preventDefault();
-                            const cur = div.dataset.underline === '1';
-                            div.dataset.underline = cur ? '0' : '1';
-                            div.style.textDecoration = cur ? 'none' : 'underline';
-                            const btn = document.getElementById('po-ft-underline');
-                            if (btn) btn.classList.toggle('btn-active', !cur);
-                            return;
-                        }
-                    }
-                    if (e.key === 'Escape' || (e.key === 'Enter' && (e.ctrlKey || e.metaKey))) { 
-                        e.preventDefault(); 
-                        div.blur();
-                        this.commitEdit(div);
-                    }
-                });
-                div.addEventListener('blur', (e) => {
-                    const tb = document.getElementById('po-format-toolbar');
-                    if (tb && tb.contains(e.relatedTarget)) {
-                        return; // focus moved to toolbar
-                    }
-                    this.commitEdit(div);
-                });
-
-                layer.appendChild(div);
-            });
-        } catch(e) {
-            console.error('Error rendering text layer', e);
+    async analyzeTextPage(pdfPage) {
+        if(!this.textAnalysisCache) this.textAnalysisCache=new WeakMap();
+        if(!this.textAnalysisCache.has(pdfPage)) {
+            this.textAnalysisCache.set(pdfPage,(async()=>{
+                const content=await pdfPage.getTextContent();
+                const operators=await pdfPage.getOperatorList();
+                const metadata=window.PDFTextLayout.analyzeOperators(operators,window.pdfjsLib.OPS);
+                return {content,metadata};
+            })());
         }
+        return this.textAnalysisCache.get(pdfPage);
+    }
+
+    async renderTextLayer(pdfPage, viewport, pageData) {
+        const layer=document.getElementById('po-text-layer');if(!layer) return;
+        const token=(this._textLayerToken || 0)+1;this._textLayerToken=token;
+        layer.innerHTML='';
+        try {
+            const {content,metadata}=await this.analyzeTextPage(pdfPage);
+            if(token!==this._textLayerToken || this.focusedPageId!==pageData.id) return;
+            const runs=window.PDFTextLayout.group(content.items,content.styles,pdfPage,metadata);
+            if(!this.textFontSources) this.textFontSources=new Map();
+            const W=viewport.width,H=viewport.height;
+            for(const run of runs) {
+                run.sourceFontKey=pageData.fileIndex+':'+run.fontName;
+                if(run.sourceFont?.data && !this.textFontSources.has(run.sourceFontKey)) {
+                    this.textFontSources.set(run.sourceFontKey,new Uint8Array(run.sourceFont.data).slice());
+                }
+                delete run.sourceFont;
+                if(this.encrypted[pageData.fileIndex]) run.blocked='Tệp có bảo vệ quyền: chỉ hỗ trợ xuất dạng ảnh, chưa hỗ trợ sửa chữ gốc.';
+                const edited=(pageData.textEdits || []).find(e=>e.id===run.id);
+                const div=document.createElement('div');
+                div.className='po-text-box single-line'+(edited?' edited':'')+(run.blocked?' po-text-unsupported':'');
+                div._textRun=run;div._pageId=pageData.id;div._viewportHeight=H;
+                const top=window.PDFTextLayout.point(viewport.transform,run.x+run.normal[0]*run.ascent*run.size,run.y+run.normal[1]*run.ascent*run.size);
+                const direction=[viewport.transform[0]*run.dir[0]+viewport.transform[2]*run.dir[1],viewport.transform[1]*run.dir[0]+viewport.transform[3]*run.dir[1]];
+                const angle=Math.atan2(direction[1],direction[0])*180/Math.PI;
+                Object.assign(div.style,{left:top[0]/W*100+'%',top:top[1]/H*100+'%',width:run.maxWidth/W*100+'%',height:run.height/H*100+'%',
+                    transform:`rotate(${angle}deg)`,transformOrigin:'0 0',fontSize:run.size/H*100+'cqh',lineHeight:'1',
+                    fontFamily:run.fontFamily==='serif'?'PDFHubSerif, serif':'PDFHubSans, sans-serif'});
+                div.textContent=edited ? edited.newText : run.text;
+                div.dataset.id=run.id;
+                div.title=run.blocked || 'Sửa riêng dòng/cụm chữ này; giữ nguyên vị trí và đường bảng.';
+                div.spellcheck=false;
+                div.addEventListener('mousedown',e=>{if(this.isTextMode)e.stopPropagation();});
+                div.addEventListener('click',async e=>{
+                    if(!this.isTextMode || this.isSaving) return;
+                    e.stopPropagation();
+                    if(run.blocked) {if(typeof toast==='function')toast(run.blocked);return;}
+                    if(this.activeEditDiv===div) return;
+                    if(this.activeEditDiv && !await this.commitEdit(this.activeEditDiv)) return;
+                    if(this.focusedPageId!==pageData.id) return;
+                    const current=(pageData.textEdits || []).find(edit=>edit.id===run.id);
+                    div.innerText=current ? current.newText : run.text;
+                    div.dataset.pdfSize=current ? current.size : run.size;
+                    div.dataset.fontFamily=current ? current.fontFamily : 'original';
+                    div.dataset.color=current ? current.color : run.color;
+                    div.dataset.bold=(current ? current.bold : run.bold)?'1':'0';
+                    div.dataset.italic=(current ? current.italic : run.italic)?'1':'0';
+                    div.dataset.underline=(current ? current.underline : run.underline)?'1':'0';
+                    div.dataset.align=current?.align || 'left';
+                    document.getElementById('po-ft-overflow').value=current?.overflow || 'reject';
+                    div._startValues=this.readTextEditValues(div);
+                    this.activeEditDiv=div;div.contentEditable='true';div.classList.add('editing');
+                    div.style.background=run.background;
+                    div.style.fontWeight=div.dataset.bold==='1'?'bold':'normal';
+                    div.style.fontStyle=div.dataset.italic==='1'?'italic':'normal';
+                    div.style.textDecoration=div.dataset.underline==='1'?'underline':'none';
+                    div.style.textAlign=div.dataset.align;
+                    const tb=document.getElementById('po-format-toolbar');tb.style.display='flex';
+                    const rect=div.getBoundingClientRect(),wrapper=document.getElementById('po-preview-wrapper').getBoundingClientRect();
+                    tb.style.left=Math.max(0,Math.min(rect.left-wrapper.left,Math.max(0,wrapper.width-tb.offsetWidth)))+'px';
+                    tb.style.top=Math.max(0,rect.top-wrapper.top-tb.offsetHeight-8)+'px';
+                    document.getElementById('po-ft-size').value=div.dataset.pdfSize;
+                    document.getElementById('po-ft-font').value=div.dataset.fontFamily;
+                    document.getElementById('po-ft-color').value=div.dataset.color;
+                    for(const style of ['bold','italic','underline']) document.getElementById('po-ft-'+style).classList.toggle('btn-active',div.dataset[style]==='1');
+                    for(const align of ['left','center','right']) document.getElementById('po-ft-align-'+align).classList.toggle('btn-active',div.dataset.align===align);
+                    div.focus();this.previewActiveText();
+                });
+                div.addEventListener('input',()=>this.previewActiveText());
+                div.addEventListener('paste',e=>{
+                    e.preventDefault();const text=e.clipboardData.getData('text/plain');
+                    if(/[\r\n]/.test(text)) {if(typeof toast==='function')toast('Chỉ dán một dòng vào mỗi vùng chữ.');return;}
+                    document.execCommand('insertText',false,text);
+                });
+                div.addEventListener('keydown',e=>{
+                    e.stopPropagation();
+                    if(e.key==='Escape') {e.preventDefault();this.cancelTextEdit(div);}
+                    else if(e.key==='Enter') {e.preventDefault();this.commitEdit(div);}
+                    else if((e.ctrlKey || e.metaKey) && /^[biu]$/i.test(e.key)) {
+                        e.preventDefault();const key={b:'bold',i:'italic',u:'underline'}[e.key.toLowerCase()];document.getElementById('po-ft-'+key).click();
+                    }
+                });
+                div.addEventListener('blur',e=>{
+                    if(document.getElementById('po-format-toolbar').contains(e.relatedTarget)) return;
+                    if(this.activeEditDiv===div) this.commitEdit(div);
+                });
+                layer.appendChild(div);
+            }
+        } catch(e) {console.error('Không thể tạo vùng sửa chữ:',e);if(typeof toast==='function')toast('Chưa thể nhận diện vùng chữ trên trang này.');}
     }
 
     updateTextEditState() {
-        const n = this.pages.reduce((a, p) => a + (p.textEdits ? p.textEdits.length : 0), 0);
-        this.hasTextEdits = n > 0;
-        const save = document.getElementById('po-save');
-        if (save && n > 0) save.disabled = false;
-        const changesEl = document.getElementById('po-meta-changes');
-        if (changesEl && n > 0) {
-            const base = changesEl.textContent.replace(/\s*\|?\s*Sửa \d+ đoạn văn bản$/, '');
-            changesEl.textContent = (base ? base + ' | ' : '') + `Sửa ${n} đoạn văn bản`;
-            changesEl.style.display = 'block';
-        }
+        this.hasTextEdits=this.pages.some(p=>p.textEdits?.length);
+        this.updateStats();
     }
 
     async getUnicodeFont(doc, style = {}) {
-        if (!window.fontkit) {
-            await new Promise((res) => {
-                const s = document.createElement('script');
-                s.src = 'fontkit.umd.min.js';
-                s.onload = res;
-                s.onerror = () => {
-                    const s2 = document.createElement('script');
-                    s2.src = 'https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js';
-                    s2.onload = res;
-                    s2.onerror = res;
-                    document.head.appendChild(s2);
-                };
-                document.head.appendChild(s);
-                setTimeout(res, 4000);
-            });
+        if(!window.fontkit) throw new Error('Chưa tải được thư viện font. Hãy tải lại trang trước khi sửa chữ.');
+        const family=style.family==='serif'?'serif':'sans';
+        const variant=style.bold ? (style.italic?'BoldItalic':'Bold') : (style.italic?'Italic':'Regular');
+        const key=family+':'+variant;
+        this._fontBytesMap=this._fontBytesMap || {};
+        if(!this._fontBytesMap[key]) {
+            const filename=family==='serif' ? 'fonts/Tinos-'+variant+'.ttf' : 'NotoSans-'+variant+'.ttf';
+            const response=await fetch(filename);
+            if(!response.ok) throw new Error('Không tải được font '+filename+'. Vui lòng thử lại.');
+            this._fontBytesMap[key]=new Uint8Array(await response.arrayBuffer());
         }
-        if (!this._fontBytesMap) this._fontBytesMap = {};
-        
-        const isBold = !!style.bold;
-        const isItalic = !!style.italic;
-        let variant = 'regular';
-        if (isBold && isItalic) variant = 'bolditalic';
-        else if (isBold) variant = 'bold';
-        else if (isItalic) variant = 'italic';
-
-        const fileMap = {
-            regular: 'NotoSans-Regular.ttf',
-            bold: 'NotoSans-Bold.ttf',
-            italic: 'NotoSans-Italic.ttf',
-            bolditalic: 'NotoSans-BoldItalic.ttf'
-        };
-        const cdnMap = {
-            regular: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Regular.ttf',
-            bold: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Bold.ttf',
-            italic: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-Italic.ttf',
-            bolditalic: 'https://cdn.jsdelivr.net/gh/notofonts/notofonts.github.io/fonts/NotoSans/hinted/ttf/NotoSans-BoldItalic.ttf'
-        };
-
-        if (!this._fontBytesMap[variant]) {
-            try {
-                const r = await fetch(fileMap[variant]);
-                if (r.ok) this._fontBytesMap[variant] = await r.arrayBuffer();
-            } catch (e) {}
-            if (!this._fontBytesMap[variant]) {
-                try {
-                    const r2 = await fetch(cdnMap[variant]);
-                    if (r2.ok) this._fontBytesMap[variant] = await r2.arrayBuffer();
-                } catch(e) {}
-            }
-        }
-
-        // Fallback to regular if variant not found
-        if (!this._fontBytesMap[variant] && this._fontBytesMap['regular']) {
-            variant = 'regular';
-        } else if (!this._fontBytesMap[variant]) {
-            try {
-                const rReg = await fetch(fileMap.regular);
-                if (rReg.ok) this._fontBytesMap['regular'] = await rReg.arrayBuffer();
-            } catch(e) {}
-            if (this._fontBytesMap['regular']) variant = 'regular';
-        }
-
-        const bytes = this._fontBytesMap[variant];
-        if (window.fontkit && bytes) {
-            try {
-                if (!doc._fontkitRegistered) {
-                    doc.registerFontkit(window.fontkit);
-                    doc._fontkitRegistered = true;
-                }
-                if (!doc._customFontCache) doc._customFontCache = {};
-                if (!doc._customFontCache[variant]) {
-                    doc._customFontCache[variant] = await doc.embedFont(bytes, { subset: true });
-                }
-                return doc._customFontCache[variant];
-            } catch (fErr) {
-                console.warn(`embedFont failed for ${variant}:`, fErr);
-            }
-        }
-        try {
-            if (isBold && isItalic) return await doc.embedFont(window.PDFLib.StandardFonts.HelveticaBoldOblique);
-            if (isBold) return await doc.embedFont(window.PDFLib.StandardFonts.HelveticaBold);
-            if (isItalic) return await doc.embedFont(window.PDFLib.StandardFonts.HelveticaOblique);
-        } catch(e) {}
-        return await doc.embedFont(window.PDFLib.StandardFonts.Helvetica);
+        if(!doc._fontkitRegistered) {doc.registerFontkit(window.fontkit);doc._fontkitRegistered=true;}
+        doc._customFontCache=doc._customFontCache || {};
+        if(!doc._customFontCache[key]) doc._customFontCache[key]=await doc.embedFont(this._fontBytesMap[key],{subset:true});
+        return doc._customFontCache[key];
     }
+
+    getTextMeasureDoc() {
+        if(!this.textMeasureDoc) this.textMeasureDoc=window.PDFLib.PDFDocument.create();
+        return this.textMeasureDoc;
+    }
+
+    async getTextEditFont(doc, edit) {
+        if(!window.fontkit) throw new Error('Chưa tải được thư viện font.');
+        const source=this.textFontSources?.get(edit.sourceFontKey);
+        if(edit.fontFamily==='original' && edit.bold===edit.originalBold && edit.italic===edit.originalItalic && source) {
+            try {
+                if(!doc._fontkitRegistered) {doc.registerFontkit(window.fontkit);doc._fontkitRegistered=true;}
+                doc._originalTextFonts=doc._originalTextFonts || {};
+                let font=doc._originalTextFonts[edit.sourceFontKey];
+                if(!font) {font=await doc.embedFont(source,{subset:true});doc._originalTextFonts[edit.sourceFontKey]=font;}
+                const charset=new Set(font.getCharacterSet());
+                if([...edit.newText+edit.originalText].some(c=>!charset.has(c.codePointAt(0)))) throw new Error('Font gốc thiếu ký tự.');
+                return {pdfFont:font,bytes:source,cssFamily:'PDFHubOriginal'+edit.sourceFontKey.replace(/[^a-z0-9]/gi,''),substituted:false,original:true,label:edit.sourceFontName};
+            } catch(_) { /* Subset fonts often lack new Unicode glyphs; use an explicit fallback. */ }
+        }
+        const family=edit.fontFamily==='original' ? edit.originalFamily : edit.fontFamily;
+        const variant=edit.bold ? (edit.italic?'BoldItalic':'Bold') : (edit.italic?'Italic':'Regular');
+        const key=(family==='serif'?'serif':'sans')+':'+variant;
+        const font=await this.getUnicodeFont(doc,{family,bold:edit.bold,italic:edit.italic});
+        const charset=new Set(font.getCharacterSet());
+        const required=edit.newText+(edit.fontFamily==='original' ? edit.originalText : '');
+        if([...required].some(c=>!charset.has(c.codePointAt(0)))) throw new Error('Font thay thế thiếu ký tự trong vùng chữ này. Hãy chọn font khác hoặc giữ nguyên nội dung.');
+        font.encodeText(edit.newText);
+        return {pdfFont:font,bytes:this._fontBytesMap[key],cssFamily:family==='serif'?'PDFHubSerif':'PDFHubSans',
+            substituted:edit.fontFamily==='original',original:false,label:family==='serif'?'Tinos':'Noto Sans'};
+    }
+
+    async loadTextBrowserFont(font) {
+        if(typeof FontFace==='undefined' || !document.fonts) return;
+        this.browserTextFonts=this.browserTextFonts || new Map();
+        const key=font.cssFamily+':'+font.pdfFont.name;
+        if(!this.browserTextFonts.has(key)) {
+            this.browserTextFonts.set(key,(async()=>{
+                const name=font.pdfFont.name.toLowerCase();
+                const face=new FontFace(font.cssFamily,font.bytes,{weight:/bold/.test(name)?'700':'400',style:/italic|oblique/.test(name)?'italic':'normal'});
+                await face.load();document.fonts.add(face);
+                this.dynamicTextFonts=this.dynamicTextFonts || new Set();this.dynamicTextFonts.add(face);
+            })());
+        }
+        await this.browserTextFonts.get(key);
+    }
+
+    async paintTextEdits(ctx, viewport, page) {
+        for(const edit of page.textEdits || []) {
+            if(edit.layoutVersion!==2) throw new Error('Vùng sửa chữ cũ chưa có tọa độ dòng gốc. Hãy hoàn tác và sửa lại vùng đó.');
+            const font=await this.getTextEditFont(await this.getTextMeasureDoc(),edit);
+            const plan=window.PDFTextLayout.layout(edit,font.pdfFont);
+            await this.loadTextBrowserFont(font);
+            window.PDFTextLayout.drawCanvas(ctx,viewport,edit,plan,font.cssFamily);
+        }
+    }
+
     focusPage(id, forceRender = false) {
+        if(this.activeEditDiv && this.activeEditDiv._pageId!==id) {
+            this.commitEdit(this.activeEditDiv).then(ok=>{if(ok) this.focusPage(id,forceRender);});
+            return;
+        }
         const pageChanged = (this.focusedPageId !== id);
         this.focusedPageId = id;
         const page = this.pages.find(p => p.id === id);
@@ -2592,6 +2307,8 @@ class PDFOrganizer {
         img.dataset.id = id;
         
         if (pageChanged || forceRender) {
+            this._textLayerToken=(this._textLayerToken || 0)+1;
+            document.getElementById('po-text-layer').innerHTML='';
             if (this.previewTask) {
                 this.previewTask.cancel();
                 this.previewTask = null;
@@ -2632,10 +2349,9 @@ class PDFOrganizer {
                         page.width = baseVp.width;
                         page.height = baseVp.height;
                         
-                        this.renderTextLayer(pdfPage, baseVp, page);
-                        
                         const finalRot = (pdfPage.rotate + (page.rotation || 0) + 360) % 360;
                         const rotVp = pdfPage.getViewport({ scale: 1, rotation: finalRot });
+                        this.renderTextLayer(pdfPage,rotVp,page);
                         
                         let targetScale = (this.zoomLevel || 1) * (window.devicePixelRatio || 1);
                         if (rotVp.width * targetScale > 3200 || rotVp.height * targetScale > 3200) {
@@ -2655,23 +2371,14 @@ class PDFOrganizer {
                         taskObj.cancel = () => { taskObj.cancelled = true; renderTask.cancel(); };
                         this.previewTask.cancel = taskObj.cancel;
 
-                        return renderTask.promise.then(() => {
+                        return renderTask.promise.then(async () => {
                             if (taskObj.cancelled || this.focusedPageId !== id) return;
                             
-                            if (page.textEdits && page.textEdits.length > 0) {
-                                ctx.fillStyle = 'white';
-                                page.textEdits.forEach(edit => {
-                                    const rect = vp.convertToViewportRectangle([edit.x, edit.y - edit.height, edit.x + edit.width, edit.y]);
-                                    const x = Math.min(rect[0], rect[2]);
-                                    const y = Math.min(rect[1], rect[3]);
-                                    const w = Math.abs(rect[2] - rect[0]);
-                                    const h = Math.abs(rect[3] - rect[1]);
-                                    ctx.fillRect(x - 2, y - 2, w + 4, h + 4);
-                                });
-                            }
-                            
+                            await this.paintTextEdits(ctx,vp,page);
+                            if(taskObj.cancelled || this.focusedPageId!==id) return;
+
                             cvs.toBlob(blob => {
-                                if (taskObj.cancelled || this.focusedPageId !== id) return;
+                                if (taskObj.cancelled || this.focusedPageId !== id || !this.pages.includes(page)) return;
                                 if (!blob) {
                                     if (page.dataUrl) img.src = page.dataUrl;
                                     return;
@@ -2681,7 +2388,7 @@ class PDFOrganizer {
                                 img.src = this.previewObjUrl;
                                 
                                 // ĐỒNG BỘ THUMBNAIL: Tạo thumbnail từ ảnh high-res để hiển thị cùng lúc
-                                if (!page.dataUrl) {
+                                if ((!page.dataUrl || page.textEdits?.length) && !(page.rotation % 360)) {
                                     const thumbCvs = document.createElement('canvas');
                                     const thumbCtx = thumbCvs.getContext('2d');
                                     const maxDim = 300;
@@ -2696,11 +2403,12 @@ class PDFOrganizer {
                                     thumbCvs.toBlob(thumbBlob => {
                                         if (!thumbBlob) return;
                                         const thumbUrl = URL.createObjectURL(thumbBlob);
-                                        page.dataUrl = thumbUrl;
                                         page.width = baseVp.width;
                                         page.height = baseVp.height;
                                         const cacheKey = page.type === 'blank' ? page.id : `${page.fileIndex}:${page.pageIndex}`;
-                                        this.thumbCache.set(cacheKey, thumbUrl);
+                                        if(page.dataUrl?.startsWith('blob:') && this.thumbCache.get(cacheKey)!==page.dataUrl) URL.revokeObjectURL(page.dataUrl);
+                                        if(!page.textEdits?.length && !this.thumbCache.has(cacheKey)) this.thumbCache.set(cacheKey, thumbUrl);
+                                        page.dataUrl=thumbUrl;
                                         
                                         const thumbImg = document.querySelector(`.po-card-preview img[data-id="${id}"]`);
                                         if (thumbImg) thumbImg.src = thumbUrl;
@@ -2785,7 +2493,7 @@ class PDFOrganizer {
         });
         
         if (layer) {
-            layer.style.display = rot === 0 ? '' : 'none';
+            layer.style.display = '';
         }
 
         if (drawCanvas) {
@@ -3063,6 +2771,8 @@ class PDFOrganizer {
 
     async showSaveModal(exportSelected = false) {
         if (this.isSaving) return;
+        if(this.activeEditDiv && !await this.commitEdit(this.activeEditDiv)) return;
+        if(this.pendingTextCommit && !await this.pendingTextCommit) return;
         this.exportSelectedMode = exportSelected;
         let name = this.baseFilename || 'document';
         // Auto versioning regex logic
@@ -3087,7 +2797,7 @@ class PDFOrganizer {
         this.isSaving = true;
         const saveButton = document.getElementById('po-save-confirm');
         const modal = document.getElementById('po-save-modal');
-        const historyAtSave = this.historyIndex;
+        let historyAtSave = this.historyIndex;
         saveButton.disabled = true;
         try {
             let filename = this.getSaveFilename();
@@ -3108,6 +2818,10 @@ class PDFOrganizer {
                 }
                 filename = await this.checkOverwriteAndSuggest();
             }
+
+            if(this.activeEditDiv && !await this.commitEdit(this.activeEditDiv)) throw new Error('Vùng chữ đang sửa chưa hợp lệ. Hãy sửa nội dung hoặc bấm Hủy trong thanh sửa chữ.');
+            if(this.pendingTextCommit && !await this.pendingTextCommit) throw new Error('Chưa áp dụng được thay đổi chữ.');
+            historyAtSave=this.historyIndex;
 
             const hasEncrypted = targetPages.some(p => p.type === 'pdf' && this.encrypted[p.fileIndex]);
             if (hasEncrypted && !confirm('Tài liệu có chứa trang từ tệp được bảo vệ quyền. Các trang này sẽ được lưu dưới dạng ảnh (không thể chọn chữ). Tiếp tục?')) return;
@@ -3304,123 +3018,15 @@ class PDFOrganizer {
                 }
             }
             
-            // Apply WYSIWYG Text Edits
+            // One PDF baseline and one font run per replacement. No paragraph reflow.
             const finalPages = finalDoc.getPages();
-            for (let i = 0; i < targetPages.length; i++) {
-                const p = targetPages[i];
-                if (!p.textEdits || p.textEdits.length === 0) continue;
-                if (p.type !== 'pdf' || (!isSingleFile && this.encrypted[p.fileIndex])) continue;
-                const targetPage = finalPages[i];
-                if (!targetPage) continue;
-                for (const edit of p.textEdits) {
-                    const size = edit.size || 12;
-                    // Xóa vùng cũ (Block Masking)
-                    const blockTop = edit.y;
-                    const blockBottom = edit.y - edit.height;
-                    const minX = edit.pdfMinX !== undefined ? edit.pdfMinX : edit.x;
-                    const maxX = edit.pdfMaxX !== undefined ? edit.pdfMaxX : (edit.x + edit.width);
-                    const minY = edit.pdfMinY !== undefined ? edit.pdfMinY : (edit.y - edit.height);
-                    const maxY = edit.pdfMaxY !== undefined ? edit.pdfMaxY : edit.y;
-                    targetPage.drawRectangle({
-                        x: minX - 1.5,
-                        y: minY - 1.5,
-                        width: (maxX - minX) + 3,
-                        height: (maxY - minY) + 3,
-                        color: window.PDFLib.rgb(1, 1, 1)
-                    });
-                    
-                    if (edit.newText) {
-                        const editFont = await this.getUnicodeFont(finalDoc, {
-                            bold: !!edit.bold,
-                            italic: !!edit.italic
-                        });
-                        const hex = edit.color || '#000000';
-                        const r = (parseInt(hex.slice(1,3), 16) || 0) / 255;
-                        const g = (parseInt(hex.slice(3,5), 16) || 0) / 255;
-                        const b = (parseInt(hex.slice(5,7), 16) || 0) / 255;
-                        
-                        // Xử lý xuống dòng tự động & căn lề
-                        const lineHeight = size * 1.2;
-                        let currentY = blockTop - size;
-                        
-                        const words = edit.newText.replace(/\n/g, ' \n ').split(' ');
-                        let wrappedLines = [];
-                        let currentLine = '';
-                        for (let w of words) {
-                            if (w === '\n') {
-                                wrappedLines.push(currentLine.trim());
-                                currentLine = '';
-                                continue;
-                            }
-                            const testLine = currentLine ? currentLine + ' ' + w : w;
-                            const tw = editFont.widthOfTextAtSize(testLine, size);
-                            if (tw > edit.width && currentLine !== '') {
-                                wrappedLines.push(currentLine.trim());
-                                currentLine = w;
-                            } else {
-                                currentLine = testLine;
-                            }
-                        }
-                        if (currentLine) wrappedLines.push(currentLine.trim());
-
-                        const pageRot = targetPage.getRotation().angle || 0;
-                        if (pageRot === 90) {
-                            let currentX = minX + size;
-                            for (const line of wrappedLines) {
-                                const tw = editFont.widthOfTextAtSize(line, size);
-                                let drawY = minY;
-                                if (edit.align === 'center') {
-                                    drawY = minY + ((maxY - minY) - tw) / 2;
-                                } else if (edit.align === 'right') {
-                                    drawY = maxY - tw;
-                                }
-                                targetPage.drawText(line, {
-                                    x: currentX,
-                                    y: drawY,
-                                    size: size,
-                                    font: editFont,
-                                    color: window.PDFLib.rgb(r, g, b),
-                                    rotate: window.PDFLib.degrees(90)
-                                });
-                                if (edit.underline) {
-                                    targetPage.drawLine({
-                                        start: { x: currentX + 2, y: drawY },
-                                        end: { x: currentX + 2, y: drawY + tw },
-                                        thickness: Math.max(0.75, size * 0.07),
-                                        color: window.PDFLib.rgb(r, g, b)
-                                    });
-                                }
-                                currentX += lineHeight;
-                            }
-                        } else {
-                            for (const line of wrappedLines) {
-                                const tw = editFont.widthOfTextAtSize(line, size);
-                                let drawX = edit.x;
-                                if (edit.align === 'center') {
-                                    drawX = edit.x + (edit.width - tw) / 2;
-                                } else if (edit.align === 'right') {
-                                    drawX = edit.x + edit.width - tw;
-                                }
-                                
-                                targetPage.drawText(line, {
-                                    x: drawX,
-                                    y: currentY,
-                                    size: size,
-                                    font: editFont,
-                                    color: window.PDFLib.rgb(r, g, b)
-                                });
-                                if (edit.underline) {
-                                    targetPage.drawLine({
-                                        start: { x: drawX, y: currentY - size * 0.12 },
-                                        end: { x: drawX + tw, y: currentY - size * 0.12 },
-                                        thickness: Math.max(0.75, size * 0.07),
-                                        color: window.PDFLib.rgb(r, g, b)
-                                    });
-                                }
-                                currentY -= lineHeight;
-                            }
-                        }
-                    }
+            for(let i=0;i<targetPages.length;i++) {
+                const source=targetPages[i];
+                for(const edit of source.textEdits || []) {
+                    if(edit.layoutVersion!==2) throw new Error('Vùng sửa chữ cũ chưa có dữ liệu giữ dòng. Hãy hoàn tác và sửa lại.');
+                    if(source.type!=='pdf' || this.encrypted[source.fileIndex]) throw new Error('Chưa hỗ trợ sửa chữ gốc trên trang ảnh hoặc PDF có bảo vệ quyền.');
+                    const font=await this.getTextEditFont(finalDoc,edit);
+                    window.PDFTextLayout.drawPDF(finalPages[i],edit,font.pdfFont,window.PDFLib);
                 }
             }
 
@@ -3573,6 +3179,10 @@ class PDFOrganizer {
 
     destroy() {
         if (this.abort) this.abort.abort();
+        this.textFontSources?.clear();
+        if(document.fonts) this.dynamicTextFonts?.forEach(font=>document.fonts.delete(font));
+        this.textMeasureDoc=null;
+        this._fontBytesMap=null;
         if (this.thumbObserver) this.thumbObserver.disconnect();
         if (this.sortable) this.sortable.destroy();
         

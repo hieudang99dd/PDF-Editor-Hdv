@@ -199,6 +199,15 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 ---
 
+## Bản sửa giữ bố cục chữ — 2026-10-15
+
+### [x] Sửa từng dòng/cụm định dạng, giữ biên ô và tọa độ gốc
+> Xong 2026-10-15: Thay gom đoạn bằng `pdf-text-layout.js`: chỉ nối cụm cùng font/kiểu/màu, gần nhau và cùng baseline; không gom nhiều hàng. Phân tích đường stroke/rectangle mảnh để nhận ô chữ nhật; giới hạn mask trong ô, chặn vùng chồng đường vector/ảnh hoặc hiệu ứng không hỗ trợ. Giữ màu chữ, nền đặc và underline nhận diện được. Không tự ngắt dòng; giữ cỡ và báo tràn mặc định, chỉ thu nhỏ khi người dùng chọn (không dưới 60%).
+> Font nhúng gốc được thử nếu có dữ liệu và đủ glyph Unicode; nếu không dùng Tinos/Noto Sans với thông báo rõ. Dùng cùng layout cho preview, thumbnail và PDF; lưu tọa độ baseline và góc chữ trong không gian PDF chưa xoay, không cộng nhầm `/Rotate`. Enter áp dụng, Esc hủy; mở/đóng không sửa không tạo lịch sử. Đợi commit chữ trước khi xuất.
+> Kiểm chứng: 47 kiểm thử Node đạt, thao tác thật bằng Chromium 133 đạt, Poppler render đầu ra và so sánh pixel không phát hiện thay đổi ngoài ô sửa. Có mẫu bảng tiếng Việt sáu hàng, mixed font, màu/nền đặc, xoay trang và xoay chữ. Chưa có PDF gốc trong ảnh người dùng; hộp thoại hệ điều hành chưa được tự động kiểm tra. Vẫn là overlay, không xóa dữ liệu chữ gốc và không dùng để redaction.
+
+---
+
 ## Ma trận kiểm thử
 
 Đặt file mẫu vào `test-files/` (đã có trong `.gitignore`, không commit).

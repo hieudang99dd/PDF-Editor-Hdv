@@ -1,9 +1,9 @@
-# Save regression checks
+# PDF editor regression checks
 
 Run from the repository root with Node.js 18 or newer:
 
 ```sh
-node --test tests/save.test.cjs
+node --test tests/*.test.cjs
 ```
 
 No dependency install or build step is needed. The suite uses the repository's
@@ -31,5 +31,33 @@ Before release on a local desktop browser, also check:
 6. Recheck encrypted PDFs, digitally signed PDFs, bookmark preservation,
    annotations, large scans and A0/A1 drawings with representative fixtures.
 
-The current environment could run the Node checks and syntax validation but
-could not install a browser binary, so the desktop UI checklist remains manual.
+## Layout-preserving text changes (2026-10-15)
+
+The 47 Node checks cover saving plus text-run boundaries, table-cell detection,
+font styles, solid background colors, rule protection, overflow, explicit shrink,
+page rotations 0/90/180/270 and text angles 0/45/90/180/270. Saved PDFs are reopened
+with PDF.js to verify their actual writing direction and baseline coordinates.
+
+Optional browser integration (requires Playwright and a Chromium installation):
+
+```sh
+PDF_EDITOR_CHROMIUM=/path/to/chromium node tests/text-editor-browser.cjs
+```
+
+This starts a temporary localhost server and generates a representative six-row
+Vietnamese table. It checks no-op edits, Escape, overflow rejection, explicit
+shrink, Unicode editing, undo/redo, browser download, rotated editing and export,
+home navigation/search/filter, and browser errors. Temporary fixtures/screenshots/output PDFs are kept in the
+printed OS temporary directory, not in the repository. The integration checks
+passed in Chromium 133.0.6943.0. Poppler independently rendered an exported PDF;
+pixel comparison found no changes outside the edited cell, including table rules.
+Native operating-system file pickers and permissions remain manual checks.
+
+Known limits: replacement is still an opaque overlay, so original PDF text remains
+underneath and this feature is not redaction. Original fonts are reused only when
+usable Unicode glyphs are available; otherwise the UI names the fallback (Tinos
+or Noto Sans). Complex image backgrounds, vertical/Type 3/skewed text and detected
+vector overlaps are conservatively blocked. Table detection supports closed,
+axis-aligned vector cells; it does not reconstruct arbitrary table semantics.
+The user's original PDF behind the supplied screenshot was not available; testing
+used generated fixtures with comparable table structure.
