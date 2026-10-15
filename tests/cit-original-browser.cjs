@@ -32,7 +32,8 @@ const mime={'.wasm':'application/wasm','.mjs':'text/javascript','.js':'text/java
  '.svg':'image/svg+xml','.png':'image/png','.ttf':'font/ttf','.woff2':'font/woff2'};
 function createServer(){
  return http.createServer((req,res)=>{
-  const relative=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
+  const raw=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname);
+  const relative=raw.replace(/^\/PDF-Editor-Hdv(?=\/)/,'');
   const file=path.resolve(site,'.'+relative);
   if(!file.startsWith(site+path.sep)){res.writeHead(403);res.end();return;}
   fs.readFile(file,(error,data)=>{
@@ -55,8 +56,9 @@ async function main(){
      failed.push('Asset HTTP '+res.status()+': '+res.url());
   });
   const url='http://127.0.0.1:'+server.address().port+
-    '/PDF-Editor-Hdv/cit-native/edit-pdf-text.html';
+    '/PDF-Editor-Hdv/text-editor.html';
   await page.goto(url,{waitUntil:'domcontentloaded'});
+  await page.waitForURL(/\/PDF-Editor-Hdv\/cit-native\/edit-pdf-text\.html/,{timeout:15000});
   await page.locator('#file-input').waitFor();
   for(const sel of ['#text-editor-app','#inspector','#fFamily','#fSize','#fLine',
     '#fPara','#fSwatches','#fAlign','#fToggles','#undo','#redo','#save']){
