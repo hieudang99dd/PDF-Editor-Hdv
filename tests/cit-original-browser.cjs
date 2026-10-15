@@ -11,6 +11,7 @@ const PDFJS=require('../pdf.min.js');
 const {chromium}=require('playwright');
 
 const root=path.resolve(__dirname,'..'),site=path.join(root,'cit-stage');
+PDFJS.GlobalWorkerOptions.workerSrc=path.join(root,'pdf.worker.min.js');
 const results=path.join(root,'test-results','cit-original');
 fs.mkdirSync(results,{recursive:true});
 
