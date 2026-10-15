@@ -70,6 +70,10 @@ jobs:
       - name: Real PDF text editing in original CIT Chromium UI
         timeout-minutes: 6
         run: node tests/cit-original-browser.cjs
+      - name: Cross-validate actual CIT PDF glyph changes with PyMuPDF
+        run: |
+          python3 -m pip install --user --break-system-packages 'pymupdf>=1.24,<2'
+          python3 scripts/cit-original/verify_pdf.py test-results/cit-original/source.pdf test-results/cit-original/cit-edited.pdf
       - name: Upload UI screenshots and edited PDF
         if: always()
         uses: actions/upload-artifact@v4
