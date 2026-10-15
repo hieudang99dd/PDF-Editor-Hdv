@@ -142,3 +142,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Danh mục nổi bật không bị lặp trong danh mục bên dưới khi đang xem Tất cả.
 - Hạn chế: trạng thái web/PC dựa trên registry frontend, chưa có health-check thời gian thực; nhãn 'Trình duyệt' chỉ cho biết phương thức xử lý, không đảm bảo mọi file PDF đều được hỗ trợ. Các chức năng chưa triển khai được vô hiệu hóa ở catalog.
 - QA: workflow Pages smoke tại commit `d01971f8` đã đạt; workflow commit cuối `398c8b63` và Pages deployment cần kiểm tra khi hoàn tất.
+
+## 2026-10-15 — Sửa bố cục nút chỉnh Text sai vị trí trên header
+
+- Yêu cầu người dùng từ ảnh: nút "T Chỉnh Text" ở góc phải header là sai phân cấp; phải bỏ khỏi thanh ứng dụng chung.
+- Đã kiểm tra và xác nhận `index.html` không còn `#shortcut-text`. Trình **Chỉnh sửa văn bản PDF** là thẻ công cụ trong nhóm **Chỉnh sửa**, đường xử lý `cit-text-route` vẫn mở `text-editor.html`.
+- Thêm `header #shortcut-text{display:none!important}` làm biện pháp phòng trường hợp trình duyệt còn cache HTML cũ. Không dùng CSS thay cho việc xóa khỏi markup.
+- Sửa `hvd-ui-v2.js`: tên và mô tả thương mại chỉ dùng khi **render**. Không được ghi đè `T[i][0]` vì `pdf-local-tools.js` và các module xử lý PDF dispatch bằng đúng tên tác vụ. Đồng thời bảo toàn `data-i` để routing không đổi, thẻ Text chỉ hiển thị một lần ở mục nổi bật.
+- Kiểm tra hồi quy qua `tests/home-layout.test.cjs`: header không có Text CTA, tồn tại thẻ Text đúng nhóm, mã định tuyến và engine key không bị sửa, tìm kiếm nhóm hoạt động. Thêm vào `pages-smoke.yml`.
+- CI [run 38765064531](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38765064531) **success**. Pages deployment tại commit tiếp theo cần chờ kiểm tra.
