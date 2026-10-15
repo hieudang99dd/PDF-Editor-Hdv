@@ -47,7 +47,7 @@ test('standalone page follows reference layout with text inspector on right',()=
  assert.match(css,/order:4/);
  assert.match(css,/\.po-left-col\{display:none!important\}/);
  assert.match(css,/\.po-workspace/);
- assert.match(shell,/po-text-layer/);
+ assert.match(organizer,/po-text-layer/);
  assert.match(shell,/hvd-text-dock/);
  assert.match(shell,/aria-label/);
 });
