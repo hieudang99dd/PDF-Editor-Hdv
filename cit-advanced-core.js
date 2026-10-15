@@ -21,9 +21,17 @@
     assert(PDFLib && PDFLib.PDFDocument, 'Không tìm thấy pdf-lib');
     const arr = uint(bytes);
     assert(arr.length >= 5 && String.fromCharCode(...arr.slice(0,5)) === '%PDF-', 'Đầu vào không phải PDF');
-    // Disallow silently modifying signed documents.
-    const ascii = String.fromCharCode.apply(null, arr.slice(0, Math.min(8192, arr.length)));
-    assert(!ascii.includes('/ByteRange'), 'PDF có thể đã ký số; không tự ý sửa nội dung');
+    // A ByteRange can appear anywhere in a signed PDF, not only near the header.
+    // Fail closed rather than rewriting a digitally signed document.
+    const pattern=[47,66,121,116,101,82,97,110,103,101]; // /ByteRange
+    let signature=false;
+    for(let i=0;i<=arr.length-pattern.length;i++){
+      if(arr[i]!==47)continue;
+      let match=true;
+      for(let j=1;j<pattern.length;j++)if(arr[i+j]!==pattern[j]){match=false;break;}
+      if(match){signature=true;break;}
+    }
+    assert(!signature, 'PDF có thể đã ký số; không tự ý sửa nội dung');
     return PDFLib.PDFDocument.load(arr, { updateMetadata: false });
   }
   function getBox(page) {
