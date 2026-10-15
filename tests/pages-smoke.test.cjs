@@ -13,6 +13,8 @@ test('GitHub Pages homepage includes independent PDF tools and correct asset ord
   assert.match(html, /<script src="pdf-local-tools\.js\?v=[^"]+"><\/script>/);
   assert.match(html, /<script src="organizer\.js\?v=[^"]+"><\/script>/);
   assert.ok(html.indexOf('pdf-lib.min.js') < html.indexOf('pdf-local-tools.js'));
+  assert.match(html, /<script src="pdf-batch-text\.js\?v=[^"]+"><\/script>/);
+  assert.ok(html.indexOf('organizer.js?v=') < html.indexOf('pdf-batch-text.js?v='), 'batch editor must load after organizer');
   for (const [, body] of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) {
     if (body.trim()) new vm.Script(body);
   }
