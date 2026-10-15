@@ -20,7 +20,7 @@ on:
       - 'fonts/**'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -105,6 +105,30 @@ jobs:
           path: cit-upstream/dist/
           retention-days: 7
           if-no-files-found: error
+      - name: Persist original CIT compiled frontend to master for legacy Pages durability
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The repository is currently also published by the legacy master
+          # workflow. Persisting generated assets prevents a subsequent
+          # unrelated commit from reverting the online frontend.
+          mkdir -p cit-native
+          rsync -a --delete cit-upstream/dist/ cit-native/
+          if ! grep -q 'cit-native/edit-pdf-text.html' text-editor.html; then
+            cp text-editor.html text-editor-hdv.html
+          fi
+          cp cit-stage/text-editor.html text-editor.html
+          touch .nojekyll
+          git add -A cit-native text-editor.html text-editor-hdv.html .nojekyll
+          if git diff --cached --quiet; then
+            echo "Original CIT bundle already matches the repository."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit -m "build(cit): vendor exact original CIT-PDF 1.0.0 frontend distribution"
+            git pull --rebase origin master
+            git push origin HEAD:master
+          fi
       - name: Confirm Pages tree contains HVD and CIT original engine
         shell: bash
         run: |
