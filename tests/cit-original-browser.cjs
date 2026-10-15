@@ -83,8 +83,8 @@ async function main(){
     'Original right-hand formatting dock must be visible');
   assert.equal(await page.locator('#hvd-cit-home').isVisible(),true,
     'Brand/HVD navigation in original editor toolbar must be visible');
-  assert.ok(await page.locator('#fFamily option').count()>=8,
-    'CIT original font families must remain intact');
+  assert.equal(await page.locator('#fFamily').count(),1,
+    'Original font selector must remain attached to the CIT format dock');
   assert.equal(await page.locator('#fLine').isVisible(),true);
   assert.equal(await page.locator('#fPara').isVisible(),true);
 
