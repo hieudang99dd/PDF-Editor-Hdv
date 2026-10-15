@@ -17,7 +17,7 @@
     assert(Number.isFinite(n) && n >= min && n <= max, name + ' ngoài khoảng hợp lệ');
     return n;
   }
-  async function loadPDF(PDFLib, bytes) {
+  async function loadPDF(PDFLib, bytes, preventSignedChanges=true) {
     assert(PDFLib && PDFLib.PDFDocument, 'Không tìm thấy pdf-lib');
     const arr = uint(bytes);
     assert(arr.length >= 5 && String.fromCharCode(...arr.slice(0,5)) === '%PDF-', 'Đầu vào không phải PDF');
@@ -31,7 +31,7 @@
       for(let j=1;j<pattern.length;j++)if(arr[i+j]!==pattern[j]){match=false;break;}
       if(match){signature=true;break;}
     }
-    assert(!signature, 'PDF có thể đã ký số; không tự ý sửa nội dung');
+    if(preventSignedChanges)assert(!signature, 'PDF có thể đã ký số; không tự ý sửa nội dung');
     return PDFLib.PDFDocument.load(arr, { updateMetadata: false });
   }
   function getBox(page) {
@@ -68,7 +68,7 @@
   async function execute(PDFLib, action, files, options={}) {
     assert(Array.isArray(files) && files.length, 'Chưa có PDF đầu vào');
     const docs = [];
-    for (const f of files) docs.push(await loadPDF(PDFLib, f.bytes));
+    for (const f of files) docs.push(await loadPDF(PDFLib, f.bytes, action!=='inspect'));
     const doc=docs[0], name=safeStem(files[0].name);
     if (action==='inspect') {
       return {info:fieldInfo(doc),filename:name};
