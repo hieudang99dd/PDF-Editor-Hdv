@@ -1,7 +1,7 @@
 export class NativeTextClient {
     constructor() {
         this.pending=new Map();this.sequence=0;
-        this.worker=new Worker(new URL('./pdf-native-worker.mjs?v=39',import.meta.url),{type:'module'});
+        this.worker=new Worker(new URL('./pdf-native-worker.mjs?v=42',import.meta.url),{type:'module'});
         this.worker.onmessage=({data})=>{
             const task=this.pending.get(data.id);if(!task)return;
             this.pending.delete(data.id);clearTimeout(task.timer);
