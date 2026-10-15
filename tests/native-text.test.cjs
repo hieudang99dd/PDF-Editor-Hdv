@@ -110,3 +110,41 @@ test('wrong coordinates do not replace another occurrence of identical text',asy
     const edit=editFor(run,'SAI VỊ TRÍ');edit.y+=10;
     await assert.rejects(()=>editor.rewrite(bytes,[{pageIndex:0,edits:[edit]}]),/Chưa xác định an toàn/);
 });
+
+test('native rich same-line edit preserves neighboring font runs when safely localized',async()=>{
+    const doc=await PDF.PDFDocument.create();
+    doc.registerFontkit(fontkit);
+    const font=await doc.embedFont(fs.readFileSync(path.resolve(__dirname,'../fonts/Tinos-Regular.ttf')));
+    const bold=await doc.embedFont(fs.readFileSync(path.resolve(__dirname,'../fonts/Tinos-Bold.ttf')));
+    const page=doc.addPage([600,800]);
+    const head='TUYẾN ĐƯỜNG ',tail='KM0+250';
+    const x=60,y=600,size=12;
+    page.drawText(head,{x,y,size,font});
+    page.drawText(tail,{x:x+font.widthOfTextAtSize(head,size),y,size,font:bold});
+    const bytes=await doc.save();
+    const reader=await PDFJS.getDocument({data:bytes.slice(),verbosity:0,fontExtraProperties:true}).promise;
+    let runs;
+    try {
+        const pdfPage=await reader.getPage(1),content=await pdfPage.getTextContent();
+        runs=Layout.group(content.items,content.styles,pdfPage,
+            Layout.analyzeOperators(await pdfPage.getOperatorList(),PDFJS.OPS));
+    }finally{await reader.destroy();}
+    const selected=runs.find(r=>r.text.includes('KM0+250'));
+    assert.ok(selected,'PDF.js must expose the selected styled text');
+    const result=await editor.rewrite(bytes,[{pageIndex:0,
+        edits:[editFor(selected,'KM0+350')]}]);
+    const items=await extract(result.bytes);
+    const text=items.map(i=>i.str).join(' ');
+    assert.ok(text.includes('TUYẾN ĐƯỜNG'),'neighbor text must remain untouched');
+    assert.ok(text.includes('KM0+350'),'new text must be present');
+    assert.ok(!text.includes('KM0+250'),'old text must be replaced, not painted over');
+});
+test('native editor rejects a PDF with a signature ByteRange before processing',async()=>{
+    const {bytes,runs}=await fixture();
+    const marked=new Uint8Array(bytes.length+40);
+    marked.set(bytes);
+    marked.set(Buffer.from('\n/ByteRange [0 1 2 3]\n'),bytes.length);
+    const r=runs.find(run=>run.y===646&&run.text.startsWith('RÃNH'));
+    await assert.rejects(()=>editor.rewrite(marked,[{pageIndex:0,
+        edits:[editFor(r,'CHỮ MỚI')]}]),/chữ ký số/);
+});
