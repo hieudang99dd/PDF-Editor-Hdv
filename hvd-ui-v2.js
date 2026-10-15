@@ -25,11 +25,13 @@ const renderCatalog=()=>{
  const chips=document.querySelector('#chips');
  chips.innerHTML=cats.map(c=>'<button class="chip '+(c===cat?'on':'')+'" data-c="'+c+'" aria-pressed="'+(c===cat)+'">'+c+'</button>').join('');
  const groups=[];
- if(cat==='Tất cả'&&!term)groups.push(['Công cụ thường dùng',featured.map(n=>T.findIndex(t=>t[0]===n)).filter(i=>i>=0)]);
+ const featuredIndices=cat==='Tất cả'&&!term?featured.map(n=>T.findIndex(t=>t[0]===n)).filter(i=>i>=0):[];
+ if(featuredIndices.length)groups.push(['Công cụ thường dùng',featuredIndices]);
  for(const c of Object.keys(C)){
    if(cat!=='Tất cả'&&cat!==c)continue;
    const indices=T.map((t,i)=>({t,i})).filter(({t})=>t[2]===c&&(t[0]+' '+t[1]).toLocaleLowerCase('vi').includes(term)).map(x=>x.i);
-   if(indices.length)groups.push([c,indices]);
+   const filtered=cat==='Tất cả'&&!term?indices.filter(i=>!featuredIndices.includes(i)):indices;
+   if(filtered.length)groups.push([c,filtered]);
  }
  const iconText=t=>String(t[3]).replace(/[&<>"]/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[x]));
  const status=t=>originalSoon(t)?['Sắp phát triển','is-soon']:localNames.has(t[0])?['Cần ứng dụng PC','is-local']:['Trình duyệt','is-web'];
