@@ -49,7 +49,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Đã thay công cụ Cắt lề PDF (trước đó chỉ dẫn sang organizer) bằng engine CropBox. Có cảnh báo rõ: CropBox không phải xóa dữ liệu.
 - Đã đổi diễn giải chức năng che nền, chữ ký dạng ảnh và làm phẳng form để không nhận nhầm thành redaction, chữ ký số hay xử lý mọi annotation.
 - Đã bổ sung các test thực: tests/cit-advanced.test.cjs, tests/cit-advanced-ui.test.cjs. Bao gồm trang trắng N-up, Unicode metadata, crop theo mm, annotations, overlay, rotation, signature ByteRange và tải file browser.
-- Workflow .github/workflows/pages-smoke.yml gọi tests/pages-smoke.test.cjs cùng hai test mới, tổng 30 bài Node đã đạt.
+- Workflow .github/workflows/pages-smoke.yml gọi tests/pages-smoke.test.cjs cùng hai test mới, tổng 31 bài Node đã đạt.
 - Ghi nhận AGPL-3.0 và tài liệu xác minh tại CIT-ADVANCED-INTEGRATION.md.
 - Chưa triển khai hoặc chưa hoàn thiện: qpdf/ Ghostscript, PPT/Office WASM browser, OCR trình duyệt, PDF/A validator, sửa đoạn văn phức tạp, secure redaction, cryptographic signing/validation, full flatten annotation, toàn bộ các trang công cụ CIT.
 - Chỉ đóng dấu “hoàn thành” cho module có mã, đường đi UI, xuất PDF thật, kiểm thử PDF thật; không đánh đồng trang công cụ với thuật toán đã tích hợp.
+
+### Quality gate: ngăn tính năng chia sẻ giả
+
+- Bỏ chế độ giả lập "PDF sang QR" từng tạo đường dẫn không có thật `pdfhub.local`; đánh nhãn chưa hỗ trợ khi chưa có máy chủ chia sẻ thật.
+- Trình duyệt không tải tài liệu lên server chỉ bằng thao tác tạo mã QR; không sử dụng QR để hàm ý chia sẻ thực.
