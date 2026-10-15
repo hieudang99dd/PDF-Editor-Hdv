@@ -96,3 +96,11 @@ test('CIT N-up 4 combines four pages',async()=>{
 test('CIT rejects invalid PDF data safely',async()=>{
  await assert.rejects(run('inspect',{name:'bad.pdf',bytes:new Uint8Array([0,1,2])}),/không phải PDF/);
 });
+
+test('CIT blocks signature ByteRange found at end of PDF',async()=>{
+ const source=await fixture([200]);
+ const marked=new Uint8Array(source.bytes.length+80);
+ marked.set(source.bytes);
+ marked.set(Buffer.from('\n/ByteRange [0 1 2 3]\n'),source.bytes.length);
+ await assert.rejects(run('reverse',{name:'signed.pdf',bytes:marked}),/ký số/);
+});
