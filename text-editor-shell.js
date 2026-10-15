@@ -38,7 +38,7 @@
     const fileButton=addButton('▤ Mở PDF','po-tool-btn','hdv-open-pdf','Mở tài liệu PDF khác');
     fileButton.style.cssText='color:#eff6f5;background:#3a3e42;border:1px solid #4c5256;margin-right:4px';
     const batch=container.querySelector('#po-tb-batch-text');
-    const batchButton=addButton('☷ Sửa nhiều dòng','po-tool-btn','hdv-edit-lines','Sửa nhiều vùng văn bản bằng một giao dịch CIT');
+    const batchButton=addButton('☷ Sửa nhiều dòng','po-tool-btn','hdv-edit-lines','Sửa nhiều vùng văn bản trong một lần áp dụng');
     batchButton.style.cssText=fileButton.style.cssText;
     if(hActions){
       hActions.prepend(batchButton);
@@ -48,7 +48,7 @@
     fileButton.onclick=()=>$('#hdv-text-file-picker').click();
     batchButton.onclick=()=>{if(typeof org.openCITBatchText==='function')org.openCITBatchText();};
     const topTitle=document.createElement('span');
-    topTitle.className='hdv-engine-title';topTitle.textContent='CIT PDFium WASM';
+    topTitle.className='hdv-engine-title';topTitle.textContent='PDF HVD TEXT';
     topTitle.style.cssText='font-size:10px;color:#11c8b7;margin-left:5px';
     header?.append(topTitle);
 
@@ -58,7 +58,7 @@
     dock.innerHTML='<button id="hdv-dock-mobile" class="hdv-mobile-toggle" style="display:none">ĐỊNH DẠNG</button>'+
       '<div class="hdv-dock-section">'+
       '<h2>⚙ Định dạng</h2>'+
-      '<span class="hdv-engine-title">CIT NATIVE TEXT ENGINE</span>'+
+      '<span class="hdv-engine-title">BỘ BIÊN TẬP VĂN BẢN PDF</span>'+
       '<span class="hdv-dock-label">Vùng văn bản đang chọn</span>'+
       '<textarea id="hdv-text-value" aria-label="Sửa nội dung vùng chữ PDF" placeholder="Nhấp một vùng chữ trên PDF để chỉnh sửa" disabled spellcheck="false"></textarea>'+
       '<div class="hdv-dock-row" style="margin-top:9px">'+
@@ -90,7 +90,7 @@
       '<select id="hdv-text-overflow" disabled>'+
       '<option value="reject">Không cho vượt ô / khung</option>'+
       '<option value="shrink">Thu nhỏ để vừa (tối đa 40%)</option></select>'+
-      '<p class="hdv-note">Khác chế độ reflow tự do của CIT: bản CAD được cố định baseline, biên ô và đường vector.</p>'+
+      '<p class="hdv-note">Tài liệu CAD giữ nguyên baseline, đường biên ô và đường vector.</p>'+
       '</div>'+
       '<div class="hdv-dock-section">'+
       '<h2>Thông tin vùng chữ</h2>'+
