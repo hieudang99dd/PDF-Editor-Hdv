@@ -15,7 +15,7 @@ Nguồn: Cuongyd196/cit-pdf, tag 1.0.0, commit 3c9c138d980a417de7439f383f37882a1
 - backend/main.py: FastAPI localhost, API capabilities, PDF → TXT/DOCX/TIFF, Office → PDF, OCR tiếng Việt/Anh → TXT/PDF có chữ, nén không làm tăng file. Giới hạn input/trang, hạn chế CORS, xóa thư mục tạm.
 - pdf-local-tools.js: kết nối giao diện với engine localhost, thông báo lỗi và download thật, thêm TXT/TIFF.
 - index.html: nạp module cục bộ, sửa nhãn, giải thích khác biệt browser/localhost.
-- tests/test_local_backend.py: 9 bài test đã đạt gồm DOCX → PDF thật. OCR tiếng Anh đã kiểm chứng thực tế trả TXT/PDF tìm kiếm được.
+- tests/test_local_backend.py: 9 bài test Python đã đạt gồm DOCX → PDF thật. tests/local-bridge.test.cjs: 3 bài test JavaScript đã đạt, kiểm chứng route, request và download. OCR tiếng Anh đã kiểm chứng thực tế trả TXT/PDF tìm kiếm được.
 - backend/README.md: cách chạy, API, giới hạn.
 - Commits: 6296d35, e53fa29, 1a8835f, 57c1c98, fb9cb3a (và tài liệu tiếp theo).
 
