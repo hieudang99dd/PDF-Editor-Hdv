@@ -60,7 +60,7 @@ class TestPDFHVDBranding(unittest.TestCase):
         self.assertEqual(two.count('hvd-hub.js'), 1)
         self.assertEqual(two.count('hvd-hub.css'), 1)
         self.assertEqual(two.count('hvd-site.webmanifest'), 1)
-        self.assertEqual(two.count('hvd-mark.svg'), 4)
+        self.assertEqual(two.count('hvd-mark.svg'), 3)
 
 if __name__ == "__main__":
     unittest.main()
