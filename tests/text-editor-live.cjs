@@ -54,7 +54,7 @@ async function main(){
   page.on('console',m=>{if(m.type()==='error')errors.push('console: '+m.text());});
   const url='http://127.0.0.1:'+server.address().port+'/text-editor.html';
   await page.goto(url,{waitUntil:'domcontentloaded'});
-  await page.locator('#hdv-text-dock').waitFor({timeout:20000});
+  await page.locator('#hdv-text-dock').waitFor({state:'attached',timeout:20000});
   assert.equal(await page.title(),'Chỉnh sửa Text PDF – PDF HVD × CIT');
   const file=await fixture();
   await page.locator('#hdv-text-file-picker').setInputFiles(file);
