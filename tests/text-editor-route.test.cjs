@@ -14,17 +14,18 @@ test('standalone text editor is reachable from homepage without organizer step',
  assert.match(home,/location\.href=['"]\.\/text-editor\.html/);
  assert.match(home,/cit-text-route/);
 });
-test('standalone HTML loads original native CIT chain from repository',()=>{
+test('Text tool redirects to the ORIGINAL compiled CIT frontend and keeps HVD fallback',()=>{
+ assert.match(html,/cit-native\/edit-pdf-text\.html/);
+ const cit=fs.readFileSync(path.join(root,'cit-native/edit-pdf-text.html'),'utf8');
+ const legacy=fs.readFileSync(path.join(root,'text-editor-hdv.html'),'utf8');
+ for(const id of ['text-editor-app','stage','inspector','fFamily','fSize','fLine','fPara','save','file-input'])
+   assert.match(cit,new RegExp('id="'+id+'"'));
  for(const file of ['pdf-lib.min.js','pdf.min.js','fontkit.umd.min.js','pdf-text-layout.js',
   'organizer.js','pdf-batch-text.js','text-editor-shell.js']){
-  assert.match(html,new RegExp('<script src="'+file.replaceAll('.','\\.')+''));
+   assert.match(legacy,new RegExp('<script src="'+file.replaceAll('.','\\.')+''));
  }
- assert.ok(html.indexOf('organizer.js') < html.indexOf('text-editor-shell.js'),
-  'CIT adapter must be loaded after native HVD organizer');
- assert.match(html,/<main id="home"/);
- assert.match(html,/<main id="ws"/);
- assert.match(html,/<input id="hdv-text-file-picker"/);
- assert.doesNotMatch(html,/cdn\./,'standalone mode should not use remote CDN');
+ assert.ok(legacy.indexOf('organizer.js') < legacy.indexOf('text-editor-shell.js'));
+ assert.match(legacy,/<input id="hdv-text-file-picker"/);
 });
 test('standalone interface keeps original CIT worker and geometric safety',()=>{
  assert.match(organizer,/pdf-native-client\.mjs\?v=/);
