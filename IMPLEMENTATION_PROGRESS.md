@@ -151,3 +151,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Sửa `hvd-ui-v2.js`: tên và mô tả thương mại chỉ dùng khi **render**. Không được ghi đè `T[i][0]` vì `pdf-local-tools.js` và các module xử lý PDF dispatch bằng đúng tên tác vụ. Đồng thời bảo toàn `data-i` để routing không đổi, thẻ Text chỉ hiển thị một lần ở mục nổi bật.
 - Kiểm tra hồi quy qua `tests/home-layout.test.cjs`: header không có Text CTA, tồn tại thẻ Text đúng nhóm, mã định tuyến và engine key không bị sửa, tìm kiếm nhóm hoạt động. Thêm vào `pages-smoke.yml`.
 - CI [run 38765064531](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38765064531) **success**. Pages deployment tại commit tiếp theo cần chờ kiểm tra.
+
+## 2026-10-15 — Loại bỏ footer chữ dài trên trang chủ, giữ thông báo giấy phép theo yêu cầu
+
+- Đã xóa hẳn `<footer>` chứa mô tả kỹ thuật, "Mã nguồn", "AGPL-3.0", "Ghi nhận tác giả" khỏi `<main id="home">`; không chỉ dùng `display:none` để che nội dung.
+- Giao diện chính chỉ hiển thị nút thông tin nhỏ **ⓘ** ở header. Mở khi được nhấn, hiển thị một `<dialog>` gọn gàng và có thể đóng bằng nút ×, Escape hoặc click nền.
+- Đảm bảo nghĩa vụ nguồn mở: popup vẫn cung cấp thông báo bản quyền (BentoPDF Contributors, Cường IT), điều khoản không bảo hành, link `LICENSE`, `NOTICE.md` và repository chứa mã nguồn/thay đổi. Files pháp lý không bị sửa/xóa.
+- Mã mới: `hvd-legal.js`; CSS bổ sung trong `hvd-ui-v2.css`; HTML chỉ sửa `index.html`, không động đến engine PDF.
+- Bổ sung hồi quy `tests/home-legal.test.cjs` vào workflow `pages-smoke.yml`. Phải xác nhận kiểm thử và GitHub Pages CI trước khi báo đã lên trang công khai.
