@@ -37,7 +37,7 @@ const renderCatalog=()=>{
  const status=t=>originalSoon(t)?['Sắp phát triển','is-soon']:localNames.has(t[0])?['Cần ứng dụng PC','is-local']:['Trình duyệt','is-web'];
  const html=groups.map(([name,ids])=>'<section class="catalog-group"><h2 class="cat">'+name+'</h2><div class="grid">'+ids.map(i=>{
    const t=T[i],st=status(t),soon=st[1]==='is-soon';
-   return '<button type="button" class="tool '+(soon?'is-soon':'')+'" data-i="'+i+'"'+(soon?' disabled title="Chức năng chưa khả dụng"':'')+'><div class="ic" style="background:'+C[t[2]]+'">'+iconText(t)+'</div><div class="tool-body"><b>'+t[0]+'</b><span>'+t[1]+'</span></div><span class="tool-status '+st[1]+'">'+st[0]+'</span></button>';
+   return '<button type="button" class="tool '+(soon?'is-soon':'')+(t[4]==='cit-text-route'?' is-primary':'')+'" data-i="'+i+'"'+(soon?' disabled title="Chức năng chưa khả dụng"':'')+'><div class="ic" style="background:'+C[t[2]]+'">'+iconText(t)+'</div><div class="tool-body"><b>'+t[0]+'</b><span>'+t[1]+'</span></div><span class="tool-status '+st[1]+'">'+st[0]+'</span></button>';
  }).join('')+'</div></section>').join('');
  document.querySelector('#tools').innerHTML=html||'<p role="status" style="color:var(--mute)">Không tìm thấy công cụ phù hợp. Hãy thử từ khóa khác.</p>';
 };
