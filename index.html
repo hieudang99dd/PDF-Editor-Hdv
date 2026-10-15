@@ -1,1037 +1,663 @@
 <!DOCTYPE html>
-<html lang="vi" class="dark">
+<html lang="vi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PDF Editor HDV v3.0 — Không Gian Xử Lý PDF & Hồ Sơ Kỹ Thuật Civil 3D</title>
-  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif']
-          }
-        }
-      }
-    };
-  </script>
-  <style>
-    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-    .glass-panel {
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-    }
-    .canvas-grid {
-      background-size: 20px 20px;
-      background-image:
-        linear-gradient(to right, rgba(148, 163, 184, 0.12) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
-    }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PDF HVD – Công cụ PDF và trình chỉnh sửa văn bản</title>
+<style>
+:root{--bg:#f6f7fb;--card:#fff;--ink:#1a1f36;--mute:#667085;--line:#e1e5ee;--acc:#e8453c;--accs:#fdeceb;--navy:#1a1f36;--ok:#1f9d55;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1220;--card:#181c2f;--ink:#eceef8;--mute:#9aa1bd;--line:#2a3050;--acc:#ff6a61;--accs:#3a1f27;--navy:#090b16}}
+:root[data-theme="dark"]{--bg:#0f1220;--card:#181c2f;--ink:#eceef8;--mute:#9aa1bd;--line:#2a3050;--acc:#ff6a61;--accs:#3a1f27;--navy:#090b16}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Be Vietnam Pro","Segoe UI",system-ui,sans-serif}
+button,input,select{font:inherit;color:inherit}button{cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+header{background:var(--navy);color:#fff;display:flex;align-items:center;gap:20px;padding:12px 5vw;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+header .logo{font-weight:800;font-size:19px;cursor:pointer;background:none;border:0;color:#fff;padding:0}
+header nav{display:flex;gap:4px;flex:1;overflow-x:auto}
+header nav button{background:none;border:0;color:#cfd3e6;padding:6px 10px;border-radius:6px;white-space:nowrap}header nav button:hover{background:#ffffff1a;color:#fff}
+.btn{border:0;border-radius:8px;padding:9px 16px;font-weight:600;background:var(--acc);color:#fff}.btn:hover{filter:brightness(1.08)}
+.btn.g{background:none;border:1px solid var(--line);color:var(--ink)}
+.hero{padding:72px 5vw 40px;max-width:1100px;margin:auto;text-align:center;display:flex;flex-direction:column;align-items:center}
+.hero h1{font-size:clamp(32px,5vw,52px);line-height:1.2;margin:0 0 16px;max-width:800px;letter-spacing:-0.02em}
+.hero p{color:var(--mute);margin:0 0 32px;max-width:600px;font-size:16px}
+.search{display:flex;gap:8px;width:100%;max-width:640px}.search input{flex:1;padding:14px 20px;border:1px solid var(--line);border-radius:12px;background:var(--card);font-size:16px;box-shadow:0 4px 24px rgba(0,0,0,0.04);transition:border-color .2s}
+.wrap{max-width:1200px;margin:auto;padding:0 5vw 64px}
+.chips{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin:8px 0 32px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:24px;padding:8px 18px;color:var(--mute);transition:all .2s;font-weight:500}.chip:hover{background:var(--line);color:var(--ink)}.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+h2.cat{font-size:20px;margin:32px 0 16px;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.tool{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;text-align:left;display:flex;gap:16px;align-items:flex-start;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,0.02)}
+.tool:hover{border-color:var(--acc);box-shadow:0 6px 16px rgba(0,0,0,0.06);transform:translateY(-2px)}
+.ic{flex:none;width:44px;height:44px;border-radius:10px;display:grid;place-items:center;font-weight:700;color:#fff;font-size:16px}
+.tool b{display:block;font-size:15px;margin-bottom:4px;color:var(--ink)}.tool span{color:var(--mute);font-size:13px;line-height:1.4;display:block}
+
+footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
+/* workspace */
+#ws{display:none;max-width:860px;margin:auto;padding:28px 5vw 48px}
+.back{background:none;border:0;color:var(--mute);padding:0;margin-bottom:12px}
+#ws h1{margin:0 0 4px;font-size:28px}#ws .d{color:var(--mute);margin:0 0 18px}
+.drop{border:2px dashed var(--line);border-radius:12px;background:var(--card);padding:40px 20px;text-align:center}
+.drop.hov{border-color:var(--acc);background:var(--accs)}.drop p{margin:8px 0 0;color:var(--mute);font-size:13px}
+.files{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px}
+.files li{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+.files .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.files .s{color:var(--mute);font-size:12px}
+.files button{background:none;border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+.opts{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin:14px 0;display:grid;gap:12px}
+.opts label{display:grid;gap:4px;font-size:13px;color:var(--mute)}
+.opts input[type=text],.opts input[type=password],.opts select{padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+.opts .r{display:flex;gap:14px;flex-wrap:wrap}.opts .r label{display:flex;gap:6px;align-items:center;color:var(--ink)}
+#cv{width:100%;height:150px;border:1px solid var(--line);border-radius:8px;background:#fff;touch-action:none;cursor:crosshair}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:14px 0 6px}.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .15s}
+.res{background:var(--card);border:1px solid var(--ok);border-radius:10px;padding:16px;margin-top:14px}
+.res b{color:var(--ok)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}#toast.on{opacity:1}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<link rel="stylesheet" href="hvd-ui-v2.css?v=20261015-1">
 </head>
-<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 min-h-screen flex flex-col transition-colors duration-200">
+<body>
+<header>
+  <button class="logo" id="logo">PDF HVD</button>
+  <nav id="nav"></nav>
+  <button type="button" class="hvd-info-toggle" id="hvd-legal-toggle" aria-label="Thông tin và giấy phép" title="Thông tin & giấy phép" aria-haspopup="dialog" aria-controls="hvd-legal-dialog">ⓘ</button>
+  <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
+  <button class="btn" id="refresh-app" style="background:#4a5568">Làm mới</button>
+</header>
 
-  <!-- TOP NAVIGATION BAR -->
-  <header class="sticky top-0 z-30 border-b border-slate-200/80 dark:border-slate-800/80 bg-white/90 dark:bg-slate-900/90 glass-panel">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-3">
-      <div class="flex items-center gap-3 min-w-0">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white font-bold shadow-md shadow-blue-600/20 shrink-0">
-          HDV
-        </div>
-        <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <h1 class="font-bold text-base sm:text-lg tracking-tight truncate">PDF Editor HDV</h1>
-            <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-300 border border-blue-200 dark:border-blue-500/30">v3.0 Studio</span>
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 truncate">PDFium WASM Native Stream + FastAPI Local Engine • AGPL-3.0</p>
-        </div>
-      </div>
-
-      <!-- Desktop Navigation Tabs -->
-      <nav class="hidden lg:flex items-center gap-1 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/90 border border-slate-200/70 dark:border-slate-700/70" aria-label="Workspace Views">
-        <button type="button" data-nav-tab="dashboard" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm">
-          Bảng công cụ (16)
-        </button>
-        <button type="button" data-nav-tab="native-editor" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
-          Sửa Text Native (WASM)
-        </button>
-        <button type="button" data-nav-tab="local-engine" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
-          Local Engine & Thuật toán
-        </button>
-        <button type="button" data-nav-tab="repo-cleanup" class="nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white">
-          Tài liệu Gộp & Dọn Repo
-        </button>
-      </nav>
-
-      <!-- Right Status & Theme Controls -->
-      <div class="flex items-center gap-2 shrink-0">
-        <button type="button" id="btn-engine-status" class="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium border border-amber-300/80 dark:border-amber-500/40 bg-amber-50/90 dark:bg-amber-500/10 text-amber-800 dark:text-amber-300 hover:opacity-90 transition" title="Nhấn để kiểm tra hoặc chuyển đổi chế độ mô phỏng Local Engine">
-          <span id="engine-dot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-          <span id="engine-label" class="hidden sm:inline">Browser Fallback</span>
-        </button>
-
-        <button type="button" id="btn-theme-toggle" class="p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition" title="Chuyển đổi giao diện Sáng / Tối">
-          <span id="theme-icon-label" class="text-xs font-semibold px-1">Sáng/Tối</span>
-        </button>
-
-        <button type="button" id="btn-mobile-menu" class="lg:hidden p-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200">
-          <span class="text-xs font-bold">Menu</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Mobile Navigation Drawer -->
-    <div id="mobile-nav-drawer" class="hidden lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5">
-      <div class="grid grid-cols-2 gap-1.5">
-        <button type="button" data-nav-tab="dashboard" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-semibold text-left bg-blue-50 dark:bg-slate-800 text-blue-600 dark:text-blue-400">1. Bảng công cụ (16)</button>
-        <button type="button" data-nav-tab="native-editor" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-semibold text-left text-slate-600 dark:text-slate-300">2. Sửa Text Native</button>
-        <button type="button" data-nav-tab="local-engine" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-semibold text-left text-slate-600 dark:text-slate-300">3. Local Engine</button>
-        <button type="button" data-nav-tab="repo-cleanup" class="nav-tab-btn px-3 py-2 rounded-lg text-xs font-semibold text-left text-slate-600 dark:text-slate-300">4. Tài liệu & Dọn Repo</button>
-      </div>
-    </div>
-  </header>
-
-  <!-- ACTIVE FILE WORKSPACE BANNER -->
-  <section class="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 text-white border-b border-slate-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-      <div class="flex items-start sm:items-center gap-3.5">
-        <div class="w-11 h-11 rounded-2xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 font-bold text-sm shrink-0">
-          PDF
-        </div>
-        <div>
-          <div class="flex flex-wrap items-center gap-2">
-            <span id="active-file-name" class="font-semibold text-sm sm:text-base">Chưa nạp tệp PDF (Sẵn sàng tạo bản vẽ mẫu Civil 3D)</span>
-            <span id="active-file-meta" class="px-2 py-0.5 text-[11px] rounded-md bg-slate-800 text-slate-300 border border-slate-700">0 trang • 0 KB</span>
-            <span id="active-sig-badge" class="hidden px-2 py-0.5 text-[11px] rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Chưa ký số (/ByteRange Sẵn sàng)</span>
-          </div>
-          <p class="text-xs text-slate-300 mt-0.5">
-            Tải tệp PDF/Office từ máy của bạn hoặc nhấn <strong>"Tạo Bản Vẽ Mẫu Civil 3D (4 Trang)"</strong> để chạy thử trực tiếp mọi thuật toán ngay trên trình duyệt.
-          </p>
-        </div>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-2 shrink-0">
-        <label for="pdf-file-input" class="cursor-pointer px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition shadow-sm">
-          + Chọn Tệp PDF / Office
-        </label>
-        <input id="pdf-file-input" type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" class="hidden" />
-        <button type="button" id="btn-generate-sample" class="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-blue-200 border border-slate-700 font-semibold text-xs transition">
-          Tạo Bản Vẽ Mẫu Civil 3D (4 Trang)
-        </button>
-        <button type="button" id="btn-download-current" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition disabled:opacity-40" disabled>
-          Tải PDF Kết Quả
-        </button>
-      </div>
-    </div>
+<main id="home">
+  <section class="hero">
+    <h1>Xử lý PDF dễ hơn, chỉ vài thao tác.</h1>
+    <p>Nén, chuyển đổi, ghép, chỉnh sửa và ký tài liệu. Các công cụ cơ bản chạy trên web; OCR và Office cần engine cục bộ trên PC.</p>
+    <div class="search"><input id="q" type="search" placeholder="Tìm công cụ, ví dụ: nén, Word, ký…" aria-label="Tìm công cụ"></div>
   </section>
+  <div class="wrap"><div class="chips" id="chips"></div><div id="tools"></div></div>
 
-  <!-- MAIN CONTENT CONTAINER -->
-  <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 flex-1">
+  
+</main>
 
-    <!-- VIEW 1: DASHBOARD & 16 TOOLS -->
-    <section id="view-dashboard" class="space-y-6">
-      <!-- Search & Filter Bar -->
-      <div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-        <div class="relative flex-1">
-          <input id="tool-search-input" type="text" placeholder="Tìm nhanh công cụ (VD: N-Up, Booklet, Bates, OCR Vector, DOCX, Xoay nghiêng...)" class="w-full pl-3.5 pr-20 py-2 rounded-xl text-xs sm:text-sm bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-          <span id="tool-count-badge" class="absolute right-2.5 top-1/2 -translate-y-1/2 px-2 py-0.5 text-[11px] font-semibold rounded-md bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">16 công cụ</span>
-        </div>
-
-        <div class="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0" id="category-chips">
-          <button type="button" data-cat="all" class="cat-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 text-white shrink-0">Tất cả (16)</button>
-          <button type="button" data-cat="edit" class="cat-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">Chỉnh sửa & Trang (5)</button>
-          <button type="button" data-cat="cad" class="cat-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">Kỹ thuật Civil 3D & CAD (5)</button>
-          <button type="button" data-cat="local" class="cat-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">Local Engine & OCR (4)</button>
-          <button type="button" data-cat="security" class="cat-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0">Bảo mật & Metadata (2)</button>
-        </div>
-      </div>
-
-      <!-- Tools Grid -->
-      <div id="tools-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"></div>
-    </section>
-
-    <!-- VIEW 2: NATIVE PDF TEXT WORKSPACE (WASM) -->
-    <section id="view-native-editor" class="hidden space-y-5">
-      <div class="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 class="font-bold text-base">Không Gian Chỉnh Sửa Văn Bản Nguyên Bản (CIT PDFium WASM Stream)</h2>
-          <p class="text-xs text-slate-500 dark:text-slate-400">Can thiệp trực tiếp đối tượng chữ trên trang PDF • Khóa đường cơ sở (Baseline Pinning) • Bảo vệ khung bảng biểu & Font Type3</p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" id="btn-native-undo" class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-40" disabled>Hoàn tác (Undo)</button>
-          <button type="button" id="btn-native-redo" class="px-3 py-1.5 rounded-xl text-xs font-semibold border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 disabled:opacity-40" disabled>Làm lại (Redo)</button>
-          <button type="button" id="btn-batch-replace-open" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white">Sửa Hàng Loạt (Batch Text)</button>
-          <button type="button" id="btn-commit-native-pdf" class="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white">Commit vào Luồng PDF & Tải về</button>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- Interactive Vector Blueprint / Page Canvas -->
-        <div class="lg:col-span-8 bg-slate-100 dark:bg-slate-900/70 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 sm:p-6 canvas-grid flex flex-col items-center">
-          <div class="w-full max-w-2xl bg-white text-slate-900 rounded-xl shadow-lg border border-slate-300 p-6 space-y-4 relative">
-            <div class="flex items-center justify-between border-b-2 border-slate-800 pb-3">
-              <div>
-                <span class="text-[10px] font-bold uppercase tracking-wider text-blue-700">BẢN VẼ KỸ THUẬT CIVIL 3D • TRANG 1 / 4</span>
-                <div id="canvas-blocks-container" class="space-y-2.5 mt-2"></div>
-              </div>
-              <div class="text-right text-[11px] text-slate-600 border border-slate-400 p-2 rounded bg-slate-50">
-                <div class="font-bold text-slate-800">KHUNG TÊN HỒ SƠ HDV</div>
-                <div>Tỷ lệ: 1:500 • Khổ A3</div>
-                <div>Trạng thái Vector: Nguyên vẹn</div>
-              </div>
-            </div>
-
-            <!-- Simulated CAD Cross-Section Vector Graphic -->
-            <div class="border border-slate-300 rounded-lg p-3 bg-slate-50">
-              <div class="text-[11px] font-semibold text-slate-600 mb-1">Mặt cắt ngang thiết kế nền đường (Vector Path Layer - Không bị Rasterize):</div>
-              <svg viewBox="0 0 600 110" class="w-full h-24 stroke-blue-700" fill="none">
-                <line x1="20" y1="90" x2="580" y2="90" stroke="#94a3b8" stroke-width="1" stroke-dasharray="4 4" />
-                <polyline points="30,85 130,35 290,35 300,42 310,35 470,35 570,85" stroke="#1d4ed8" stroke-width="2.5" fill="rgba(59,130,246,0.08)" />
-                <line x1="300" y1="15" x2="300" y2="98" stroke="#dc2626" stroke-width="1.5" stroke-dasharray="3 3" />
-                <text x="255" y="25" fill="#dc2626" font-size="10" font-weight="bold">TIM TUYẾN KM0+200</text>
-                <text x="175" y="55" fill="#1e3a8a" font-size="10">Mặt đường BTN C19 (I = 2.0%)</text>
-                <text x="355" y="55" fill="#1e3a8a" font-size="10">Lề gia cố (I = 4.0%)</text>
-              </svg>
-            </div>
-            <p class="text-[11px] text-slate-500">Mẹo: Nhấp vào bất kỳ dòng văn bản nào phía trên để chỉnh sửa ở bảng điều khiển bên phải với chế độ khóa Baseline.</p>
-          </div>
-        </div>
-
-        <!-- Right Dock Formatting Inspector -->
-        <div class="lg:col-span-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 space-y-4">
-          <div class="border-b border-slate-200 dark:border-slate-800 pb-3">
-            <h3 class="font-bold text-sm">Bảng Thuộc Tính Dòng Văn Bản (Right Dock)</h3>
-            <p class="text-xs text-slate-500 dark:text-slate-400">Mô-đun: <code class="text-blue-600 dark:text-blue-400">pdf-native-text.mjs</code></p>
-          </div>
-
-          <div class="space-y-3">
-            <div>
-              <label class="block text-xs font-semibold mb-1">Nội dung dòng đang chọn</label>
-              <input id="inspector-text-input" type="text" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
-            </div>
-
-            <div class="grid grid-cols-2 gap-2.5">
-              <div>
-                <label class="block text-xs font-semibold mb-1">Phông chữ gốc</label>
-                <select id="inspector-font-select" class="w-full px-2.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                  <option value="Helvetica-Bold">Helvetica-Bold (Chuẩn PDF)</option>
-                  <option value="Helvetica">Helvetica Regular</option>
-                  <option value="Times-Roman">Times-Roman</option>
-                  <option value="Courier">Courier CAD Mono</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold mb-1">Cỡ chữ (pt)</label>
-                <input id="inspector-size-input" type="number" min="6" max="48" value="13" class="w-full px-2.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
-              </div>
-            </div>
-
-            <div class="space-y-2 pt-1">
-              <label class="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                <span>Khóa đường cơ sở (Pin Baseline Y)</span>
-                <input id="chk-pin-baseline" type="checkbox" checked class="rounded text-blue-600" />
-              </label>
-              <label class="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
-                <span>Bảo toàn khung bảng (Table Bounds Guard)</span>
-                <input id="chk-table-guard" type="checkbox" checked class="rounded text-blue-600" />
-              </label>
-            </div>
-
-            <button type="button" id="btn-apply-line-edit" class="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition">
-              Áp Dụng Sửa Dòng (Atomic Commit)
-            </button>
-          </div>
-
-          <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
-            <h4 class="text-xs font-bold mb-2">Nhật ký Giao dịch Stream (Undo/Redo Stack)</h4>
-            <div id="native-history-log" class="space-y-1.5 max-h-40 overflow-y-auto text-[11px] text-slate-600 dark:text-slate-400"></div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 3: LOCAL ENGINE & OPTIMIZED ALGORITHMS -->
-    <section id="view-local-engine" class="hidden space-y-6">
-      <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2">
-            <h2 class="font-bold text-base sm:text-lg">Trạng Thái Máy Chủ Cục Bộ (FastAPI Local Engine `127.0.0.1:8000`)</h2>
-            <span id="local-engine-pill" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">Chế độ Trình duyệt Dự phòng</span>
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Mọi tác vụ Office, OCR Tiếng Việt và Nén sâu đều chạy trên máy người dùng (`backend/main.py` v3.0). Bạn có thể kiểm tra kết nối thật hoặc bật chế độ Mô phỏng Online để trải nghiệm luồng xử lý.
-          </p>
-        </div>
-        <div class="flex flex-wrap items-center gap-2 shrink-0">
-          <button type="button" id="btn-ping-backend" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold">
-            Kiểm Tra `/api/capabilities`
-          </button>
-          <button type="button" id="btn-toggle-sim-online" class="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold border border-slate-300 dark:border-slate-700">
-            Bật/Tắt Mô Phỏng Local Engine Online
-          </button>
-        </div>
-      </div>
-
-      <!-- 4 Upgraded Algorithms Comparison Cards -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">Thuật toán 1 • backend/main.py</span>
-            <span class="px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">Đã tối ưu v3.0</span>
-          </div>
-          <h3 class="font-bold text-sm">Chuyển đổi `PDF → DOCX` Giữ Nguyên Bố Cục (`_pdf_to_docx`)</h3>
-          <p class="text-xs text-slate-600 dark:text-slate-400">
-            Khắc phục triệt để hạn chế chỉ xuất chữ thô của bản cũ: tích hợp song song `pdf2docx` và bộ phân tích `page.find_tables()` + `page.get_text("dict")` của PyMuPDF để khôi phục bảng biểu Word (`Table Grid`), hình ảnh nhúng, cỡ chữ, in đậm/nghiêng, màu RGB và căn lề đoạn văn.
-          </p>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">Thuật toán 2 • backend/main.py</span>
-            <span class="px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">Đã tối ưu v3.0</span>
-          </div>
-          <h3 class="font-bold text-sm">OCR Tiếng Việt Bảo Toàn Vector CAD (`_ocr_pdf` `render_mode=3`)</h3>
-          <p class="text-xs text-slate-600 dark:text-slate-400">
-            Thay vì biến toàn bộ bản vẽ thành ảnh phẳng làm vỡ nét thiết kế, thuật toán mới trích xuất tọa độ từ bằng `pytesseract.image_to_data` trên đa luồng (`ThreadPoolExecutor`) và chèn lớp chữ vô hình (`render_mode=3`) trực tiếp lên trang vector gốc.
-          </p>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Thuật toán 3 • backend/main.py</span>
-            <span class="px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">Đã tối ưu v3.0</span>
-          </div>
-          <h3 class="font-bold text-sm">Nén PDF Đa Tầng & Bảo Vệ Chữ Ký Số (`_compress_pdf`)</h3>
-          <p class="text-xs text-slate-600 dark:text-slate-400">
-            Tự động kiểm tra chữ ký số `/ByteRange` trước khi nén; thu nhỏ độ phân giải các XObject ảnh quá khổ bằng bộ lọc `LANCZOS` theo 4 mức (`screen` 72dpi, `ebook` 150dpi, `printer` 220dpi, `lossless`), chỉ ghi đè stream khi giảm tối thiểu 5% dung lượng.
-          </p>
-        </div>
-
-        <div class="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-          <div class="flex items-center justify-between">
-            <span class="text-xs font-bold uppercase tracking-wider text-teal-600 dark:text-teal-400">Thuật toán 4 • backend/main.py & cit-advanced-core.js</span>
-            <span class="px-2 py-0.5 text-[11px] font-semibold rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">Đã tối ưu v3.0</span>
-          </div>
-          <h3 class="font-bold text-sm">Xuất TIFF Phân Trang Tiết Kiệm RAM & Dàn Trang Booklet</h3>
-          <p class="text-xs text-slate-600 dark:text-slate-400">
-            Sử dụng generator `_iter_rendered_pages` giải phóng `fitz.Pixmap` ngay sau mỗi trang giúp nâng giới hạn xuất TIFF từ 60 lên 150 trang mà không tràn RAM, đồng thời bổ sung thuật toán đóng quyển Saddle-Stitch Booklet trên trình duyệt.
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- VIEW 4: CONSOLIDATED DOCS & REPO CLEANUP -->
-    <section id="view-repo-cleanup" class="hidden space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- Left Column: Cleanup Checklist & Script -->
-        <div class="lg:col-span-5 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
-          <div class="flex items-center justify-between">
-            <h2 class="font-bold text-base">Danh Sách Dọn Dẹp Dữ Liệu Thừa (29 Tệp)</h2>
-            <button type="button" id="btn-copy-cleanup-script" class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold">
-              Sao chép Lệnh Dọn Dẹp
-            </button>
-          </div>
-          <p class="text-xs text-slate-500 dark:text-slate-400">
-            Toàn bộ các tệp vá lỗi nháp trong `scratch/`, tệp chạy thử Playwright và 8 tệp Markdown rời rạc đã được tổng hợp gọn vào 3 tài liệu chuẩn:
-          </p>
-          <ul class="space-y-2 text-xs">
-            <li class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-200">
-              <strong>Xóa thư mục `scratch/` (19 tệp):</strong> `patch.js`, `patch.ps1`, `patch_bindevents.ps1`, `patch_css.ps1`, `patch_css_empty.ps1`, `patch_events.ps1`, `patch_focus.ps1`, `patch_grid.ps1`, `patch_grid_fix.ps1`, `patch_handleImages.js`, `patch_insert.js`, `patch_layout.ps1`, `patch_p33.js`, `patch_renderThumb.js`, `patch_roadmap.ps1`, `patch_roadmap2.js`, `patch_save.js`, `patch_thumbsize.ps1`, `patch_zoom.ps1`
-            </li>
-            <li class="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/50 text-rose-800 dark:text-rose-200">
-              <strong>Xóa tệp nháp gốc (2 tệp):</strong> `debug_run.py`, `debug_run2.py` (đã thêm `debug_run*.py` và `scratch/` vào `.gitignore`)
-            </li>
-            <li class="p-2.5 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/50 text-amber-800 dark:text-amber-200">
-              <strong>Gộp & Xóa 8 tệp `.md` rời rạc:</strong> `CIT-INTEGRATION.md`, `CIT-ORIGINAL-FRONTEND.md`, `CIT-TEXT-EDITING-UPDATE.md`, `CIT-TEXT-WORKSPACE.md`, `CIT-ADVANCED-INTEGRATION.md`, `CIT-FEATURE-PORTING-MATRIX.md`, `IMPLEMENTATION_PROGRESS.md`, `backend/README.md`
-            </li>
-          </ul>
-          <pre id="cleanup-bash-box" class="p-3 rounded-xl bg-slate-900 text-slate-100 text-[11px] overflow-x-auto leading-relaxed">git rm -rf scratch debug_run.py debug_run2.py \
-  CIT-ADVANCED-INTEGRATION.md CIT-FEATURE-PORTING-MATRIX.md \
-  CIT-INTEGRATION.md CIT-ORIGINAL-FRONTEND.md \
-  CIT-TEXT-EDITING-UPDATE.md CIT-TEXT-WORKSPACE.md \
-  IMPLEMENTATION_PROGRESS.md backend/README.md</pre>
-        </div>
-
-        <!-- Right Column: Consolidated Markdown Previewer -->
-        <div class="lg:col-span-7 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 flex flex-col space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800 pb-3">
-            <h2 class="font-bold text-base">Bộ 3 Tài Liệu Markdown Tổng Hợp Theo Nhóm</h2>
-            <div class="flex items-center gap-1.5">
-              <button type="button" data-doc-tab="readme" class="doc-tab-btn px-3 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white">1. README.md</button>
-              <button type="button" data-doc-tab="arch" class="doc-tab-btn px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">2. ARCHITECTURE.md</button>
-              <button type="button" data-doc-tab="roadmap" class="doc-tab-btn px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">3. ROADMAP.md</button>
-            </div>
-          </div>
-          <div id="doc-preview-content" class="text-xs leading-relaxed space-y-2 overflow-y-auto max-h-96 pr-2 text-slate-700 dark:text-slate-300"></div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <!-- TOOL EXECUTION MODAL -->
-  <div id="tool-modal" class="hidden fixed inset-0 z-50 bg-slate-950/60 glass-panel flex items-center justify-center p-4">
-    <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
-      <div class="flex items-start justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div>
-          <span id="modal-tool-badge" class="text-[11px] font-bold uppercase text-blue-600 dark:text-blue-400">CÔNG CỤ XỬ LÝ PDF</span>
-          <h3 id="modal-tool-title" class="font-bold text-base mt-0.5">Cấu hình công cụ</h3>
-        </div>
-        <button type="button" id="btn-close-modal" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200">Đóng</button>
-      </div>
-
-      <p id="modal-tool-desc" class="text-xs text-slate-600 dark:text-slate-400"></p>
-
-      <div id="modal-tool-controls" class="space-y-3"></div>
-
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
-        <button type="button" id="btn-cancel-modal" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800">Hủy</button>
-        <button type="button" id="btn-run-tool" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm">
-          Thực Thi & Xuất Tệp PDF
-        </button>
-      </div>
-    </div>
+<main id="ws">
+  <button class="back" id="back">← Tất cả công cụ</button>
+  <h1 id="wt"></h1><p class="d" id="wd"></p>
+  <div id="stage"></div>
+</main>
+<dialog id="hvd-legal-dialog" class="hvd-legal-dialog" aria-labelledby="hvd-legal-title">
+  <div class="hvd-legal-top">
+    <h2 id="hvd-legal-title">Thông tin &amp; giấy phép</h2>
+    <button type="button" id="hvd-legal-close" class="hvd-legal-close" aria-label="Đóng bảng thông tin">×</button>
   </div>
+  <p><strong>PDF HVD</strong> – ứng dụng xử lý tài liệu PDF. Một số thành phần sử dụng phần mềm nguồn mở và được phân phối theo GNU AGPL-3.0.</p>
+  <p>Thành phần từ BentoPDF Contributors và các sửa đổi của Cường IT được ghi nhận theo giấy phép tương ứng. Phần mềm được cung cấp không có bảo hành theo điều kiện giấy phép.</p>
+  <nav class="hvd-legal-links" aria-label="Tài liệu pháp lý">
+    <a href="LICENSE" target="_blank" rel="noopener noreferrer">Giấy phép AGPL-3.0</a>
+    <a href="NOTICE.md" target="_blank" rel="noopener noreferrer">Thông báo bản quyền và ghi nhận</a>
+    <a href="https://github.com/hieudang99dd/PDF-Editor-Hdv" target="_blank" rel="noopener noreferrer">Mã nguồn và các thay đổi</a>
+  </nav>
+</dialog>
+<div id="toast" role="status"></div>
+<script>
+const $=s=>document.querySelector(s),C={'Nén':'#e8453c','Chuyển đổi':'#2f6fed','Sắp xếp':'#7a4fd6','Chỉnh sửa':'#0f9d8a','Ký & Bảo vệ':'#d98a00','AI PDF':'#c2388f','Quét':'#4a5568'};
+// [tên, mô tả, nhóm, biểu tượng, kiểu tùy chọn, loại tệp]
+const T=[
+['Giảm dung lượng PDF','Giảm kích cỡ tệp mà vẫn giữ chất lượng','Nén','⇲','compress','.pdf'],
+['Chuyển đổi PDF','Đổi PDF sang nhiều định dạng khác','Chuyển đổi','⇄','fmt','.pdf'],
+['PDF OCR','Nhận dạng chữ trên bản quét thành văn bản','Chuyển đổi','OCR','lang','.pdf'],
+['PDF sang PDF/A','Chuẩn lưu trữ lâu dài','Chuyển đổi','A','none','.pdf'],
+['PDF sang JPG','Tách mỗi trang thành ảnh JPG chất lượng cao','Chuyển đổi','JPG','pdf2jpg','.pdf'],
+['PDF sang PNG','Tách mỗi trang thành ảnh PNG không nền mờ','Chuyển đổi','PNG','pdf2png','.pdf'],
+['JPG sang PDF','Đổi JPG, PNG, BMP, GIF, WebP sang PDF','Chuyển đổi','▣','img','image/*'],
+['PDF sang Word','Tạo tài liệu Word có thể sửa','Chuyển đổi','W','none','.pdf'],
+['PDF sang Excel','Trích bảng thành bảng tính','Chuyển đổi','X','none','.pdf'],
+['PDF sang PPT','Đổi trang thành slide','Chuyển đổi','P','none','.pdf'],
+['Word sang PDF','Đổi DOC, DOCX sang PDF','Chuyển đổi','W','none','.doc,.docx'],
+['Excel sang PDF','Đổi XLS, XLSX sang PDF','Chuyển đổi','X','none','.xls,.xlsx'],
+['PPT sang PDF','Đổi PPT, PPTX sang PDF','Chuyển đổi','P','none','.ppt,.pptx'],
+['TXT, RTF sang PDF','Đổi định dạng văn bản sang PDF','Chuyển đổi','T','none','.txt,.rtf,.html,.csv'],
+['Ghép PDF','Gộp nhiều tệp thành một','Sắp xếp','⊕','merge','.pdf'],
+['Cắt PDF','Tách tệp theo khoảng trang','Sắp xếp','✂','range','.pdf'],
+['Xoay PDF','Xoay toàn bộ hoặc từng trang','Sắp xếp','⟳','rot','.pdf'],
+['Xóa trang PDF','Bỏ các trang không cần','Sắp xếp','🗑','range','.pdf'],
+['Trích xuất trang','Lấy riêng một số trang','Sắp xếp','⇥','range','.pdf'],
+['Sắp xếp PDF','Kéo thả để đổi thứ tự trang','Sắp xếp','☰','organize','.pdf'],
+['Chỉnh sửa văn bản PDF','Chỉnh sửa chữ gốc, phông chữ, định dạng và bố cục văn bản trực tiếp trên PDF.','Chỉnh sửa','T','cit-text-route','.pdf'],
+['Chỉnh sửa PDF','Thêm chữ, ảnh, chữ ký, che trắng, highlight, vẽ tay','Chỉnh sửa','✎','organize','.pdf'],
+['Trình chú thích PDF','Tô sáng, che trắng, vẽ tay, ghi chú','Chỉnh sửa','▬','organize','.pdf'],
+['Trình đọc PDF','Xem và duyệt nhanh tài liệu','Chỉnh sửa','👁','organize','.pdf'],
+['Đánh số trang','Thêm số trang vào chân trang','Chỉnh sửa','#','pnum','.pdf'],
+['Cắt lề PDF','Cắt bớt viền trang','Chỉnh sửa','⌗','organize','.pdf'],
+['Biên tập lại (che thông tin)','Che vĩnh viễn nội dung nhạy cảm','Chỉnh sửa','█','organize','.pdf'],
+['Watermark PDF','Chèn chữ mờ lên mọi trang','Chỉnh sửa','◍','wm','.pdf'],
+['Điền biểu mẫu PDF','Nhập vào các trường của biểu mẫu','Chỉnh sửa','▤','organize','.pdf'],
+['Chia sẻ PDF','Tạo liên kết chia sẻ tài liệu','Chỉnh sửa','↗','qr','.pdf'],
+['PDF sang QR','Tạo mã QR để tải và chia sẻ tài liệu','Chỉnh sửa','QR','qr','.pdf'],
+['Ký tên vào PDF','Vẽ hoặc nhập chữ ký rồi chèn','Ký & Bảo vệ','✍','sign','.pdf'],
+['Yêu cầu chữ ký','Gửi tài liệu cho người khác ký','Ký & Bảo vệ','✉','mail','.pdf'],
+['Mở khóa PDF','Gỡ mật khẩu khỏi tệp','Ký & Bảo vệ','🔓','pass','.pdf'],
+['Bảo vệ PDF','Đặt mật khẩu cho tệp','Ký & Bảo vệ','🔒','pass2','.pdf'],
+['Làm phẳng PDF','Gộp chú thích và biểu mẫu vào trang','Ký & Bảo vệ','▭','flatten','.pdf'],
+['Trò chuyện với PDF','Hỏi đáp về nội dung tài liệu','AI PDF','AI','chat','.pdf'],
+['Tóm tắt PDF','Rút gọn tài liệu dài','AI PDF','Σ','none','.pdf'],
+['Dịch PDF','Dịch tài liệu sang ngôn ngữ khác','AI PDF','文','lang2','.pdf'],
+['Tạo câu hỏi','Sinh câu hỏi ôn tập từ tài liệu','AI PDF','?','none','.pdf'],
+['Trình quét PDF','Chụp giấy tờ thành PDF','Quét','⎙','img','image/*']];
+let cat='Tất cả',tool=null,files=[];
+const cats=['Tất cả',...Object.keys(C)];
+function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2200)}
+function home(){const q=$('#q').value.trim().toLowerCase();
+ $('#chips').innerHTML=cats.map(c=>`<button class="chip ${c==cat?'on':''}" data-c="${c}">${c}</button>`).join('');
+ let h='';for(const c of Object.keys(C)){if(cat!='Tất cả'&&cat!=c)continue;
+  const l=T.map((t,i)=>[t,i]).filter(([t])=>t[2]==c&&(t[0]+t[1]).toLowerCase().includes(q));if(!l.length)continue;
+  h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
+   const isSim = !(t[4].startsWith('cit-') || ['merge', 'range', 'rot', 'organize', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]) || ['Giảm dung lượng PDF','Chuyển đổi PDF','PDF OCR','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
+   const needsPC = ['PDF OCR','PDF sang Word','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]);
+   const hybrid = t[0] === 'Chuyển đổi PDF';
+   const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` :
+    needsPC ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Cần engine PC</span>` :
+    hybrid ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Web / PC</span>` : '';
+   return `<button class="tool" data-i="${i}"><div class="ic" style="background:${C[c]}">${t[3]}</div><div style="flex:1"><b>${t[0]}</b><span>${t[1]}</span></div>${badge}</button>`;
+  }).join('')+`</div>`}
+ $('#tools').innerHTML=h||'<p style="color:var(--mute)">Không tìm thấy công cụ phù hợp. Thử từ khóa khác.</p>'}
+$('#nav').innerHTML=['Nén','Chuyển đổi','Sắp xếp','Chỉnh sửa','Ký & Bảo vệ','AI PDF'].map(c=>`<button data-nav="${c}">${c}</button>`).join('');
+const sz=b=>b>1e6?(b/1e6).toFixed(1)+' MB':Math.max(1,Math.round(b/1e3))+' KB';
+const OPT={
+ compress:`<label>Mức nén</label><div class="r"><label><input type="radio" name="lv" value="basic" checked> Cơ bản (nhanh, giữ chất lượng cao)</label><label><input type="radio" name="lv" value="strong"> Mạnh (tối ưu dung lượng)</label></div>`,
+ fmt:`<label>Định dạng đầu ra<select id="fmt-sel"><option value="jpg">JPG</option><option value="png">PNG</option><option value="word">Word (.docx)</option><option value="excel">Excel (.xlsx)</option><option value="pdfa">PDF/A</option></select></label>`,
+ lang:`<label>Ngôn ngữ trong tài liệu<select><option>Tiếng Việt</option><option>English</option><option>日本語</option></select></label>`,
+ lang2:`<label>Dịch sang<select><option>Tiếng Việt</option><option>English</option><option>Français</option><option>中文</option></select></label>`,
+ img:`<div class="r"><label>Khổ giấy<select id="img-paper"><option value="a4">A4 (chuẩn)</option><option value="fit">Vừa với ảnh</option><option value="letter">Letter</option></select></label><label>Hướng<select id="img-orient"><option value="p">Dọc</option><option value="l">Ngang</option></select></label></div>`,
+ merge:`<label>Kéo bằng nút ↑ ↓ trong danh sách để đổi thứ tự tệp. Cần ít nhất 2 tệp.</label>`,
+ range:`<label>Trang cần xử lý (ví dụ: 1-3, 5, 8-10)<input type="text" id="rg" placeholder="1-3, 5"></label>`,
+ rot:`<div class="r"><label><input type="radio" name="r" checked> 90° phải</label><label><input type="radio" name="r"> 90° trái</label><label><input type="radio" name="r"> 180°</label></div>`,
+ pnum:`<div class="r"><label>Vị trí<select id="pn-pos"><option value="c">Giữa, dưới</option><option value="r">Phải, dưới</option><option value="l">Trái, dưới</option></select></label><label>Bắt đầu từ<input type="number" id="pn-start" value="1" style="width:70px"></label><label>Định dạng<select id="pn-fmt"><option value="trang_n">Trang X / N</option><option value="n">X</option></select></label></div>`,
+ wm:`<label>Nội dung hình mờ<input type="text" id="wm-text" value="BẢN NHÁP"></label><label>Độ mờ (%)<input type="range" id="wm-op" min="10" max="90" value="30"></label>`,
+ pass:`<label>Mật khẩu hiện tại<input type="password" id="pw"></label>`,
+ pass2:`<label>Mật khẩu mới<input type="password" id="pw"></label><label>Nhập lại mật khẩu<input type="password" id="pw2"></label>`,
+ mail:`<label>Email người ký<input type="text" placeholder="ten@congty.vn"></label><label>Lời nhắn<input type="text" placeholder="Vui lòng ký trước thứ Sáu"></label>`,
+ sign:`<label>Vẽ chữ ký của bạn vào khung bên dưới</label><canvas id="cv" width="760" height="240"></canvas><div class="r"><button class="btn g" id="clr">Xóa chữ ký</button></div>`,
+ flatten:`<label>Làm phẳng (Flatten) sẽ gộp toàn bộ biểu mẫu và chú thích vào nội dung trang tài liệu.</label>`,
+ chat:`<label>Câu hỏi về tài liệu<input type="text" placeholder="Ví dụ: Điều khoản thanh toán là gì?"></label>`,
+ qr:`<label>Mã QR sẽ chứa liên kết tải tài liệu của bạn. Quá trình xử lý diễn ra bảo mật.</label>`,
+ none:''};
+function openTool(i){if(T[i]?.[4]==='cit-text-route'){location.href='./text-editor.html';return;}tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
+ $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render()}
+function render(){const k=tool[4], o=(tool[0]==='Chồng 2 PDF (Overlay)'?OPT['cit-overlay']:OPT[k])||'', multi=k=='merge'||tool[5].includes('image');
+ let h='';
+ if (k === 'compress') {
+  h += `<div class="drop compress-drop" id="dz" style="border:2px dashed #ff4d4f; border-radius:16px; padding:60px 20px; background:#fff; position:relative;">
+    <div style="font-size:64px; color:#ff4d4f; margin-bottom:20px; line-height:1; display:flex; justify-content:center;">
+      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="6" y="16" font-size="5" font-family="sans-serif" font-weight="bold" fill="currentColor" stroke="none">PDF</text></svg>
+    </div>
+    <button class="btn" id="pick" style="background:#ff4d4f; padding:14px 32px; font-size:16px; font-weight:bold; border-radius:10px; margin-bottom:16px;">Chọn tệp PDF <span style="font-size:18px; margin-left:4px">+</span></button>
+    <p style="color:var(--mute); margin:0 0 24px; font-size:14px">hoặc kéo thả tệp vào vùng này</p>
+    <div style="display:flex; justify-content:center; gap:12px;">
+      <button style="width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:#f8f9fa; display:grid; place-items:center; cursor:pointer" title="Google Drive"><svg width="20" height="20" viewBox="0 0 24 24" fill="#4285F4"><path d="M23.3 11.5c0-.8-.1-1.6-.2-2.3H12v4.4h6.4c-.3 1.4-1.1 2.6-2.2 3.4v2.8h3.5c2.1-1.9 3.3-4.8 3.3-8.3z"/><path fill="#34A853" d="M12 23c3.2 0 5.8-1.1 7.8-2.9l-3.5-2.8c-1.1.7-2.4 1.1-3.8 1.1-2.9 0-5.4-2-6.3-4.7H2.6v2.9C4.6 20.6 8 23 12 23z"/><path fill="#FBBC05" d="M5.7 13.5c-.2-.7-.4-1.4-.4-2.1s.1-1.4.4-2.1V6.4H2.6C1.6 8.3 1 10.5 1 12.8s.6 4.5 1.6 6.4l3.1-2.9z"/><path fill="#EA4335" d="M12 5.4c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.8 15.2.9 12 .9 8 .9 4.6 3.3 2.6 7l3.1 2.9c.9-2.7 3.4-4.5 6.3-4.5z"/></svg></button>
+      <button style="width:44px; height:44px; border-radius:50%; border:1px solid var(--line); background:#f8f9fa; display:grid; place-items:center; cursor:pointer" title="Dropbox"><svg width="20" height="20" viewBox="0 0 24 24" fill="#0061FF"><path d="M12 0L3.6 5.3 12 10.6l8.4-5.3L12 0zm0 11.3l-8.4 5.3L12 21.9l8.4-5.3-8.4-5.3zM3.6 15.9l8.4-5.3v10.6L3.6 15.9zM20.4 15.9l-8.4-5.3v10.6l8.4-5.3z"/></svg></button>
+    </div>
+    <input type="file" id="fi" hidden accept="${tool[5]}" ${multi?'multiple':''}>
+  </div>`;
+ } else {
+  h=`<div class="drop" id="dz"><button class="btn" id="pick">Chọn tệp</button><p>hoặc kéo thả tệp vào đây (${tool[5].replace(/,/g,', ')})</p><input type="file" id="fi" hidden accept="${tool[5]}" ${multi?'multiple':''}></div>`;
+ }
+ if(files.length){h+=`<ul class="files">`+files.map((f,idx)=>`<li><span class="n">${f.name}</span><span class="s">${sz(f.size)}</span>${files.length>1?`<button data-m="${idx}:-1" aria-label="Lên">↑</button><button data-m="${idx}:1" aria-label="Xuống">↓</button>`:''}<button data-x="${idx}" aria-label="Xóa">✕</button></li>`).join('')+`</ul>`;
+  if(o)h+=`<div class="opts">${o}</div>`;
+  h+=`<button class="btn" id="go">${tool[0]}</button><div id="out"></div>`}
+ $('#stage').innerHTML=h;
+ const dz=$('#dz'),fi=$('#fi');$('#pick').onclick=()=>fi.click();fi.onchange=()=>add(fi.files);
+ dz.ondragover=e=>{e.preventDefault();dz.classList.add('hov')};dz.ondragleave=()=>dz.classList.remove('hov');
+ dz.ondrop=e=>{e.preventDefault();dz.classList.remove('hov');add(e.dataTransfer.files)};
+ if($('#go'))$('#go').onclick=run;if($('#cv'))canvas();}
+function add(fl){const m=tool[4]=='merge'||tool[5].includes('image');files=m?[...files,...fl]:[fl[0]];render()}
+function canvas(){const c=$('#cv'),x=c.getContext('2d');x.lineWidth=4;x.lineCap='round';x.strokeStyle='#1b2a6b';let d=0;
+ const p=e=>{const r=c.getBoundingClientRect();return[(e.clientX-r.left)*c.width/r.width,(e.clientY-r.top)*c.height/r.height]};
+ c.onpointerdown=e=>{d=1;c.setPointerCapture(e.pointerId);x.beginPath();x.moveTo(...p(e))};
+ c.onpointermove=e=>{if(d){x.lineTo(...p(e));x.stroke()}};c.onpointerup=()=>d=0;
+ $('#clr').onclick=()=>x.clearRect(0,0,c.width,c.height)}
+async function run(){
+ const k=tool[4];
+ if(k=='merge'&&files.length<2)return toast('Cần ít nhất 2 tệp để ghép');
+ if(k=='range'&&!$('#rg').value.trim())return toast('Nhập khoảng trang cần xử lý');
+ if(k=='pass2'&&(!$('#pw').value||$('#pw').value!=$('#pw2').value))return toast('Mật khẩu chưa khớp');
+ if(k=='pass'&&!$('#pw').value)return toast('Nhập mật khẩu hiện tại');
+ 
+ if(k=='organize'){
+  if(typeof initOrganizer!=='function') return toast('Đang tải công cụ, vui lòng đợi...');
+  $('#go').style.display='none';
+  initOrganizer(files);
+  return;
+ }
+ 
+ const b=$('#go');b.disabled=true;
+ $('#out').innerHTML=`<div class="bar"><i id="pb"></i></div><span style="color:var(--mute);font-size:13px" id="st">Đang xử lý trên trình duyệt...</span>`;
+ 
+ if(k=='compress') {
+  try {
+   const formData = new FormData();
+   formData.append('file', files[0]);
+   const r = document.querySelector('input[name="lv"]:checked');
+   const lvl = r ? r.parentElement.textContent.trim() : 'Cơ bản';
+   formData.append('level', lvl);
+   
+   $('#pb').style.width = '50%';
+   const res = await fetch('http://localhost:8000/compress', {
+     method: 'POST',
+     body: formData
+   });
+   
+   if(!res.ok) throw new Error("Backend không phản hồi");
+   
+   const blob = await res.blob();
+   const url = URL.createObjectURL(blob);
+   $('#pb').style.width = '100%';
+   
+   const originalSize = files[0].size;
+   const newSize = blob.size;
+   const saved = originalSize - newSize;
+   const percentage = originalSize > 0 ? Math.max(0, Math.round((saved / originalSize) * 100)) : 0;
+   
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Dung lượng giảm từ ${sz(originalSize)} còn ${sz(newSize)} (giảm ${percentage}%).<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="compressed_${files[0].name}">Tải xuống</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   console.error(e);
+   toast('Lỗi: Cần chạy Backend cục bộ tại port 8000 để sử dụng AI Nén PDF');
+   $('#out').innerHTML='';
+   b.disabled=false;
+  }
+  return;
+ }
 
-  <!-- TOAST NOTIFICATION -->
-  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-sm"></div>
+ if(k=='merge'||k=='range'||k=='rot'){
+  try {
+   const { PDFDocument } = window.PDFLib;
+   let resultPdf = await PDFDocument.create();
+   
+   if(k=='merge') {
+    for(let f of files) {
+     const doc = await PDFDocument.load(await f.arrayBuffer());
+     const pages = await resultPdf.copyPages(doc, doc.getPageIndices());
+     pages.forEach(p => resultPdf.addPage(p));
+    }
+   } else if(k=='rot') {
+    const doc = await PDFDocument.load(await files[0].arrayBuffer());
+    const r = $('input[name="r"]:checked');
+    const angleText = r ? r.nextSibling.textContent.trim() : '90° phải';
+    let angle = 90;
+    if(angleText.includes('trái')) angle = -90;
+    else if(angleText.includes('180')) angle = 180;
+    
+    doc.getPages().forEach(p => {
+     p.setRotation(window.PDFLib.degrees(p.getRotation().angle + angle));
+    });
+    resultPdf = doc;
+   } else if(k=='range') {
+    const doc = await PDFDocument.load(await files[0].arrayBuffer());
+    const val = $('#rg').value.replace(/ /g,'').split(',');
+    const pagesToProcess = new Set();
+    for(let v of val) {
+     if(v.includes('-')) {
+      let [s, e] = v.split('-').map(Number);
+      for(let i=s; i<=e; i++) pagesToProcess.add(i);
+     } else pagesToProcess.add(Number(v));
+    }
+    const isDelete = tool[0].includes('Xóa');
+    const indicesToCopy = [];
+    doc.getPageIndices().forEach(i => {
+     const pageNum = i + 1;
+     if((!isDelete && pagesToProcess.has(pageNum)) || (isDelete && !pagesToProcess.has(pageNum))) {
+      indicesToCopy.push(i);
+     }
+    });
+    if(indicesToCopy.length === 0) throw new Error("Không còn trang nào sau khi xử lý");
+    const copied = await resultPdf.copyPages(doc, indicesToCopy);
+    copied.forEach(p => resultPdf.addPage(p));
+   }
+   
+   $('#pb').style.width = '80%';
+   const pdfBytes = await resultPdf.save();
+   const blob = new Blob([pdfBytes], {type: 'application/pdf'});
+   const url = URL.createObjectURL(blob);
+   
+   $('#pb').style.width = '100%';
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="processed.pdf">Tải xuống</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
+ 
+ if(k=='qr'){
+  // This static website has no file-hosting server; never generate a fake share URL.
+  $('#out').innerHTML='<div class="res"><b>Chưa hỗ trợ chia sẻ PDF qua đường dẫn.</b><p>Chức năng này cần máy chủ lưu file và liên kết thực. Không tạo QR giả hoặc tuyên bố đã tải PDF lên mạng.</p></div>';
+  b.disabled=false;
+  return;
+ }
 
-  <script>
-    (function () {
-      'use strict';
+ if(k=='img'){
+  try {
+   $('#pb').style.width = '20%';
+   const { PDFDocument } = window.PDFLib;
+   const doc = await PDFDocument.create();
+   const paper = $('#img-paper') ? $('#img-paper').value : 'a4';
+   const orient = $('#img-orient') ? $('#img-orient').value : 'p';
+   for(let i = 0; i < files.length; i++){
+     const file = files[i];
+     let bytes = await file.arrayBuffer();
+     let img;
+     if (file.type === 'image/png' || file.name.toLowerCase().endsWith('.png')) {
+       img = await doc.embedPng(bytes);
+     } else {
+       try {
+         img = await doc.embedJpg(bytes);
+       } catch(e) {
+         const imgObj = await new Promise((res, rej) => {
+           const im = new Image();
+           im.onload = () => res(im);
+           im.onerror = rej;
+           im.src = URL.createObjectURL(file);
+         });
+         const c = document.createElement('canvas');
+         c.width = imgObj.width; c.height = imgObj.height;
+         c.getContext('2d').drawImage(imgObj, 0, 0);
+         const dataUrl = c.toDataURL('image/jpeg', 0.92);
+         img = await doc.embedJpg(dataUrl);
+       }
+     }
+     let pw, ph;
+     if(paper === 'a4'){
+       pw = orient === 'p' ? 595.28 : 841.89;
+       ph = orient === 'p' ? 841.89 : 595.28;
+     } else if(paper === 'letter'){
+       pw = orient === 'p' ? 612 : 792;
+       ph = orient === 'p' ? 792 : 612;
+     } else {
+       pw = img.width; ph = img.height;
+     }
+     const page = doc.addPage([pw, ph]);
+     const scale = Math.min(pw / img.width, ph / img.height);
+     const dw = img.width * scale;
+     const dh = img.height * scale;
+     const dx = (pw - dw) / 2;
+     const dy = (ph - dh) / 2;
+     page.drawImage(img, { x: dx, y: dy, width: dw, height: dh });
+     $('#pb').style.width = Math.min(90, 20 + Math.round((70 * (i + 1)) / files.length)) + '%';
+   }
+   const pdfBytes = await doc.save();
+   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+   const url = URL.createObjectURL(blob);
+   $('#pb').style.width = '100%';
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã tạo PDF từ ${files.length} ảnh.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="images_to_pdf.pdf">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
 
-      // Application State
-      const state = {
-        activeTab: 'dashboard',
-        activeCategory: 'all',
-        searchQuery: '',
-        pdfBytes: null,
-        pdfName: 'Chưa nạp tệp PDF',
-        pageCount: 0,
-        hasSignature: false,
-        engineOnline: false,
-        engineSimMode: false,
-        engineLatency: null,
-        selectedToolId: null,
-        selectedLineIndex: 0,
-        nativeLines: [
-          { text: 'DO AN THIET KE KY THUAT DUONG CAO TOC BAC - NAM (CIVIL 3D)', font: 'Helvetica-Bold', size: 14, baselineY: 790 },
-          { text: 'Binh do va Trac doc chi tiet doan Km0+000 - Km1+500', font: 'Helvetica', size: 11, baselineY: 768 },
-          { text: 'Don vi lap ho so: Phong Ky Thuat HDV • Ngay xuat: 15/10/2026', font: 'Helvetica', size: 10, baselineY: 748 },
-          { text: 'Bang khoi luong dao dap nen duong: Dao = 14,250 m3 | Dap K98 = 11,840 m3', font: 'Courier', size: 10, baselineY: 726 }
-        ],
-        undoStack: [],
-        redoStack: []
-      };
+ if(k=='pdf2jpg'||k=='pdf2png'){
+  try {
+   $('#pb').style.width = '15%';
+   $('#st').textContent = 'Đang đọc và render các trang PDF...';
+   if(!window.pdfjsLib){
+     await new Promise(r => {
+       const s = document.createElement('script');
+       s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+       s.onload = () => {
+         window.pdfjsLib = window['pdfjs-dist/build/pdf'];
+         window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+         r();
+       };
+       document.head.appendChild(s);
+     });
+   }
+   const pdfDoc = await window.pdfjsLib.getDocument({ data: await files[0].arrayBuffer() }).promise;
+   const numPages = pdfDoc.numPages;
+   const isPng = k === 'pdf2png';
+   const mime = isPng ? 'image/png' : 'image/jpeg';
+   const ext = isPng ? 'png' : 'jpg';
+   const renderedImages = [];
+   for(let p = 1; p <= numPages; p++){
+     const page = await pdfDoc.getPage(p);
+     const vp = page.getViewport({ scale: 2.0 });
+     const c = document.createElement('canvas');
+     c.width = vp.width; c.height = vp.height;
+     const ctx = c.getContext('2d');
+     if(!isPng){ ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,c.width,c.height); }
+     await page.render({ canvasContext: ctx, viewport: vp }).promise;
+     const blob = await new Promise(res => c.toBlob(res, mime, 0.92));
+     renderedImages.push({ name: `trang_${p}.${ext}`, blob });
+     $('#pb').style.width = Math.min(85, 15 + Math.round((70 * p) / numPages)) + '%';
+   }
+   if(numPages === 1){
+     const url = URL.createObjectURL(renderedImages[0].blob);
+     $('#pb').style.width = '100%';
+     $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã xuất thành ảnh ${ext.toUpperCase()}.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="${files[0].name.replace(/\.pdf$/i,'')}_trang_1.${ext}">Tải xuống ảnh</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   } else {
+     $('#st').textContent = 'Đang đóng gói tệp nén ZIP...';
+     if(!window.JSZip){
+       await new Promise(r => {
+         const s = document.createElement('script');
+         s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+         s.onload = r;
+         document.head.appendChild(s);
+       });
+     }
+     const zip = new window.JSZip();
+     renderedImages.forEach(img => zip.file(img.name, img.blob));
+     const zipBlob = await zip.generateAsync({ type: 'blob' });
+     const url = URL.createObjectURL(zipBlob);
+     $('#pb').style.width = '100%';
+     $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã xuất ${numPages} trang thành ảnh ${ext.toUpperCase()} (tệp nén ZIP).<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="${files[0].name.replace(/\.pdf$/i,'')}_images.zip">Tải xuống file ZIP</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   }
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
 
-      const TOOLS = [
-        { id: 'native-text', cat: 'edit', name: 'Sửa Văn Bản PDF Gốc (WASM)', badge: 'PDFium WASM', desc: 'Can thiệp trực tiếp đối tượng chữ trên trang PDF với khóa Baseline và bảo vệ khung bảng.', paramLabel: 'Chuyển sang Không gian làm việc Native Text', paramType: 'jump-native' },
-        { id: 'rotate-deskew', cat: 'edit', name: 'Xoay Trang & Căn Chỉnh Nghiêng', badge: 'Client-side', desc: 'Xoay các trang PDF theo góc chuẩn (90°, 180°, 270°) để chuẩn hóa hướng bản vẽ.', paramLabel: 'Góc xoay (độ)', paramType: 'select', options: ['90', '180', '270'] },
-        { id: 'extract-range', cat: 'edit', name: 'Tách & Trích Xuất Trang', badge: 'Client-side', desc: 'Trích xuất danh sách trang chỉ định (ví dụ: 1, 2 hoặc 1-3) thành tệp PDF độc lập.', paramLabel: 'Phạm vi trang cần trích (VD: 1-2)', paramType: 'text', defaultVal: '1-2' },
-        { id: 'insert-blank', cat: 'edit', name: 'Chèn Trang Trắng Kỹ Thuật', badge: 'Client-side', desc: 'Chèn thêm trang trắng chuẩn kích thước vào sau trang đầu tiên để ghi chú bổ sung.', paramLabel: 'Số lượng trang trắng chèn thêm', paramType: 'select', options: ['1', '2', '4'] },
-        { id: 'reverse-pages', cat: 'edit', name: 'Đảo Ngược Thứ Tự Trang', badge: 'Client-side', desc: 'Đảo ngược toàn bộ thứ tự trang từ cuối lên đầu cho hồ sơ quét ngược.', paramLabel: 'Chế độ đảo trang', paramType: 'select', options: ['Đảo toàn bộ trang', 'Chỉ giữ trang lẻ', 'Chỉ giữ trang chẵn'] },
+ if(k=='wm'){
+  try {
+   $('#pb').style.width = '30%';
+   const { PDFDocument, rgb, degrees, StandardFonts } = window.PDFLib;
+   const doc = await PDFDocument.load(await files[0].arrayBuffer());
+   const font = await doc.embedFont(StandardFonts.HelveticaBold);
+   const text = ($('#wm-text') ? $('#wm-text').value.trim() : '') || 'BẢN NHÁP';
+   const op = ($('#wm-op') ? parseInt($('#wm-op').value) : 30) / 100;
+   const pages = doc.getPages();
+   for(let i = 0; i < pages.length; i++){
+     const p = pages[i];
+     const { width, height } = p.getSize();
+     const fontSize = Math.max(24, Math.min(width, height) / 10);
+     const textWidth = font.widthOfTextAtSize(text, fontSize);
+     p.drawText(text, {
+       x: (width - textWidth) / 2 + 30,
+       y: height / 2 - 20,
+       size: fontSize,
+       font: font,
+       color: rgb(0.5, 0.5, 0.5),
+       opacity: op,
+       rotate: degrees(45)
+     });
+     $('#pb').style.width = Math.min(90, 30 + Math.round((60 * (i + 1)) / pages.length)) + '%';
+   }
+   const pdfBytes = await doc.save();
+   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+   const url = URL.createObjectURL(blob);
+   $('#pb').style.width = '100%';
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã chèn Watermark lên toàn bộ ${pages.length} trang.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="watermark_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
 
-        { id: 'nup-layout', cat: 'cad', name: 'Dàn Trang Bản Vẽ N-Up (2-Up / 4-Up)', badge: 'Civil 3D / CAD', desc: 'Ghép 2 hoặc 4 trang bản vẽ lên cùng một tờ giấy khổ lớn kèm khung viền kỹ thuật.', paramLabel: 'Số trang trên 1 tờ (N-Up)', paramType: 'select', options: ['2', '4'] },
-        { id: 'booklet-impose', cat: 'cad', name: 'Đóng Quyển Hồ Sơ (Saddle-Stitch Booklet)', badge: 'Mới v3.0', desc: 'Tự động sắp xếp thứ tự trang đầu-cuối trên khổ đôi để in gập đôi đóng quyển.', paramLabel: 'Kiểu đóng quyển', paramType: 'select', options: ['Saddle-Stitch 2-Up Chuẩn A3'] },
-        { id: 'bates-stamp', cat: 'cad', name: 'Đánh Số Hồ Sơ Pháp Lý (Bates Numbering)', badge: 'Civil 3D / CAD', desc: 'Đóng dấu mã số hồ sơ tự động tăng dần (VD: HDV-2026-0001) tại góc trang.', paramLabel: 'Tiền tố mã Bates', paramType: 'text', defaultVal: 'HDV-2026-' },
-        { id: 'duplex-interleave', cat: 'cad', name: 'Ghép Xen Kẽ Quét 2 Mặt (Duplex Interleave)', badge: 'Civil 3D / CAD', desc: 'Tự động đan xen các trang mặt trước (lẻ) và mặt sau (chẵn đảo ngược) của máy scan.', paramLabel: 'Thứ tự nửa trang sau', paramType: 'select', options: ['Đảo ngược mặt chẵn (Chuẩn máy quét)', 'Giữ nguyên thứ tự'] },
-        { id: 'cad-overlay', cat: 'cad', name: 'Đóng Dấu Chìm & Nhãn Kiểm Duyệt Bản Vẽ', badge: 'Civil 3D / CAD', desc: 'Chèn nhãn kiểm duyệt kỹ thuật lên toàn bộ các trang bản vẽ mà không ảnh hưởng đường nét vector.', paramLabel: 'Nội dung dấu kiểm duyệt', paramType: 'text', defaultVal: 'BAN VE THI CONG - DA THAM TRA (HDV)' },
+ if(k=='pnum'){
+  try {
+   $('#pb').style.width = '30%';
+   const { PDFDocument, rgb, StandardFonts } = window.PDFLib;
+   const doc = await PDFDocument.load(await files[0].arrayBuffer());
+   const font = await doc.embedFont(StandardFonts.Helvetica);
+   const pos = $('#pn-pos') ? $('#pn-pos').value : 'c';
+   const start = $('#pn-start') ? parseInt($('#pn-start').value) || 1 : 1;
+   const fmt = $('#pn-fmt') ? $('#pn-fmt').value : 'trang_n';
+   const pages = doc.getPages();
+   const total = pages.length;
+   for(let i = 0; i < total; i++){
+     const p = pages[i];
+     const { width } = p.getSize();
+     const num = start + i;
+     const str = fmt === 'trang_n' ? `Trang ${num} / ${total + start - 1}` : `${num}`;
+     const size = 10;
+     const strW = font.widthOfTextAtSize(str, size);
+     let x = (width - strW) / 2;
+     if(pos === 'l') x = 36;
+     else if(pos === 'r') x = width - strW - 36;
+     p.drawText(str, {
+       x,
+       y: 24,
+       size,
+       font,
+       color: rgb(0.3, 0.3, 0.3)
+     });
+     $('#pb').style.width = Math.min(90, 30 + Math.round((60 * (i + 1)) / total)) + '%';
+   }
+   const pdfBytes = await doc.save();
+   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+   const url = URL.createObjectURL(blob);
+   $('#pb').style.width = '100%';
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã đánh số trang cho ${total} trang.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="numbered_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
 
-        { id: 'compress-pdf', cat: 'local', name: 'Nén PDF Đa Tầng (Lossless / Downsample)', badge: 'Hybrid v3.0', desc: 'Thu nhỏ ảnh raster quá khổ (LANCZOS) và tối ưu Object Streams, tự động bảo vệ chữ ký số.', paramLabel: 'Cấu hình nén', paramType: 'select', options: ['ebook (150 DPI - Khuyên dùng)', 'screen (72 DPI - Siêu nhẹ)', 'printer (220 DPI - Bản in)', 'lossless (Giữ nguyên ảnh)'] },
-        { id: 'ocr-vector', cat: 'local', name: 'OCR Tiếng Việt Giữ Nguyên Vector CAD', badge: 'Local Engine v3.0', desc: 'Nhận dạng chữ Tiếng Việt & Tiếng Anh đa luồng, chèn lớp chữ vô hình (render_mode=3) giữ nguyên nét vector.', paramLabel: 'Ngôn ngữ & Chế độ OCR', paramType: 'select', options: ['vie+eng (Bảo toàn Vector render_mode=3)', 'vie (Chỉ Tiếng Việt)', 'eng (Chỉ Tiếng Anh)'] },
-        { id: 'pdf-to-docx', cat: 'local', name: 'Chuyển PDF sang Word (.docx) Giữ Bố Cục', badge: 'Local Engine v3.0', desc: 'Khôi phục bảng biểu (find_tables), hình ảnh nhúng, cỡ chữ, màu sắc và căn lề đoạn văn.', paramLabel: 'Chế độ tái tạo bố cục', paramType: 'select', options: ['Khôi phục Bảng biểu + Định dạng Span', 'Trích xuất văn bản thuần (.txt)'] },
-        { id: 'pdf-to-tiff', cat: 'local', name: 'Xuất Ảnh TIFF Đa Trang (Streaming)', badge: 'Local Engine v3.0', desc: 'Kết xuất TIFF nén Deflate bằng bộ sinh (Generator) tiết kiệm RAM, hỗ trợ tới 150 trang.', paramLabel: 'Độ phân giải (DPI)', paramType: 'select', options: ['150 DPI (Tiêu chuẩn)', '200 DPI (Sắc nét)', '300 DPI (Lưu trữ in ấn)'] },
+ if(k=='sign'){
+  try {
+   const cv = $('#cv');
+   if(!cv) throw new Error('Không tìm thấy khung ký tên');
+   const ctx = cv.getContext('2d');
+   const imgData = ctx.getImageData(0, 0, cv.width, cv.height).data;
+   let hasInk = false;
+   for(let i = 3; i < imgData.length; i += 4){
+     if(imgData[i] > 20){ hasInk = true; break; }
+   }
+   if(!hasInk) {
+     toast('Vui lòng vẽ chữ ký của bạn trước khi tiếp tục');
+     b.disabled=false;
+     return;
+   }
+   $('#pb').style.width = '40%';
+   const { PDFDocument } = window.PDFLib;
+   const doc = await PDFDocument.load(await files[0].arrayBuffer());
+   const sigPng = cv.toDataURL('image/png');
+   const sigImg = await doc.embedPng(sigPng);
+   const pages = doc.getPages();
+   const lastPage = pages[pages.length - 1];
+   const { width, height } = lastPage.getSize();
+   const sigW = 160;
+   const sigH = (cv.height / cv.width) * sigW;
+   lastPage.drawImage(sigImg, {
+     x: width - sigW - 40,
+     y: 40,
+     width: sigW,
+     height: sigH
+   });
+   $('#pb').style.width = '85%';
+   const pdfBytes = await doc.save();
+   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+   const url = URL.createObjectURL(blob);
+   $('#pb').style.width = '100%';
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Chữ ký đã được đóng dấu vào trang cuối cùng của tài liệu.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="signed_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
 
-        { id: 'sanitize-meta', cat: 'security', name: 'Làm Sạch Metadata & Chuẩn Hóa Tiêu Đề', badge: 'Bảo mật', desc: 'Xóa thông tin tác giả/phần mềm nhạy cảm hoặc gắn nhãn chuẩn hồ sơ kỹ thuật HDV.', paramLabel: 'Tiêu đề Metadata mới', paramType: 'text', defaultVal: 'Ho So Ky Thuat PDF HDV v3.0' },
-        { id: 'sig-inspector', cat: 'security', name: 'Kiểm Tra Chữ Ký Số (/ByteRange Guard)', badge: 'Bảo mật', desc: 'Quét luồng nhị phân PDF để phát hiện chữ ký điện tử PKCS#7 và khóa ghi đè bất hợp lệ.', paramLabel: 'Chế độ kiểm tra', paramType: 'select', options: ['Quét sâu cấu trúc /ByteRange & /Sig'] }
-      ];
+ if(k=='flatten'){
+  try {
+   $('#pb').style.width = '40%';
+   const { PDFDocument } = window.PDFLib;
+   const doc = await PDFDocument.load(await files[0].arrayBuffer());
+   if(doc.getForm) {
+     try { doc.getForm().flatten(); } catch(e){}
+   }
+   $('#pb').style.width = '80%';
+   const pdfBytes = await doc.save();
+   const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+   const url = URL.createObjectURL(blob);
+   $('#pb').style.width = '100%';
+   $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã làm phẳng các trường biểu mẫu và chú thích vào tài liệu.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="flattened_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+   $('#again').onclick=()=>{files=[];render()};
+   b.disabled=false;
+  } catch(e) {
+   toast('Lỗi: '+e.message);$('#out').innerHTML='';b.disabled=false;
+  }
+  return;
+ }
 
-      const DOCS_PREVIEW = {
-        readme: `<h4><strong>README.md (Tài liệu gốc hợp nhất cho toàn dự án & Local Engine)</strong></h4>
-<p>• Hợp nhất hướng dẫn sử dụng giao diện Web tĩnh và tài liệu <code>backend/README.md</code> thành một điểm vào duy nhất ở thư mục gốc.</p>
-<p>• Bổ sung hướng dẫn khởi chạy nhanh bằng <strong>Docker Compose</strong> (tự động cài sẵn LibreOffice <code>soffice</code> và Tesseract OCR gói <code>vie</code> + <code>eng</code>).</p>
-<p>• Cung cấp bảng đặc tả 4 API Endpoints (<code>/api/capabilities</code>, <code>/api/convert</code>, <code>/api/ocr</code>, <code>/api/compress</code>) kèm các tham số mới như <code>preserve_vectors=true</code> và <code>preserve_signatures=true</code>.</p>`,
-        arch: `<h4><strong>docs/ARCHITECTURE_AND_CIT_INTEGRATION.md (Gộp 5 tệp CIT-*.md)</strong></h4>
-<p>• Hợp nhất: <code>CIT-INTEGRATION.md</code>, <code>CIT-ORIGINAL-FRONTEND.md</code>, <code>CIT-TEXT-EDITING-UPDATE.md</code>, <code>CIT-TEXT-WORKSPACE.md</code>, và <code>CIT-ADVANCED-INTEGRATION.md</code>.</p>
-<p>• Giải thích rõ kiến trúc 2 tầng: Tầng Vendored Runtime (<code>vendor/cit-pdf/</code> chứa <code>bentopdf-pdfium</code> WASM) và Tầng Adapter HDV (<code>pdf-native-text.mjs</code>, <code>pdf-native-worker.mjs</code>).</p>
-<p>• Mô tả chi tiết cơ chế Khóa đường cơ sở (Baseline Pinning), Bảo vệ khung bảng biểu (Table Bounds Guard), Phẫu thuật font Type3 và bộ công cụ bản vẽ kỹ thuật Civil 3D.</p>`,
-        roadmap: `<h4><strong>docs/FEATURE_MATRIX_AND_ROADMAP.md (Gộp Matrix & Implementation Progress)</strong></h4>
-<p>• Hợp nhất: <code>CIT-FEATURE-PORTING-MATRIX.md</code> và <code>IMPLEMENTATION_PROGRESS.md</code>.</p>
-<p>• Đối chiếu trạng thái của toàn bộ 17 nhóm tính năng giữa Client-side WASM và Local FastAPI Engine.</p>
-<p>• Ghi nhận chi tiết 4 thuật toán mới được tối ưu hóa (<code>_pdf_to_docx</code>, <code>_ocr_pdf</code> bảo toàn vector, <code>_compress_pdf</code> đa tầng, <code>_pdf_to_tiff</code> streaming) và danh sách 29 tệp rác được dọn dẹp.</p>`
-      };
-
-      function showToast(message, type = 'info') {
-        const container = document.getElementById('toast-container');
-        if (!container) return;
-        const colors = {
-          info: 'bg-slate-900 text-white border-slate-700',
-          success: 'bg-emerald-600 text-white border-emerald-500',
-          warn: 'bg-amber-600 text-white border-amber-500'
-        };
-        const el = document.createElement('div');
-        el.className = `px-4 py-2.5 rounded-xl border text-xs font-medium shadow-lg transition-all ${colors[type] || colors.info}`;
-        el.textContent = message;
-        container.appendChild(el);
-        setTimeout(() => {
-          el.style.opacity = '0';
-          setTimeout(() => el.remove(), 250);
-        }, 3200);
-      }
-
-      function updateFileBanner() {
-        const nameEl = document.getElementById('active-file-name');
-        const metaEl = document.getElementById('active-file-meta');
-        const sigEl = document.getElementById('active-sig-badge');
-        const dlBtn = document.getElementById('btn-download-current');
-
-        nameEl.textContent = state.pdfName;
-        const sizeKb = state.pdfBytes ? Math.max(1, Math.round(state.pdfBytes.byteLength / 1024)) : 0;
-        metaEl.textContent = `${state.pageCount} trang • ${sizeKb} KB`;
-        dlBtn.disabled = !state.pdfBytes;
-
-        if (state.pdfBytes) {
-          sigEl.classList.remove('hidden');
-          if (state.hasSignature) {
-            sigEl.textContent = 'Phát hiện Chữ ký số (/ByteRange Đã khóa bảo vệ)';
-            sigEl.className = 'px-2 py-0.5 text-[11px] rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30';
-          } else {
-            sigEl.textContent = 'Không có chữ ký số (Cho phép sửa Stream)';
-            sigEl.className = 'px-2 py-0.5 text-[11px] rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-          }
-        }
-      }
-
-      async function generateSampleCivil3DPdf() {
-        if (!window.PDFLib) {
-          showToast('Thư viện PDFLib đang tải, vui lòng thử lại sau giây lát.', 'warn');
-          return;
-        }
-        const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
-        const pdfDoc = await PDFDocument.create();
-        const fontBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        const fontReg = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const fontMono = await pdfDoc.embedFont(StandardFonts.Courier);
-
-        const titles = [
-          'TRANG 1: BINH DO TUYEN DUONG CAO TOC KM0+000 - KM0+500',
-          'TRANG 2: TRAC DOC THIET KE KY THUAT DOAN KM0+000 - KM0+500',
-          'TRANG 3: MAT CAT NGANG DIEN HINH & KET CAU AO DUONG BTN C19',
-          'TRANG 4: BANG TONG HOP KHOI LUONG DAO DAP & CONG THOAT NUOC'
-        ];
-
-        for (let i = 0; i < 4; i++) {
-          const page = pdfDoc.addPage([841.89, 595.28]); // A4 Landscape CAD Sheet
-          const { width, height } = page.getSize();
-
-          // Outer CAD border
-          page.drawRectangle({ x: 24, y: 24, width: width - 48, height: height - 48, borderColor: rgb(0.1, 0.2, 0.45), borderWidth: 2 });
-          page.drawRectangle({ x: width - 260, y: 24, width: 236, height: 70, borderColor: rgb(0.1, 0.2, 0.45), borderWidth: 1.2 });
-
-          page.drawText('HO SO THIET KE KY THUAT CIVIL 3D - PDF EDITOR HDV v3.0', { x: 40, y: height - 52, size: 11, font: fontBold, color: rgb(0.12, 0.28, 0.65) });
-          page.drawText(titles[i], { x: 40, y: height - 74, size: 14, font: fontBold, color: rgb(0.08, 0.1, 0.15) });
-
-          // Editable lines on page 1 synced with Native Text Workspace
-          if (i === 0) {
-            state.nativeLines.forEach((line, idx) => {
-              page.drawText(line.text, {
-                x: 40,
-                y: height - 115 - idx * 22,
-                size: Math.min(line.size, 14),
-                font: line.font.includes('Bold') ? fontBold : (line.font.includes('Courier') ? fontMono : fontReg),
-                color: rgb(0.1, 0.15, 0.25)
-              });
-            });
-          } else {
-            page.drawText(`Chi tiet ky thuat trang ${i + 1}: Duong cong nam R=1200m, Sieu cao i=4.0%, Do doc doc i=1.85%`, {
-              x: 40, y: height - 115, size: 11, font: fontReg, color: rgb(0.15, 0.2, 0.3)
-            });
-          }
-
-          // Simulated CAD profile grid & polylines
-          for (let gx = 60; gx <= width - 80; gx += 70) {
-            page.drawLine({ start: { x: gx, y: 130 }, end: { x: gx, y: 360 }, thickness: 0.4, color: rgb(0.8, 0.85, 0.92) });
-          }
-          for (let gy = 130; gy <= 360; gy += 45) {
-            page.drawLine({ start: { x: 60, y: gy }, end: { x: width - 80, y: gy }, thickness: 0.4, color: rgb(0.8, 0.85, 0.92) });
-          }
-          page.drawLine({ start: { x: 60, y: 190 + i * 12 }, end: { x: 420, y: 280 - i * 8 }, thickness: 2, color: rgb(0.08, 0.35, 0.78) });
-          page.drawLine({ start: { x: 420, y: 280 - i * 8 }, end: { x: width - 90, y: 215 + i * 10 }, thickness: 2, color: rgb(0.08, 0.35, 0.78) });
-
-          // Title block stamp
-          page.drawText('DON VI: CONG TY TVTK CAU DUONG HDV', { x: width - 250, y: 74, size: 8.5, font: fontBold, color: rgb(0.1, 0.15, 0.25) });
-          page.drawText(`MA BAN VE: HDV-C3D-0${i + 1} | TY LE: 1:500`, { x: width - 250, y: 56, size: 8, font: fontMono, color: rgb(0.2, 0.25, 0.35) });
-          page.drawText(`TRANG: ${i + 1} / 4`, { x: width - 250, y: 38, size: 8.5, font: fontBold, color: rgb(0.12, 0.28, 0.65) });
-        }
-
-        const bytes = await pdfDoc.save({ useObjectStreams: true });
-        state.pdfBytes = bytes;
-        state.pdfName = 'Ban_Ve_Civil3D_Tuyen_Cao_Toc_HDV.pdf';
-        state.pageCount = 4;
-        state.hasSignature = false;
-        updateFileBanner();
-        showToast('Đã tạo bản vẽ mẫu Civil 3D (4 trang vector) sẵn sàng xử lý!', 'success');
-      }
-
-      function renderToolsGrid() {
-        const grid = document.getElementById('tools-grid');
-        const countBadge = document.getElementById('tool-count-badge');
-        if (!grid) return;
-
-        const q = state.searchQuery.trim().toLowerCase();
-        const filtered = TOOLS.filter((t) => {
-          const matchCat = state.activeCategory === 'all' || t.cat === state.activeCategory;
-          const matchQ = !q || t.name.toLowerCase().includes(q) || t.desc.toLowerCase().includes(q) || t.badge.toLowerCase().includes(q);
-          return matchCat && matchQ;
-        });
-
-        countBadge.textContent = `${filtered.length} công cụ`;
-        grid.innerHTML = '';
-
-        filtered.forEach((tool) => {
-          const card = document.createElement('div');
-          card.className = 'group bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all shadow-sm hover:shadow-md flex flex-col justify-between gap-3';
-          card.innerHTML = `
-            <div class="space-y-2">
-              <div class="flex items-center justify-between gap-2">
-                <span class="px-2.5 py-0.5 text-[10px] font-bold uppercase rounded-full bg-blue-50 dark:bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-500/30">${tool.badge}</span>
-                <span class="text-[11px] text-slate-400 font-medium">${tool.cat.toUpperCase()}</span>
-              </div>
-              <h3 class="font-bold text-sm group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">${tool.name}</h3>
-              <p class="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">${tool.desc}</p>
-            </div>
-            <button type="button" data-open-tool="${tool.id}" class="w-full py-2 px-3 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-600 group-hover:text-white text-slate-700 dark:text-slate-200 transition">
-              Mở Công Cụ →
-            </button>
-          `;
-          grid.appendChild(card);
-        });
-      }
-
-      function renderNativeCanvasBlocks() {
-        const container = document.getElementById('canvas-blocks-container');
-        const logContainer = document.getElementById('native-history-log');
-        const undoBtn = document.getElementById('btn-native-undo');
-        const redoBtn = document.getElementById('btn-native-redo');
-        if (!container) return;
-
-        container.innerHTML = '';
-        state.nativeLines.forEach((line, idx) => {
-          const isSelected = idx === state.selectedLineIndex;
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.setAttribute('data-line-idx', String(idx));
-          btn.className = `w-full text-left px-3 py-2 rounded-lg border transition flex items-center justify-between gap-2 ${
-            isSelected
-              ? 'border-blue-600 bg-blue-50/90 text-blue-950 ring-2 ring-blue-500/30'
-              : 'border-slate-300 hover:border-blue-400 bg-white text-slate-800'
-          }`;
-          btn.innerHTML = `
-            <span class="truncate font-medium" style="font-size:${Math.min(line.size, 15)}px">${line.text}</span>
-            <span class="shrink-0 text-[10px] px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono">Y=${line.baselineY}</span>
-          `;
-          container.appendChild(btn);
-        });
-
-        const current = state.nativeLines[state.selectedLineIndex];
-        if (current) {
-          document.getElementById('inspector-text-input').value = current.text;
-          document.getElementById('inspector-font-select').value = current.font;
-          document.getElementById('inspector-size-input').value = String(current.size);
-        }
-
-        undoBtn.disabled = state.undoStack.length === 0;
-        redoBtn.disabled = state.redoStack.length === 0;
-
-        if (logContainer) {
-          if (state.undoStack.length === 0) {
-            logContainer.innerHTML = '<div class="italic text-slate-400">Chưa có giao dịch chỉnh sửa nào trên trang hiện tại.</div>';
-          } else {
-            logContainer.innerHTML = state.undoStack
-              .slice()
-              .reverse()
-              .map((item, i) => `<div class="p-1.5 rounded bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">#${state.undoStack.length - i}: ${item.summary}</div>`)
-              .join('');
-          }
-        }
-      }
-
-      function switchTab(tabId) {
-        state.activeTab = tabId;
-        ['dashboard', 'native-editor', 'local-engine', 'repo-cleanup'].forEach((id) => {
-          const el = document.getElementById(`view-${id}`);
-          if (el) el.classList.toggle('hidden', id !== tabId);
-        });
-        document.querySelectorAll('.nav-tab-btn').forEach((btn) => {
-          const active = btn.getAttribute('data-nav-tab') === tabId;
-          btn.className = active
-            ? 'nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-sm'
-            : 'nav-tab-btn px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white';
-        });
-        document.getElementById('mobile-nav-drawer').classList.add('hidden');
-      }
-
-      function openToolModal(toolId) {
-        const tool = TOOLS.find((t) => t.id === toolId);
-        if (!tool) return;
-        if (tool.paramType === 'jump-native') {
-          switchTab('native-editor');
-          showToast('Đã mở Không gian Chỉnh sửa Văn bản Native WASM.', 'info');
-          return;
-        }
-        state.selectedToolId = tool.id;
-        document.getElementById('modal-tool-badge').textContent = `${tool.badge} • ${tool.cat.toUpperCase()}`;
-        document.getElementById('modal-tool-title').textContent = tool.name;
-        document.getElementById('modal-tool-desc').textContent = tool.desc;
-
-        const ctrlBox = document.getElementById('modal-tool-controls');
-        if (tool.paramType === 'select') {
-          const opts = (tool.options || []).map((o) => `<option value="${o}">${o}</option>`).join('');
-          ctrlBox.innerHTML = `
-            <label class="block text-xs font-semibold mb-1">${tool.paramLabel}</label>
-            <select id="modal-param-input" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">${opts}</select>
-          `;
-        } else {
-          ctrlBox.innerHTML = `
-            <label class="block text-xs font-semibold mb-1">${tool.paramLabel}</label>
-            <input id="modal-param-input" type="text" value="${tool.defaultVal || ''}" class="w-full px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700" />
-          `;
-        }
-        document.getElementById('tool-modal').classList.remove('hidden');
-      }
-
-      async function executeSelectedTool() {
-        if (!state.pdfBytes) {
-          await generateSampleCivil3DPdf();
-        }
-        const toolId = state.selectedToolId;
-        const paramEl = document.getElementById('modal-param-input');
-        const paramVal = paramEl ? paramEl.value.trim() : '';
-        const { PDFDocument, StandardFonts, rgb, degrees } = window.PDFLib;
-
-        try {
-          const pdfDoc = await PDFDocument.load(state.pdfBytes);
-          const pages = pdfDoc.getPages();
-
-          if (toolId === 'rotate-deskew') {
-            const deg = parseInt(paramVal, 10) || 90;
-            pages.forEach((p) => p.setRotation(degrees((p.getRotation().angle + deg) % 360)));
-          } else if (toolId === 'insert-blank') {
-            const count = parseInt(paramVal, 10) || 1;
-            const { width, height } = pages[0].getSize();
-            for (let i = 0; i < count; i++) {
-              pdfDoc.insertPage(1, [width, height]);
-            }
-          } else if (toolId === 'bates-stamp' || toolId === 'cad-overlay') {
-            const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-            pages.forEach((p, idx) => {
-              const { width, height } = p.getSize();
-              const label = toolId === 'bates-stamp'
-                ? `${paramVal || 'HDV-2026-'}${String(idx + 1).padStart(4, '0')}`
-                : (paramVal || 'BAN VE THI CONG - DA THAM TRA');
-              p.drawText(label, {
-                x: toolId === 'bates-stamp' ? width - 165 : 42,
-                y: toolId === 'bates-stamp' ? 12 : height - 22,
-                size: 10,
-                font,
-                color: toolId === 'bates-stamp' ? rgb(0.1, 0.25, 0.75) : rgb(0.8, 0.15, 0.15)
-              });
-            });
-          } else if (toolId === 'booklet-impose' || toolId === 'nup-layout') {
-            const outDoc = await PDFDocument.create();
-            const { width: pW, height: pH } = pages[0].getSize();
-            for (let i = 0; i < pages.length; i += 2) {
-              const sheet = outDoc.addPage([pW * 2, pH]);
-              const [emb1] = await outDoc.embedPages([pages[i]]);
-              sheet.drawPage(emb1, { x: 0, y: 0, width: pW, height: pH });
-              if (i + 1 < pages.length) {
-                const [emb2] = await outDoc.embedPages([pages[i + 1]]);
-                sheet.drawPage(emb2, { x: pW, y: 0, width: pW, height: pH });
-              }
-            }
-            state.pdfBytes = await outDoc.save({ useObjectStreams: true });
-            state.pageCount = outDoc.getPageCount();
-            updateFileBanner();
-            document.getElementById('tool-modal').classList.add('hidden');
-            triggerDownload(state.pdfBytes, `HDV_${toolId}_output.pdf`);
-            showToast(`Đã thực thi thành công ${toolId} và tải xuống tệp PDF!`, 'success');
-            return;
-          } else if (toolId === 'sanitize-meta') {
-            pdfDoc.setTitle(paramVal || 'Ho So Ky Thuat PDF HDV v3.0');
-            pdfDoc.setAuthor('PDF Editor HDV v3.0 Studio');
-            pdfDoc.setProducer('PDF Editor HDV Local & WASM Engine');
-          }
-
-          state.pdfBytes = await pdfDoc.save({ useObjectStreams: true });
-          state.pageCount = pdfDoc.getPageCount();
-          updateFileBanner();
-          document.getElementById('tool-modal').classList.add('hidden');
-          triggerDownload(state.pdfBytes, `HDV_${toolId}_output.pdf`);
-          showToast(`Đã xử lý xong (${toolId}) và xuất tệp kết quả!`, 'success');
-        } catch (err) {
-          showToast(`Lỗi khi xử lý PDF: ${err.message}`, 'warn');
-        }
-      }
-
-      function triggerDownload(uint8Bytes, filename) {
-        const blob = new Blob([uint8Bytes], { type: 'application/pdf' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 2000);
-      }
-
-      async function pingLocalBackend() {
-        const dot = document.getElementById('engine-dot');
-        const label = document.getElementById('engine-label');
-        const pill = document.getElementById('local-engine-pill');
-
-        if (state.engineSimMode) {
-          state.engineOnline = true;
-          dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
-          label.textContent = 'Local Engine Online (8ms • Sim)';
-          pill.textContent = 'Online • LibreOffice + Tesseract (vie, eng) Sẵn sàng';
-          pill.className = 'px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300';
-          return;
-        }
-
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 1800);
-        const t0 = performance.now();
-        try {
-          const res = await fetch('http://127.0.0.1:8000/api/capabilities', { signal: controller.signal });
-          clearTimeout(timer);
-          if (res.ok) {
-            const ms = Math.round(performance.now() - t0);
-            state.engineOnline = true;
-            dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
-            label.textContent = `Local Engine (${ms}ms)`;
-            pill.textContent = `Online (${ms}ms) • FastAPI v3.0 Sẵn sàng`;
-            pill.className = 'px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300';
-            showToast(`Đã kết nối Local Engine tại 127.0.0.1:8000 (${ms}ms).`, 'success');
-            return;
-          }
-        } catch (_e) {
-          clearTimeout(timer);
-        }
-        state.engineOnline = false;
-        dot.className = 'w-2 h-2 rounded-full bg-amber-500';
-        label.textContent = 'Browser Fallback';
-        pill.textContent = 'Chế độ Trình duyệt Dự phòng (WASM + PDFLib)';
-        pill.className = 'px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300';
-      }
-
-      // Initialize Event Listeners
-      document.addEventListener('DOMContentLoaded', () => {
-        renderToolsGrid();
-        renderNativeCanvasBlocks();
-        document.getElementById('doc-preview-content').innerHTML = DOCS_PREVIEW.readme;
-        pingLocalBackend();
-
-        // Navigation Tabs
-        document.querySelectorAll('.nav-tab-btn').forEach((btn) => {
-          btn.addEventListener('click', () => switchTab(btn.getAttribute('data-nav-tab')));
-        });
-
-        // Mobile Menu Toggle
-        document.getElementById('btn-mobile-menu').addEventListener('click', () => {
-          document.getElementById('mobile-nav-drawer').classList.toggle('hidden');
-        });
-
-        // Theme Toggle
-        document.getElementById('btn-theme-toggle').addEventListener('click', () => {
-          document.documentElement.classList.toggle('dark');
-          try {
-            localStorage.setItem('hdv-theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-          } catch (_e) {}
-        });
-
-        // Search & Category Filter
-        document.getElementById('tool-search-input').addEventListener('input', (e) => {
-          state.searchQuery = e.target.value;
-          renderToolsGrid();
-        });
-
-        document.getElementById('category-chips').addEventListener('click', (e) => {
-          const btn = e.target.closest('.cat-chip');
-          if (!btn) return;
-          state.activeCategory = btn.getAttribute('data-cat');
-          document.querySelectorAll('.cat-chip').forEach((c) => {
-            const active = c.getAttribute('data-cat') === state.activeCategory;
-            c.className = active
-              ? 'cat-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 text-white shrink-0'
-              : 'cat-chip px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shrink-0';
-          });
-          renderToolsGrid();
-        });
-
-        // Tools Grid Delegation
-        document.getElementById('tools-grid').addEventListener('click', (e) => {
-          const btn = e.target.closest('[data-open-tool]');
-          if (btn) openToolModal(btn.getAttribute('data-open-tool'));
-        });
-
-        // Modal Buttons
-        document.getElementById('btn-close-modal').addEventListener('click', () => {
-          document.getElementById('tool-modal').classList.add('hidden');
-        });
-        document.getElementById('btn-cancel-modal').addEventListener('click', () => {
-          document.getElementById('tool-modal').classList.add('hidden');
-        });
-        document.getElementById('btn-run-tool').addEventListener('click', executeSelectedTool);
-
-        // Generate Sample PDF & Download
-        document.getElementById('btn-generate-sample').addEventListener('click', generateSampleCivil3DPdf);
-        document.getElementById('btn-download-current').addEventListener('click', () => {
-          if (state.pdfBytes) triggerDownload(state.pdfBytes, state.pdfName);
-        });
-
-        // Upload Real PDF
-        document.getElementById('pdf-file-input').addEventListener('change', async (e) => {
-          const file = e.target.files && e.target.files[0];
-          if (!file) return;
-          const buf = await file.arrayBuffer();
-          const uint8 = new Uint8Array(buf);
-          state.pdfBytes = uint8;
-          state.pdfName = file.name;
-          const rawStr = new TextDecoder('latin1').decode(uint8.slice(0, Math.min(uint8.length, 65536)));
-          state.hasSignature = rawStr.includes('/ByteRange');
-          if (window.PDFLib && file.name.toLowerCase().endsWith('.pdf')) {
-            try {
-              const doc = await window.PDFLib.PDFDocument.load(uint8, { ignoreEncryption: true });
-              state.pageCount = doc.getPageCount();
-            } catch (_err) {
-              state.pageCount = 1;
-            }
-          } else {
-            state.pageCount = 1;
-          }
-          updateFileBanner();
-          showToast(`Đã nạp tệp "${file.name}" (${state.pageCount} trang).`, 'success');
-        });
-
-        // Native Text Canvas Selection & Editing
-        document.getElementById('canvas-blocks-container').addEventListener('click', (e) => {
-          const btn = e.target.closest('[data-line-idx]');
-          if (!btn) return;
-          state.selectedLineIndex = parseInt(btn.getAttribute('data-line-idx'), 10) || 0;
-          renderNativeCanvasBlocks();
-        });
-
-        document.getElementById('btn-apply-line-edit').addEventListener('click', () => {
-          const idx = state.selectedLineIndex;
-          const oldLine = { ...state.nativeLines[idx] };
-          const newText = document.getElementById('inspector-text-input').value.trim();
-          const newFont = document.getElementById('inspector-font-select').value;
-          const newSize = parseInt(document.getElementById('inspector-size-input').value, 10) || 12;
-
-          state.undoStack.push({
-            index: idx,
-            prev: oldLine,
-            next: { text: newText, font: newFont, size: newSize, baselineY: oldLine.baselineY },
-            summary: `Dòng ${idx + 1}: "${oldLine.text.slice(0, 18)}..." → "${newText.slice(0, 18)}..."`
-          });
-          state.redoStack = [];
-          state.nativeLines[idx] = { text: newText, font: newFont, size: newSize, baselineY: oldLine.baselineY };
-          renderNativeCanvasBlocks();
-          showToast('Đã cập nhật dòng văn bản với khóa Baseline Y.', 'success');
-        });
-
-        document.getElementById('btn-native-undo').addEventListener('click', () => {
-          const op = state.undoStack.pop();
-          if (!op) return;
-          state.redoStack.push(op);
-          state.nativeLines[op.index] = { ...op.prev };
-          renderNativeCanvasBlocks();
-          showToast('Đã hoàn tác (Undo) thao tác sửa văn bản.', 'info');
-        });
-
-        document.getElementById('btn-native-redo').addEventListener('click', () => {
-          const op = state.redoStack.pop();
-          if (!op) return;
-          state.undoStack.push(op);
-          state.nativeLines[op.index] = { ...op.next };
-          renderNativeCanvasBlocks();
-          showToast('Đã làm lại (Redo) thao tác sửa văn bản.', 'info');
-        });
-
-        document.getElementById('btn-batch-replace-open').addEventListener('click', () => {
-          state.nativeLines = state.nativeLines.map((l) => ({
-            ...l,
-            text: l.text.replace(/2026/g, '2027').replace(/Km0\+000/g, 'Km2+500')
-          }));
-          state.undoStack.push({
-            index: 0,
-            prev: state.nativeLines[0],
-            next: state.nativeLines[0],
-            summary: 'Batch Replace: Thay thế đồng loạt cột mốc lý trình & năm hồ sơ'
-          });
-          renderNativeCanvasBlocks();
-          showToast('Đã thực thi Batch Text Replace trên toàn bộ các vùng văn bản!', 'success');
-        });
-
-        document.getElementById('btn-commit-native-pdf').addEventListener('click', async () => {
-          await generateSampleCivil3DPdf();
-          triggerDownload(state.pdfBytes, 'Ban_Ve_Civil3D_Native_Edited.pdf');
-        });
-
-        // Local Engine Controls
-        document.getElementById('btn-engine-status').addEventListener('click', () => {
-          switchTab('local-engine');
-          pingLocalBackend();
-        });
-        document.getElementById('btn-ping-backend').addEventListener('click', pingLocalBackend);
-        document.getElementById('btn-toggle-sim-online').addEventListener('click', () => {
-          state.engineSimMode = !state.engineSimMode;
-          pingLocalBackend();
-          showToast(
-            state.engineSimMode
-              ? 'Đã bật chế độ Mô phỏng Local Engine Online (127.0.0.1:8000).'
-              : 'Đã chuyển về chế độ kiểm tra kết nối thực tế.',
-            'info'
-          );
-        });
-
-        // Docs Preview Tabs & Copy Script
-        document.querySelectorAll('.doc-tab-btn').forEach((btn) => {
-          btn.addEventListener('click', () => {
-            const key = btn.getAttribute('data-doc-tab');
-            document.getElementById('doc-preview-content').innerHTML = DOCS_PREVIEW[key] || '';
-            document.querySelectorAll('.doc-tab-btn').forEach((b) => {
-              const active = b.getAttribute('data-doc-tab') === key;
-              b.className = active
-                ? 'doc-tab-btn px-3 py-1 rounded-lg text-xs font-semibold bg-blue-600 text-white'
-                : 'doc-tab-btn px-3 py-1 rounded-lg text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300';
-            });
-          });
-        });
-
-        document.getElementById('btn-copy-cleanup-script').addEventListener('click', () => {
-          const cmd = document.getElementById('cleanup-bash-box').textContent;
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(cmd).catch(() => {});
-          } else {
-            const ta = document.createElement('textarea');
-            ta.value = cmd;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            ta.remove();
-          }
-          showToast('Đã sao chép lệnh dọn dẹp kho lưu trữ vào Clipboard!', 'success');
-        });
-      });
-    })();
-  </script>
+ if(!['merge', 'range', 'rot', 'organize', 'qr', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(k)) {
+  $('#out').innerHTML=`<div class="res"><b>Tính năng sắp ra mắt</b><p style="margin:4px 0 0;font-size:13px;color:var(--mute)">Công cụ này đang được phát triển và sẽ sớm có mặt. Xin cảm ơn!</p></div>`;
+  b.disabled=false;
+  return;
+ }
+}
+function done(){const tot=files.reduce((a,f)=>a+f.size,0),k=tool[4];
+ const extra=k=='compress'?`Dung lượng giảm từ ${sz(tot)} còn khoảng ${sz(tot*.42)} (ước tính mô phỏng).`:`${files.length} tệp đã được xử lý.`;
+ $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> ${extra}<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="dl">Tải xuống</button><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
+ $('#dl').onclick=()=>toast('Đây là giao diện mẫu, chưa tạo tệp thật');$('#again').onclick=()=>{files=[];render()};$('#go').disabled=false}
+function back(){$('#ws').style.display='none';$('#home').style.display='block';home()}
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+ if(b.dataset.c){cat=b.dataset.c;home()}
+ if(b.dataset.nav){back();cat=b.dataset.nav;home();$('#tools').scrollIntoView()}
+ if(b.dataset.i!=null&&b.classList.contains('tool'))openTool(+b.dataset.i);
+ if(b.dataset.x!=null){files.splice(+b.dataset.x,1);render()}
+ if(b.dataset.m){const[k,d]=b.dataset.m.split(':').map(Number),j=k+d;if(files[j]){[files[k],files[j]]=[files[j],files[k]];render()}}
+ if(b.id=='logo'||b.id=='back'){cat='Tất cả';back()}
+ if(b.id=='theme'){const r=document.documentElement,dk=getComputedStyle(r).getPropertyValue('--bg').trim()=='#0f1220';r.dataset.theme=dk?'light':'dark'}
+ if(b.id=='refresh-app')location.reload()});
+$('#q').oninput=home;home();
+</script>
+<script src="hvd-ui-v2.js?v=20261015-1"></script>
+<script src="hvd-legal.js?v=1"></script>
+<script src="pdf-lib.min.js"></script>
+<script>if(!window.PDFLib){document.write('<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"><\/script>');}</script>
+<script src="pdf.min.js"></script>
+<script>
+if(!window.pdfjsLib && window['pdfjs-dist/build/pdf']){ window.pdfjsLib = window['pdfjs-dist/build/pdf']; }
+if(!window.pdfjsLib){ document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>'); }
+</script>
+<script>
+if(window.pdfjsLib){
+    if(window.location.protocol === 'file:'){
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = '';
+    } else {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'pdf.worker.min.js';
+    }
+}
+</script>
+<script src="Sortable.min.js"></script>
+<script src="pdf-local-tools.js?v=20261015-pages-fix1"></script>
+<script src="cit-advanced-core.js?v=20261015-cit-4"></script>
+<script src="cit-advanced-ui.js?v=20261015-cit-4"></script>
+<script>if(!window.Sortable){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"><\/script>');}</script>
+<script src="jszip.min.js"></script>
+<script>if(!window.JSZip){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"><\/script>');}</script>
+<script src="fontkit.umd.min.js"></script>
+<script>if(!window.fontkit){document.write('<script src="https://unpkg.com/@pdf-lib/fontkit@1.1.1/dist/fontkit.umd.min.js"><\/script>');}</script>
+<script src="pdf-text-layout.js?v=39"></script>
+<script src="organizer.js?v=44"></script>
+<script src="pdf-batch-text.js?v=44"></script>
 </body>
 </html>
