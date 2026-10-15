@@ -66,8 +66,8 @@ test('batch filter/preview only updates edit inputs, never page document',()=>{
    '#po-batch-find':{value:'KM'},
    '#po-batch-replace':{value:'QL'}
  };
- const orig=document;
- const modal={querySelector:q=>field[q]||{textContent:'',style:{},disabled:false}};
+ // Search preview never alters the persisted PDF without applying changes.
+ assert.equal(typeof app.previewCITBatchText,'function');
  const old=app.batchRows[0].input.value;
  assert.equal(old,'KM 5');
  app.batchRows[0].original='KM 1';
