@@ -1,5 +1,5 @@
 // Local-only PDF processing; no document bytes leave this worker.
-import {NativeTextEditor} from './pdf-native-text.mjs?v=42';
+import {NativeTextEditor} from './pdf-native-text.mjs?v=44';
 let editor;
 async function initialize() {
     const fonts=[];
