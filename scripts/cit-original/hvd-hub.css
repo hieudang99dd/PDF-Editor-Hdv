@@ -41,3 +41,16 @@ body[data-hvd-cit-hub="original"] #hvd-cit-home {
 @media (prefers-reduced-motion: reduce) {
   body[data-hvd-cit-hub="original"] .hvd-cit-hub-link {transition:none}
 }
+
+/* Compliance information stays accessible in the existing legal/footer area. */
+body[data-hvd-cit-hub="original"] .hvd-cit-legal-link {
+  display:inline-block;
+  margin-top:6px;
+  color:#a6b8bd;
+  font:400 11px/1.5 "Segoe UI",Arial,sans-serif;
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
+body[data-hvd-cit-hub="original"] .hvd-cit-legal-link:hover {
+  color:#b5fff3;
+}
