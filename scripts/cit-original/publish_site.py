@@ -13,6 +13,7 @@ import json
 import pathlib
 import shutil
 import sys
+from brand_site import main as brand_frontend
 
 root = pathlib.Path(__file__).resolve().parents[2]
 upstream_dist = pathlib.Path(sys.argv[1]).resolve()
@@ -59,29 +60,19 @@ if not fallback_editor.is_file():
 # The original Vite output is still built from a pinned upstream commit.
 cit_dir = dest / "cit-native"
 shutil.copytree(upstream_dist, cit_dir)
-for name in ("hvd-hub.js", "hvd-hub.css"):
+for name in ("hvd-hub.js", "hvd-hub.css", "hvd-mark.svg"):
     shutil.copy2(root / "scripts" / "cit-original" / name, cit_dir / name)
-cit_html_path = cit_dir / "edit-pdf-text.html"
-cit_html = cit_html_path.read_text(encoding="utf-8")
-if 'href="hvd-hub.css"' not in cit_html:
-    if "</head>" not in cit_html:
-        raise SystemExit("CIT frontend missing </head>; refusing unsafe HTML patch")
-    cit_html = cit_html.replace("</head>", '  <link rel="stylesheet" href="hvd-hub.css">\n  </head>', 1)
-if 'src="hvd-hub.js"' not in cit_html:
-    if "</body>" not in cit_html:
-        raise SystemExit("CIT frontend missing </body>; refusing unsafe HTML patch")
-    cit_html = cit_html.replace("</body>", '  <script defer src="hvd-hub.js"></script>\n  </body>', 1)
-cit_html_path.write_text(cit_html, encoding="utf-8")
+brand_frontend(cit_dir)
 (dest / ".nojekyll").write_text("", encoding="utf-8")
 
 target = "./cit-native/edit-pdf-text.html"
 redirect = f"""<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport"
 content="width=device-width,initial-scale=1">
-<title>Chỉnh sửa Text PDF – CIT-PDF trong PDF HVD</title>
+<title>PDF HVD – Chỉnh sửa văn bản PDF</title>
 <meta http-equiv="refresh" content="0;url={html.escape(target)}">
 <link rel="canonical" href="{html.escape(target)}"></head>
-<body><p>Đang mở trình biên tập văn bản gốc CIT-PDF…
+<body><p>Đang mở trình chỉnh sửa văn bản PDF HVD…
 <a href="{html.escape(target)}">Nhấn vào đây nếu không tự chuyển</a>.</p>
 <script>location.replace({json.dumps(target)}+location.search+location.hash);</script>
 </body></html>
@@ -92,7 +83,7 @@ meta = {
     "upstream_tag": "1.0.0",
     "upstream_commit": "3c9c138d980a417de7439f383f37882a1d730ab6",
     "engine": "original pinned CIT Vite+PDFium runtime, unmodified algorithms",
-    "hvd_bridge": "external navigation and branding CSS/JS only",
+    "hvd_bridge": "PDF HVD branding, SEO and navigation; copyright retained in NOTICE.md",
     "path": "/PDF-Editor-Hdv/cit-native/edit-pdf-text.html",
     "legacy_fallback": "/PDF-Editor-Hdv/text-editor-hdv.html",
     "license": "AGPL-3.0-only"
