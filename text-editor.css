@@ -1,0 +1,115 @@
+/* HVD × CIT standalone text editor – dark document workspace.
+ * Original CIT PDFium editor algorithms remain in vendor/cit-pdf/editcore.
+ * This file only adapts layout; no PDF content is rasterized for saving.
+ */
+html,body.hdv-cit-text-route{margin:0;width:100%;height:100%;overflow:hidden;background:#171a1f;color:#ebedef;font:14px/1.4 "Segoe UI",Arial,sans-serif}
+body.hdv-cit-text-route *{box-sizing:border-box}
+body.hdv-cit-text-route .po-container {
+ --po-primary:#13b6aa;--po-primary-light:#123d3b;--po-surface:#25292d;
+ --po-background:#17191d;--po-border:#3d4247;--po-text-main:#e9ecee;
+ --po-text-muted:#a3aab0;--po-danger:#f47770;--po-success:#3adb97;
+ --po-right-col-bg:#202226;--po-meta-bg:#272b30;--po-badge-bg:#353a3f;
+ --po-preview-toolbar-bg:rgba(39,43,47,.97);--po-disabled-text:#656a70;
+ --po-loading-bg:rgba(20,22,27,.95);
+ font-family:"Segoe UI",Arial,sans-serif;
+ color:#e9ecee;
+ background:#202226;
+}
+.hdv-cit-text-route .po-header{height:61px;background:#252729;border-color:#3c4145;flex-wrap:nowrap;padding:0 18px}
+.hdv-cit-text-route .po-header-left{gap:12px;min-width:0}
+.hdv-cit-text-route .po-title{color:#f0f1f2;font-size:15px;letter-spacing:.1px;white-space:nowrap}
+.hdv-cit-text-route .po-header-right{gap:7px}
+.hdv-cit-text-route .po-icon-btn{background:#35383b;color:#e5e7e9;border:1px solid #4b5055}
+.hdv-cit-text-route .po-icon-btn:hover:not(:disabled){background:#43494d}
+.hdv-cit-text-route .po-primary-btn{background:#0da99d;border:1px solid #0ec5b5;color:#fff;font-weight:650}
+.hdv-cit-text-route .po-primary-btn:disabled{opacity:.45}
+.hdv-cit-text-route .po-toolbar,.hdv-cit-text-route #po-edit-subbar{display:none!important}
+.hdv-cit-text-route .po-workspace{background:#202226}
+.hdv-cit-text-route .po-left-col{display:none!important}
+.hdv-cit-text-route .po-right-col{flex:1;min-width:0;background:#202226}
+.hdv-cit-text-route #po-preview-canvas{
+ background:#292b2e;flex:1;overflow:auto;
+ padding:26px 32px 88px;text-align:center;
+ scrollbar-color:#5a6064 #222427
+}
+.hdv-cit-text-route #po-preview-img{background:#fff;box-shadow:0 8px 30px #08090b70}
+.hdv-cit-text-route .po-preview-toolbar {
+ position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+ padding:7px 10px;border:1px solid #494e52;background:#303337;
+ box-shadow:0 8px 28px #08090b65;border-radius:9px;white-space:nowrap;z-index:35
+}
+.hdv-cit-text-route .po-pv-btn{color:#e6e8e9;padding:6px 8px;border-radius:5px}
+.hdv-cit-text-route .po-pv-btn:hover{background:#4a4e51}
+.hdv-cit-text-route #pv-page-input{background:#383c40;color:#fff;border:1px solid #555a5e}
+.hdv-cit-text-route .po-pv-text,.hdv-cit-text-route #pv-zoom-pct{color:#dee2e4!important}
+.hdv-cit-text-route .po-text-box{outline:1px dashed rgba(89,189,195,.52)}
+.hdv-cit-text-route .po-text-box:hover{outline:1px solid #10cdbb}
+.hdv-cit-text-route .po-text-box.editing{outline:2px solid #0cc2b4;background:rgba(255,255,255,.94)!important;color:#1d2527!important}
+.hdv-cit-text-route .po-text-box.po-text-unsupported{outline:1px dashed rgba(247,106,80,.8)}
+/* Keep original in-page format toolbar functional for keyboard interactions,
+ * but move its controls to the permanent CIT-style inspector on the right. */
+.hdv-cit-text-route #po-format-toolbar{visibility:hidden!important;pointer-events:none!important}
+.hdv-cit-text-route .po-workspace>.hdv-text-dock{
+ flex:0 0 286px;width:286px;min-width:248px;max-width:340px;
+ order:4;background:#2b2d30;border-left:1px solid #41464a;
+ height:100%;overflow:auto;padding:0 16px 24px;
+ box-shadow:-2px 0 15px #0002;scrollbar-color:#4f5457 #292b2f;
+ text-align:left;z-index:3
+}
+.hdv-text-dock h2{font-weight:650;font-size:12px;color:#97a6ad;letter-spacing:.08em;
+ text-transform:uppercase;margin:0;padding:17px 0 13px}
+.hdv-text-dock .hdv-dock-section{padding:0 0 16px;border-bottom:1px solid #424649;margin-bottom:5px}
+.hdv-text-dock .hdv-dock-label{display:block;font-size:11px;color:#b4b9bc;font-weight:650;
+ letter-spacing:.045em;text-transform:uppercase;margin:14px 0 7px}
+.hdv-text-dock input,.hdv-text-dock select,.hdv-text-dock textarea{
+ background:#373a3e;border:1px solid #4b5054;color:#f5f6f7;
+ border-radius:6px;padding:8px;font:13px "Segoe UI",Arial,sans-serif;
+ width:100%;min-width:0;outline:none
+}
+.hdv-text-dock input:focus,.hdv-text-dock textarea:focus,.hdv-text-dock select:focus{
+ border-color:#09bead;box-shadow:0 0 0 2px #13b6aa30
+}
+.hdv-text-dock textarea{min-height:96px;resize:vertical;line-height:1.5}
+.hdv-text-dock input[type=color]{height:34px;max-width:45px;padding:2px;cursor:pointer}
+.hdv-text-dock button{background:#383c40;color:#f1f3f4;border:1px solid #4c5155;
+ border-radius:6px;padding:8px 10px;cursor:pointer;font-size:13px}
+.hdv-text-dock button:hover:not(:disabled){background:#464c50}
+.hdv-text-dock button:focus-visible{outline:2px solid #0cd2bf;outline-offset:1px}
+.hdv-text-dock button:disabled{opacity:.4;cursor:not-allowed}
+.hdv-dock-row{display:flex;align-items:center;gap:8px}
+.hdv-dock-row>*{flex:1;min-width:0}
+.hdv-text-dock .hdv-pressed,.hdv-text-dock button[aria-pressed=true]{background:#097f76;border-color:#1ac6ba}
+.hdv-text-dock .hdv-submit{background:#0a9e91;border-color:#0ccdb8;font-weight:700;color:white}
+.hdv-text-dock .hdv-note{font-size:12px;color:#9ca5aa;line-height:1.6;margin:8px 0}
+.hdv-text-dock .hdv-status{font-size:12px;color:#a2d9d3;line-height:1.4;
+ min-height:35px;border:1px solid #3e5453;border-radius:6px;padding:9px;margin:12px 0}
+.hdv-text-dock .hdv-status.error{border-color:#bf6864;color:#ffa39d}
+.hdv-text-dock [disabled]{cursor:not-allowed}
+.hdv-cit-text-route .po-upload-area{background:#272a2e;color:#f0f2f4;border:2px dashed #4d7775;border-radius:14px}
+.hdv-cit-text-route .po-upload-text{color:#f0f2f4}
+.hdv-cit-text-route .po-upload-sub{color:#b0bec2}
+.hdv-cit-text-route .po-modal{background:#292e33;color:#eef1f2}
+.hdv-cit-text-route .po-modal input,.hdv-cit-text-route .po-modal select{background:#353a3e;color:#f8f8f8}
+.hdv-cit-text-route #po-batch-modal{z-index:3500!important}
+.hdv-cit-text-route #toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);
+ background:#084e48;color:white;max-width:90vw;border:1px solid #28bfb1;
+ padding:11px 16px;border-radius:9px;opacity:0;pointer-events:none;transition:opacity .15s;z-index:5000}
+.hdv-cit-text-route #toast.show{opacity:1}
+.hdv-text-dock .hdv-engine-title{font-size:11px;color:#13d1bd;font-weight:800;letter-spacing:.1em}
+@media(max-width:960px){
+ .hdv-cit-text-route .po-workspace>.hdv-text-dock{flex-basis:248px;width:248px;padding:0 10px 20px}
+ .hdv-cit-text-route #po-preview-canvas{padding:20px 12px 84px}
+}
+@media(max-width:700px){
+ .hdv-cit-text-route .po-header{height:56px;padding:0 7px}
+ .hdv-cit-text-route .po-title{font-size:12px}
+ .hdv-cit-text-route .po-header-right{gap:2px}
+ .hdv-cit-text-route .po-workspace>.hdv-text-dock{
+   position:absolute;right:0;bottom:0;top:0;height:100%;width:min(85vw,300px);
+   transform:translateX(calc(100% - 32px));transition:transform .2s;z-index:50;
+   box-shadow:-10px 0 30px #0006;padding-left:36px
+ }
+ .hdv-cit-text-route .po-workspace>.hdv-text-dock.hdv-expanded{transform:translateX(0);padding-left:12px}
+ .hdv-text-dock .hdv-mobile-toggle{display:block!important;position:absolute;top:50%;left:2px;
+   transform:translateY(-50%);width:28px;background:#0b8e84;writing-mode:vertical-rl}
+}
