@@ -31,7 +31,7 @@ test('CIT Back to Tools opens HVD homepage while other native buttons work uncha
   const context={
     window:{
       location:{
-        href:'https://hieudang99dd.github.io/PDF-Editor-Hdv/cit-native/edit-pdf-text.html',
+        href:'https://hieudang99dd.github.io/PDF-Editor-Hdv/studio/edit-pdf-text.html',
         assign(url){redirected=url;}
       },
       dispatchEvent(){events++;}
