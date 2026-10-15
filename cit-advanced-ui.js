@@ -11,7 +11,9 @@
     ['In nhiều trang N-up','nup'],['Cắt lề PDF','crop'],
     ['Xem thuộc tính PDF','inspect'],['Sửa thuộc tính PDF','metadata'],
     ['Xóa metadata cơ bản','remove-metadata'],
-    ['Xóa chú thích PDF','remove-annotations'],['Đánh số Bates','bates']
+    ['Xóa chú thích PDF','remove-annotations'],['Đánh số Bates','bates'],
+    ['Chèn trang trắng PDF','insert-blank'],['Chồng 2 PDF (Overlay)','overlay'],
+    ['Xoay PDF góc tùy chỉnh','rotate-custom']
   ]);
   const tools=[
     ['Đảo thứ tự trang PDF','Đảo thứ tự tất cả các trang, bảo toàn vector','Sắp xếp','⇅','cit-reverse','.pdf'],
@@ -23,7 +25,10 @@
     ['Sửa thuộc tính PDF','Cập nhật tiêu đề, tác giả, mô tả, từ khóa','Chỉnh sửa','ID','cit-metadata','.pdf'],
     ['Xóa metadata cơ bản','Xóa Info/XMP cấp tài liệu; không phải ẩn danh an toàn','Chỉnh sửa','×','cit-remove-metadata','.pdf'],
     ['Xóa chú thích PDF','Xóa chú thích, giữ lại trường biểu mẫu','Chỉnh sửa','▤','cit-remove-annotations','.pdf'],
-    ['Đánh số Bates','Đóng dấu mã trang liên tục','Chỉnh sửa','#','cit-bates','.pdf']
+    ['Đánh số Bates','Đóng dấu mã trang liên tục','Chỉnh sửa','#','cit-bates','.pdf'],
+    ['Chèn trang trắng PDF','Thêm trang trắng vào vị trí chọn','Sắp xếp','⊞','cit-blank','.pdf'],
+    ['Chồng 2 PDF (Overlay)','Chồng PDF thứ hai lên các trang của PDF thứ nhất','Chỉnh sửa','▧','merge','.pdf'],
+    ['Xoay PDF góc tùy chỉnh','Xoay mọi góc; giữ vector','Sắp xếp','⟳','cit-rotation','.pdf']
   ];
   const existing=new Set(T.map(t=>t[0]));
   for(const t of tools)if(!existing.has(t[0]))T.push(t);
@@ -56,6 +61,9 @@
     '<label>Bắt đầu từ<input id="cit-start" type="number" value="1" min="1" max="100000000" '+attr+'></label>',
     '<label>Số chữ số<select id="cit-padding"><option value="4">4</option><option value="5">5</option><option value="6" selected>6</option><option value="8">8</option></select></label>'
   ].join('');
+  OPT['cit-blank']='<label>Chèn trước trang (bắt đầu từ 0)<input id="cit-position" type="number" min="0" value="0" step="1" '+attr+'></label>';
+  OPT['cit-rotation']='<label>Góc xoay (độ)<input id="cit-angle" type="number" min="-360" max="360" value="45" step="1" '+attr+'></label><p>Góc khác bội số 90° tạo lại trang vector; không mang theo annotation.</p>';
+  OPT['cit-overlay']='<label>Độ mờ lớp phủ<select id="cit-opacity"><option value="1">100%</option><option value="0.75">75%</option><option value="0.5">50%</option><option value="0.25">25%</option></select></label><p>Thứ tự tệp: PDF nền trước, PDF lớp phủ sau. Giữ vector nhưng không chuyển annotation của lớp phủ.</p>';
   OPT['cit-remove-metadata']='<p>Xóa Info, XMP cấp tài liệu và PieceInfo. Không đảm bảo loại bỏ metadata nhúng, đối tượng ẩn hoặc phiên bản cũ; không dùng để ẩn danh bảo mật.</p>';
   OPT['cit-remove-annotations']='<p>Xóa đối tượng chú thích (bình luận, highlight…), giữ trường điền biểu mẫu. Chữ/ảnh vẽ trực tiếp lên trang không phải annotation và vẫn được giữ nguyên.</p>';
 
@@ -63,6 +71,9 @@
   function optionsFor(action){
     if(action==='crop')return {left:val('cit-left','5'),right:val('cit-right','5'),top:val('cit-top','5'),bottom:val('cit-bottom','5')};
     if(action==='nup')return {nup:val('cit-nup','2')};
+    if(action==='insert-blank')return {position:val('cit-position','0')};
+    if(action==='rotate-custom')return {angle:val('cit-angle','45')};
+    if(action==='overlay')return {opacity:val('cit-opacity','1')};
     if(action==='metadata')return {title:val('cit-title'),author:val('cit-author'),subject:val('cit-subject'),creator:val('cit-creator'),keywords:val('cit-keywords')};
     if(action==='bates')return {prefix:val('cit-prefix','HDV-'),start:val('cit-start','1'),padding:val('cit-padding','6')};
     return {};
@@ -108,7 +119,7 @@
     const action=actions.get(tool[0]),out=document.getElementById('out');
     const button=document.getElementById('go');
     if(!out||!button||!files.length)return;
-    if(action==='interleave'&&files.length!==2){toast('Cần đúng 2 tệp để ghép xen kẽ');return;}
+    if((action==='interleave'||action==='overlay')&&files.length!==2){toast('Chọn đúng 2 tệp PDF');return;}
     button.disabled=true;
     out.replaceChildren();
     const status=document.createElement('p');
@@ -124,6 +135,7 @@
       console.error('[CIT Advanced]',error);
     }finally{button.disabled=false;}
   }
+  // Reuse HTML controls for both multiple-file CIT actions.
   const previousRun=run;
   run=function(){return actions.has(tool?.[0])?runAdvanced():previousRun();};
   home();
