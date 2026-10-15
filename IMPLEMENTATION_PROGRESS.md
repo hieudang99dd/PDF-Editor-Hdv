@@ -122,3 +122,14 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - **Bot build đã đồng bộ GitHub**: commit `8af167eea08572d326e508ebd1c02a5a42227bfb` chứa `cit-native/hvd-hub.js`, `hvd-hub.css`, HTML CIT tích hợp mới, route chính và fallback.
 - **GitHub Pages**: theo dõi workflow `38754751823` cho bản bot build. Nếu workflow chưa báo xanh thì chưa khẳng định CDN trực tiếp đã cập nhật mới.
 - **Giới hạn**: chưa QA từng loại file CAD thực có font Type3, table hỗn hợp, PDF ký số; nguồn frontend gốc CIT được kế thừa chứ không mặc nhiên là engine sửa được mọi PDF.
+
+## 2026-10-15 — Cá nhân hóa giao diện PDF HVD, giữ nguyên thuật toán
+
+- **Yêu cầu:** mọi tên thương mại, logo, mô tả UI của công cụ đều sử dụng **PDF HVD**. Thuật toán xử lý PDF được giữ nguyên như bản gốc đã qua kiểm thử; không thay thế bằng công cụ mô phỏng.
+- **Frontend branding tự động:** `scripts/cit-original/brand_site.py` chỉnh tên trang, meta title/author, OpenGraph, Twitter metadata, canonical, manifest, favicon và brand trước first paint của bản Vite. `hvd-mark.svg` và `hvd-site.webmanifest` được tạo cho HVD. `hvd-hub.js` đổi tên thanh điều hướng/footer, giữ nút quay về HVD và không đụng PDFium/algorithms.
+- **Đường dẫn mới:** `text-editor.html` → `studio/edit-pdf-text.html`; đổi BASE_URL Vite thành `/PDF-Editor-Hdv/studio/`. Commit bot `c8c0ce35c1fbe95cb5b0d2a8d54d508e7716bfdd` đã tạo thư mục `studio/` và xóa thư mục xuất bản `cit-native/` cũ.
+- **Giao diện HVD hiện hữu:** trang chủ và editor dự phòng được đổi tên hiển thị PDF HVD (tên công cụ, tiêu đề, chú thích font, thông báo UI), không phá code gốc.
+- **Bản quyền / pháp lý:** các thông báo bản quyền gốc, giấy phép AGPL-3.0, `NOTICE.md` và khả năng truy cập mã nguồn được giữ lại theo nghĩa vụ phân phối. Việc thương hiệu hiển thị thành PDF HVD **không** có nghĩa sở hữu tác quyền của phần mềm nguồn mở.
+- **Kiểm thử:** Python unit kiểm tra cách brand và giữ copyright, Vite build pinned source, Chromium mở `/studio/` kiểm tra logo/title/font panel/Undo-Redo và thay chữ PDF thật, PyMuPDF kiểm tra chữ đầu ra và hình học, Node smoke test HVD.
+- **Đã đạt:** [CI native editor](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38758092102) = `success`; Node smoke [38758215338](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38758215338) = `success`. Commit chứa frontend đã đóng gói: [c8c0ce3](https://github.com/hieudang99dd/PDF-Editor-Hdv/commit/c8c0ce35c1fbe95cb5b0d2a8d54d508e7716bfdd).
+- **Cần theo dõi** Pages legacy build trên commit mới nhất đến khi GitHub xác nhận thành công. Kiểm chứng PDF A0/A1, font Type3 và file CAD thực vẫn là công việc QA tiếp theo.
