@@ -19,7 +19,7 @@ function fixture(reject=false){
  const ctx={document,window:{PDFTextLayout:{
   makeEdit:(r,v)=>({id:r.id,originalText:r.text,newText:v.text,size:r.size,
     layoutVersion:2}),layout:()=>({size:12})}},console};
- function PDFOrganizer(){this.pages=[page];this.focusedPageId=page.id;this.batchPageId=page.id;
+ function PDFOrganizer(){this.pages=[page];this.focusedPageId=page.id;this.batchPageId=page.id;this.abort={signal:{aborted:false}};
   this.batchRows=[
    {run:{id:'first',text:'KM 1',size:12,color:'#000000'},original:'KM 1',checkbox:{checked:true},input:{value:'KM 5'}},
    {run:{id:'second',text:'KM 2',size:12,color:'#000000'},original:'KM 2',checkbox:{checked:true},input:{value:'KM 6'}}
