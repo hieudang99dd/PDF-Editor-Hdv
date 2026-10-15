@@ -61,7 +61,8 @@ export function replacementRuns(paragraph,edit) {
     if(!old?.length)fail('Không đọc được các run văn bản của PDF.');
     const base=old[0];
     const mixed=old.some(r=>!sameStyle(r,base));
-    if(!mixed){
+    const selectedPart=canonical(textOf(paragraph))!==canonical(edit.originalText);
+    if(!mixed && !selectedPart){
         const color=rgbValue(edit.color);
         if(!Number.isFinite(color))fail('Màu chữ không hợp lệ.');
         return [{...base,sourceIndex:0,text:edit.newText,size:edit.nativeSize,
@@ -154,7 +155,8 @@ export class NativeTextEditor {
                     }
                     let runs=replacementRuns(paragraph,edit);
                     const isRich=paragraph.runs.length>1 &&
-                        paragraph.runs.some(r=>!sameStyle(r,paragraph.runs[0]));
+                        (canonical(textOf(paragraph))!==canonical(edit.originalText) ||
+                         paragraph.runs.some(r=>!sameStyle(r,paragraph.runs[0])));
                     // For rich text, selected PDF.js text box may cover just one styled
                     // run. Validate the whole paragraph against its original bounds.
                     const safeEdit=isRich?{...edit,maxWidth:Math.max(edit.maxWidth,
