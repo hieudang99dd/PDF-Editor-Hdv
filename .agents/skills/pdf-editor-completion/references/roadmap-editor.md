@@ -191,6 +191,14 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 ---
 
+## Bản sửa lỗi lưu file — 2026-10-15
+
+### [x] Chọn đúng nơi lưu và tải xuống ổn định
+> Xong 2026-10-15: Thêm ba cách lưu rõ ràng (Lưu dưới dạng / thư mục đã chọn / tải xuống trình duyệt). Mở file picker ngay từ thao tác bấm trước khi xử lý PDF; ghi trực tiếp vào directory handle; Hủy không tải xuống ngầm; lỗi quyền/ghi file được báo và không đánh dấu đã lưu. Kiểm tra tên file, thêm .pdf, tự tránh tên trùng, trì hoãn thu hồi Blob URL, khóa lưu trùng. Xuất trang chọn giữ trạng thái chưa lưu của tài liệu đầy đủ.
+> Sửa thêm lỗi xuất nhiều nguồn (`getLanguage()` không tồn tại), xuất trang nhân đôi sau khi đổi thứ tự và tài liệu chỉ có trang trắng. Có 20 kiểm thử Node với PDF thật: `node --test tests/save.test.cjs`. Các API hộp thoại/quyền ghi được giả lập; chưa kiểm tra hộp thoại hệ điều hành, file mã hóa/chữ ký số, hoặc toàn bộ thao tác giao diện trong trình duyệt ở môi trường này.
+
+---
+
 ## Ma trận kiểm thử
 
 Đặt file mẫu vào `test-files/` (đã có trong `.gitignore`, không commit).

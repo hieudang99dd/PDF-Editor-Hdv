@@ -171,6 +171,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helve
 .po-input-group { display: flex; gap: 8px; }
 .po-input-group input { flex: 1; }
 .po-modal-footer { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+/* Save controls remain usable on narrow screens and short browser windows. */
+#po-save-modal .po-modal { max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); overflow-y: auto; }
+#po-save-modal .po-form-input { background: var(--po-surface); min-width: 0; }
+#po-save-modal .po-input-group { flex-wrap: wrap; }
+#po-save-modal .po-input-group input { flex-basis: 100%; }
+#po-save-modal .po-tool-btn { white-space: nowrap; }
+#po-save-modal button:disabled { opacity: 0.5; cursor: default; }
+
 
 /* Loading Modal */
 .po-loading { display: none; position: fixed; inset: 0; background: var(--po-loading-bg); backdrop-filter: blur(4px); z-index: 3000; justify-content: center; align-items: center; flex-direction: column; }
