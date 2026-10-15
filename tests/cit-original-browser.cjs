@@ -61,6 +61,15 @@ async function main(){
   await page.goto(url,{waitUntil:'domcontentloaded'});
   await page.waitForURL(/\/PDF-Editor-Hdv\/studio\/edit-pdf-text\.html/,{timeout:15000});
   await page.locator('#file-input').waitFor();
+  assert.match(await page.title(),/PDF HVD/,
+    'Browser tab must use PDF HVD, not upstream product branding');
+  assert.match(await page.locator('link[rel="manifest"]').getAttribute('href'),
+    /\/studio\/hvd-site\.webmanifest$/);
+  assert.equal((await page.locator('#nav-brand').textContent()).trim(),'PDF HVD');
+  assert.equal((await page.locator('#footer-brand').textContent()).trim(),'PDF HVD');
+  assert.match(await page.locator('#nav-logo').getAttribute('src'),
+    /\/studio\/hvd-mark\.svg$/);
+
   await page.locator('#hvd-cit-uploader-home').waitFor();
   assert.equal(await page.evaluate(()=>document.body.dataset.hvdCitHub),'original');
   assert.match(await page.locator('#hvd-cit-uploader-home').getAttribute('href'),
