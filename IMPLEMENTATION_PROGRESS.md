@@ -86,3 +86,15 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - ✅ Đã lưu artifact `cit-text-editor-browser` gồm PDF vào/ra và hai screenshot để QA trên GitHub Actions.
 - ✅ Đường vào riêng: `text-editor.html`; đường dẫn từ card và shortcut trong `index.html`.
 - ⚠ Chưa khẳng định parity toàn bộ frontend CIT v1.0.0: hỗ trợ văn bản an toàn giữ bố cục CAD, chưa chạy reflow tự do/Type3 nguy hiểm.
+
+## 2026-10-15 — HOÀN THÀNH: Frontend CIT nguyên bản trên GitHub Pages
+
+- **Source**: CIT-PDF tag `1.0.0`, SHA `3c9c138d980a417de7439f383f37882a1d730ab6`; ghim SHA, `npm ci` và Vite build nguyên gốc. Không mô phỏng frontend nữa.
+- **Artifact**: toàn bộ CIT bundle (HTML, TypeScript biên dịch, CSS, PDFium WASM, assets) ~176 MB, ghép với website HVD bởi `scripts/cit-original/publish_site.py`.
+- **Route**: `text-editor.html` → `cit-native/edit-pdf-text.html` dùng trình editor gốc CIT; `text-editor-hdv.html` giữ editor HVD trước đây làm fallback.
+- **Acceptance**: Chromium mở trình CIT nguyên gốc, nạp PDF, chọn vùng chữ, dùng contenteditable, hiển thị dock font/size/spacing, xuất PDF thật; kiểm tra độc lập PyMuPDF phát hiện `CIT NATIVE EDITED`, không còn `CIT ORIGINAL LINE`, giữ `SECOND CAD LINE`, số trang/kích thước không đổi.
+- **Deployment**: [GitHub Actions Run 38744102098](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38744102098) **success**, deploy-pages báo `Reported success!`, SHA `c3cade1d0f42f637e708b982d90ac228ccb3c290`.
+- **Site**: https://hieudang99dd.github.io/PDF-Editor-Hdv/text-editor.html ; original engine https://hieudang99dd.github.io/PDF-Editor-Hdv/cit-native/edit-pdf-text.html
+- **E2E evidence**: workflow artifact `cit-original-browser-evidence` (PDF đầu vào/đầu ra + screenshot) cùng run trên.
+- **Licensing / reproducibility**: xem `CIT-ORIGINAL-FRONTEND.lock.json`, `CIT-ORIGINAL-FRONTEND.md`; AGPL-3.0.
+- **Scope**: tương đồng bằng cách build **cùng upstream frontend/engine**, không chỉ dựng giao diện tương tự. Không tuyên bố mọi PDF CAD bất kỳ đều sửa được. Đã chạy thử trong Chromium với artifact Pages; chưa kiểm tra tương tác trên CDN Github Pages trực tiếp từ môi trường này.
