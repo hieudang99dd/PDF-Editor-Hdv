@@ -1,0 +1,62 @@
+name: CIT Original Frontend Build QA
+on:
+  push:
+    branches: [master]
+    paths:
+      - ".github/workflows/cit-original-build.yml"
+      - "scripts/cit-original/**"
+      - "tests/cit-original-browser.cjs"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout HVD
+        uses: actions/checkout@v4
+      - name: Checkout exact CIT-PDF v1.0.0 source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --branch 1.0.0 --depth 1 --filter=blob:none https://github.com/Cuongyd196/cit-pdf.git cit-upstream
+          actual="$(git -C cit-upstream rev-parse HEAD)"
+          expected="3c9c138d980a417de7439f383f37882a1d730ab6"
+          echo "CIT source: $actual"
+          test "$actual" = "$expected"
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: cit-upstream/package-lock.json
+      - name: Install exact CIT dependencies
+        working-directory: cit-upstream
+        env:
+          HUSKY: '0'
+        run: npm ci --no-audit --no-fund
+      - name: Compile ORIGINAL CIT frontend and WASM assets
+        working-directory: cit-upstream
+        env:
+          BASE_URL: /PDF-Editor-Hdv/cit-native/
+          VITE_USE_CDN: 'false'
+          NODE_OPTIONS: --max-old-space-size=4096
+        run: |
+          npx vite build
+          test -s dist/edit-pdf-text.html
+          test -d dist/assets
+          echo "CIT built source summary:"
+          du -sh dist
+          ls -lh dist/edit-pdf-text.html
+      - name: Validate route and built dependencies
+        shell: bash
+        run: |
+          python3 scripts/cit-original/verify_build.py cit-upstream/dist
+      - name: Upload native frontend bundle for publication
+        uses: actions/upload-artifact@v4
+        with:
+          name: cit-original-frontend-1.0.0
+          path: cit-upstream/dist/
+          retention-days: 7
+          if-no-files-found: error
