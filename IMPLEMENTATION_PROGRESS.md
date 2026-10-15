@@ -159,3 +159,10 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Đảm bảo nghĩa vụ nguồn mở: popup vẫn cung cấp thông báo bản quyền (BentoPDF Contributors, Cường IT), điều khoản không bảo hành, link `LICENSE`, `NOTICE.md` và repository chứa mã nguồn/thay đổi. Files pháp lý không bị sửa/xóa.
 - Mã mới: `hvd-legal.js`; CSS bổ sung trong `hvd-ui-v2.css`; HTML chỉ sửa `index.html`, không động đến engine PDF.
 - Bổ sung hồi quy `tests/home-legal.test.cjs` vào workflow `pages-smoke.yml`. Phải xác nhận kiểm thử và GitHub Pages CI trước khi báo đã lên trang công khai.
+
+## 2026-10-16 — Thông tin giấy phép không che giao diện
+
+- Bỏ hoàn toàn bảng `<dialog id="hvd-legal-dialog">` và không nạp `hvd-legal.js` từ trang chủ. Không còn hộp thoại pháp lý phủ lên công cụ xử lý PDF.
+- Giữ biểu tượng thông tin nhỏ, mở `NOTICE.md` trong tab mới khi người dùng chủ động chọn; không tự bật, không làm gián đoạn quá trình thao tác.
+- Giữ nguyên `LICENSE`, `NOTICE.md` và ghi nhận tác giả trong repository. Không thay đổi thuật toán xử lý PDF.
+- Cập nhật CSS, cache version và kiểm thử để ngăn hộp thoại xuất hiện trở lại.

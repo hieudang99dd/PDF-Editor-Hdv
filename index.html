@@ -54,13 +54,13 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}#toast.on{opacity:1}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="hvd-ui-v2.css?v=20261015-1">
+<link rel="stylesheet" href="hvd-ui-v2.css?v=20261016-1">
 </head>
 <body>
 <header>
   <button class="logo" id="logo">PDF HVD</button>
   <nav id="nav"></nav>
-  <button type="button" class="hvd-info-toggle" id="hvd-legal-toggle" aria-label="Thông tin và giấy phép" title="Thông tin & giấy phép" aria-haspopup="dialog" aria-controls="hvd-legal-dialog">ⓘ</button>
+  <a class="hvd-info-toggle" id="hvd-legal-source" href="NOTICE.md" target="_blank" rel="noopener noreferrer" aria-label="Xem thông tin mã nguồn và giấy phép" title="Mã nguồn và giấy phép">ⓘ</a>
   <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
   <button class="btn" id="refresh-app" style="background:#4a5568">Làm mới</button>
 </header>
@@ -81,19 +81,6 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
   <h1 id="wt"></h1><p class="d" id="wd"></p>
   <div id="stage"></div>
 </main>
-<dialog id="hvd-legal-dialog" class="hvd-legal-dialog" aria-labelledby="hvd-legal-title">
-  <div class="hvd-legal-top">
-    <h2 id="hvd-legal-title">Thông tin &amp; giấy phép</h2>
-    <button type="button" id="hvd-legal-close" class="hvd-legal-close" aria-label="Đóng bảng thông tin">×</button>
-  </div>
-  <p><strong>PDF HVD</strong> – ứng dụng xử lý tài liệu PDF. Một số thành phần sử dụng phần mềm nguồn mở và được phân phối theo GNU AGPL-3.0.</p>
-  <p>Thành phần từ BentoPDF Contributors và các sửa đổi của Cường IT được ghi nhận theo giấy phép tương ứng. Phần mềm được cung cấp không có bảo hành theo điều kiện giấy phép.</p>
-  <nav class="hvd-legal-links" aria-label="Tài liệu pháp lý">
-    <a href="LICENSE" target="_blank" rel="noopener noreferrer">Giấy phép AGPL-3.0</a>
-    <a href="NOTICE.md" target="_blank" rel="noopener noreferrer">Thông báo bản quyền và ghi nhận</a>
-    <a href="https://github.com/hieudang99dd/PDF-Editor-Hdv" target="_blank" rel="noopener noreferrer">Mã nguồn và các thay đổi</a>
-  </nav>
-</dialog>
 <div id="toast" role="status"></div>
 <script>
 const $=s=>document.querySelector(s),C={'Nén':'#e8453c','Chuyển đổi':'#2f6fed','Sắp xếp':'#7a4fd6','Chỉnh sửa':'#0f9d8a','Ký & Bảo vệ':'#d98a00','AI PDF':'#c2388f','Quét':'#4a5568'};
@@ -630,7 +617,6 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 $('#q').oninput=home;home();
 </script>
 <script src="hvd-ui-v2.js?v=20261015-1"></script>
-<script src="hvd-legal.js?v=1"></script>
 <script src="pdf-lib.min.js"></script>
 <script>if(!window.PDFLib){document.write('<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"><\/script>');}</script>
 <script src="pdf.min.js"></script>
