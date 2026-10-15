@@ -2299,7 +2299,7 @@ class PDFOrganizer {
 
     async getNativeTextClient() {
         if(!this.nativeTextClient) {
-            if(!this._nativeClientPromise) this._nativeClientPromise=import('./pdf-native-client.mjs?v=42')
+            if(!this._nativeClientPromise) this._nativeClientPromise=import('./pdf-native-client.mjs?v=44')
                 .then(({NativeTextClient})=>{
                     if(this.abort.signal.aborted) throw new Error('Phiên sửa chữ đã đóng.');
                     return this.nativeTextClient=new NativeTextClient();
