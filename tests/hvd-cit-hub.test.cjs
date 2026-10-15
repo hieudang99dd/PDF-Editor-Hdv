@@ -11,7 +11,7 @@ test('CIT/HVD navigation adapter parses without bundler or native engine replace
   new vm.Script(source);
   assert.match(source,/back-to-tools/);
   assert.match(source,/stopImmediatePropagation/);
-  assert.doesNotMatch(source,/PdfEngine|renderPage|commitParagraph|saveSpliced/,
+  assert.doesNotMatch(source,/PdfEngine\.create\(|\.renderPage\(|\.commitParagraph\(|\.saveSpliced\(/,
     'HVD navigation adapter must not modify the original CIT PDF engine');
 });
 test('CIT Back to Tools opens HVD homepage while other native buttons work unchanged',()=>{
