@@ -59,6 +59,7 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
 <header>
   <button class="logo" id="logo">PDF Hub</button>
   <nav id="nav"></nav>
+  <button class="btn" id="shortcut-text" style="background:#0f9d8a;color:#fff" onclick="location.href='./text-editor.html'">T Chỉnh Text</button>
   <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
   <button class="btn" id="refresh-app" style="background:#4a5568">Làm mới</button>
 </header>
@@ -104,6 +105,7 @@ const T=[
 ['Xóa trang PDF','Bỏ các trang không cần','Sắp xếp','🗑','range','.pdf'],
 ['Trích xuất trang','Lấy riêng một số trang','Sắp xếp','⇥','range','.pdf'],
 ['Sắp xếp PDF','Kéo thả để đổi thứ tự trang','Sắp xếp','☰','organize','.pdf'],
+['Chỉnh sửa Text chuyên sâu','Sửa trực tiếp chữ PDF gốc bằng CIT PDFium, panel định dạng riêng như CIT','Chỉnh sửa','T','cit-text-route','.pdf'],
 ['Chỉnh sửa PDF','Thêm chữ, ảnh, chữ ký, che trắng, highlight, vẽ tay','Chỉnh sửa','✎','organize','.pdf'],
 ['Trình chú thích PDF','Tô sáng, che trắng, vẽ tay, ghi chú','Chỉnh sửa','▬','organize','.pdf'],
 ['Trình đọc PDF','Xem và duyệt nhanh tài liệu','Chỉnh sửa','👁','organize','.pdf'],
@@ -162,7 +164,7 @@ const OPT={
  chat:`<label>Câu hỏi về tài liệu<input type="text" placeholder="Ví dụ: Điều khoản thanh toán là gì?"></label>`,
  qr:`<label>Mã QR sẽ chứa liên kết tải tài liệu của bạn. Quá trình xử lý diễn ra bảo mật.</label>`,
  none:''};
-function openTool(i){tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
+function openTool(i){if(T[i]?.[4]==='cit-text-route'){location.href='./text-editor.html';return;}tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
  $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render()}
 function render(){const k=tool[4], o=(tool[0]==='Chồng 2 PDF (Overlay)'?OPT['cit-overlay']:OPT[k])||'', multi=k=='merge'||tool[5].includes('image');
  let h='';
