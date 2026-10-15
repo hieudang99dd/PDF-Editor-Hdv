@@ -142,7 +142,11 @@
       for(const r of selected){
         if(/[\r\n]/.test(r.input.value))throw new Error('Nội dung vùng chữ không được chứa ký tự xuống dòng.');
         const run=r.run;
-        const edit=window.PDFTextLayout.makeEdit(run,values(run,r.input.value));
+        // Keep the user's prior per-run formatting when batch-editing an already
+        // edited region; never silently reset font, size or alignment to default.
+        const prior=(page.textEdits||[]).find(e=>e.id===run.id);
+        const edit=prior?{...prior,newText:r.input.value}:
+          window.PDFTextLayout.makeEdit(run,values(run,r.input.value));
         edit.originalBold=run.bold;edit.originalItalic=run.italic;
         const font=await this.getTextEditFont(await this.getTextMeasureDoc(),edit);
         const plan=window.PDFTextLayout.layout(edit,font.pdfFont);
