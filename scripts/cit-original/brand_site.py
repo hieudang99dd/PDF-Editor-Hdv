@@ -42,7 +42,8 @@ def rebrand_page(html: str, page_name: str) -> str:
             actual = current.replace("BentoPDF", "PDF HVD")
         return match.group(1) + actual + match.group(3)
     html = re.sub(r"(<title[^>]*>)(.*?)(</title>)", title_repl, html, count=1, flags=re.S | re.I)
-    actual = title or re.search(r"<title>([^<]+)</title>", html).group(1).strip()
+    parsed = re.search(r"<title>([^<]+)</title>", html)
+    actual = title or (parsed.group(1).strip() if parsed else "PDF HVD – Công cụ PDF")
     canonical = SITE_URL + "text-editor.html" if page_name == "edit-pdf-text.html" else SITE_URL + "cit-native/" + page_name
     for key,val in {
         "title":actual, "author":"PDF HVD",
@@ -60,6 +61,25 @@ def rebrand_page(html: str, page_name: str) -> str:
     html = re.sub(r'(<link rel="manifest" href=")[^"]*(")',lambda m:m.group(1)+PAGE_BASE+"hvd-site.webmanifest"+m.group(2),html,count=1)
     html = re.sub(r'(<link rel="icon"[^>]*href=")[^"]*(")',lambda m:m.group(1)+PAGE_BASE+"hvd-mark.svg"+m.group(2),html,flags=re.S)
     html = re.sub(r'(<link rel="apple-touch-icon"[^>]*href=")[^"]*(")',lambda m:m.group(1)+PAGE_BASE+"hvd-mark.svg"+m.group(2),html,flags=re.S)
+    # Apply branding before first paint. Preserve footer-copyright and
+    # all legal notices; only replace the product identity, not author credit.
+    html = re.sub(
+        r'(<span id="nav-brand"[^>]*>\s*<a href=")[^"]*(">)\s*BentoPDF(\s*</a>)',
+        lambda m: m.group(1) + SITE_URL + 'index.html' + m.group(2) + 'PDF HVD' + m.group(3),
+        html, count=1, flags=re.S)
+    html = re.sub(
+        r'(<span id="footer-brand"[^>]*>)\s*BentoPDF(\s*</span>)',
+        lambda m: m.group(1) + 'PDF HVD' + m.group(2),
+        html, count=1, flags=re.S)
+    for ident in ('nav-logo', 'footer-logo'):
+        html = re.sub(
+            r'(<img\b[^>]*\bid="' + ident + r'"[^>]*\bsrc=")[^"]*(")',
+            lambda m: m.group(1) + PAGE_BASE + 'hvd-mark.svg' + m.group(2),
+            html, count=1, flags=re.S)
+        html = re.sub(
+            r'(<img\b[^>]*\bid="' + ident + r'"[^>]*\balt=")[^"]*(")',
+            lambda m: m.group(1) + 'PDF HVD' + m.group(2),
+            html, count=1, flags=re.S)
     if 'href="hvd-hub.css"' not in html:
         if "</head>" not in html: raise ValueError("No closing HEAD")
         html=html.replace("</head>",'  <link rel="stylesheet" href="hvd-hub.css">\n  </head>',1)
