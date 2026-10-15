@@ -38,4 +38,5 @@ footer{max-width:1400px;margin:auto;line-height:1.8}
 @media(max-width:550px){.grid{grid-template-columns:1fr}.hero{padding:22px 16px 16px}.wrap{padding:0 16px 50px}.hero h1{font-size:27px}header{gap:8px;padding:9px 12px}header .logo{font-size:17px}#refresh-app{display:none}header .btn{padding:8px 10px}.chips{flex-wrap:nowrap;overflow:auto;padding-bottom:12px}.tool{min-height:98px}}
 
 /* Featured text editor is an application tool, never a global header action. */
-.catalog-group:first-child .tool[data-i="20"]{border-color:var(--acc);background:var(--card)}
+.tool.is-primary{border-color:var(--acc);box-shadow:0 0 0 1px var(--accs),0 4px 14px #0b94881a}
+.tool.is-primary .ic{background:var(--acc)!important}
