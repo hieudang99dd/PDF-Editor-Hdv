@@ -40,3 +40,6 @@ footer{max-width:1400px;margin:auto;line-height:1.8}
 /* Featured text editor is an application tool, never a global header action. */
 .tool.is-primary{border-color:var(--acc);box-shadow:0 0 0 1px var(--accs),0 4px 14px #0b94881a}
 .tool.is-primary .ic{background:var(--acc)!important}
+
+/* Safety guard for clients that still have the previous HTML cached. */
+header #shortcut-text{display:none!important}
