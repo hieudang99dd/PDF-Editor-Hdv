@@ -10,7 +10,9 @@ const shell=fs.readFileSync(path.join(root,'text-editor-shell.js'),'utf8');
 const organizer=fs.readFileSync(path.join(root,'organizer.js'),'utf8');
 const home=fs.readFileSync(path.join(root,'index.html'),'utf8');
 test('standalone text editor is reachable from homepage without organizer step',()=>{
- assert.match(home,/Chỉnh sửa Text chuyên sâu/);
+ assert.match(home,/Chỉnh sửa văn bản PDF/);
+ assert.doesNotMatch(home,/<button[^>]*id="shortcut-text"/, 'Editor must not appear as isolated global header control');
+ assert.match(home,/\['Chỉnh sửa văn bản PDF'[^\n]+,'Chỉnh sửa','T','cit-text-route'/);
  assert.match(home,/location\.href=['"]\.\/text-editor\.html/);
  assert.match(home,/cit-text-route/);
 });
