@@ -41,3 +41,15 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Added tests/pages-smoke.test.cjs and GitHub Action pages-smoke.yml on each push for static scripts and browser-only flows.
 - Browser PDF optimization may rewrite PDF internals and invalidate digital signatures; signed/archival PDFs should be retained and tested separately. PDF→TXT cannot OCR scanned images.
 - Remaining verification: real Chrome on Windows; external website fetching from this environment is restricted, so deployment success must not be confused with pixel-perfect live-browser confirmation.
+
+
+## 2026-10-15: Tích hợp CIT advanced browser tools và kiểm thử
+
+- Đã thêm cit-advanced-core.js (UMD: page copying, crop, metadata, annotations, Bates, N-up, overlay, rotation) và cit-advanced-ui.js (gắn 14 tác vụ vào giao diện HVD). Các chức năng đủ điều kiện chạy trực tiếp trên GitHub Pages.
+- Đã thay công cụ Cắt lề PDF (trước đó chỉ dẫn sang organizer) bằng engine CropBox. Có cảnh báo rõ: CropBox không phải xóa dữ liệu.
+- Đã đổi diễn giải chức năng che nền, chữ ký dạng ảnh và làm phẳng form để không nhận nhầm thành redaction, chữ ký số hay xử lý mọi annotation.
+- Đã bổ sung các test thực: tests/cit-advanced.test.cjs, tests/cit-advanced-ui.test.cjs. Bao gồm trang trắng N-up, Unicode metadata, crop theo mm, annotations, overlay, rotation, signature ByteRange và tải file browser.
+- Workflow .github/workflows/pages-smoke.yml gọi tests/pages-smoke.test.cjs cùng hai test mới, tổng 30 bài Node đã đạt.
+- Ghi nhận AGPL-3.0 và tài liệu xác minh tại CIT-ADVANCED-INTEGRATION.md.
+- Chưa triển khai hoặc chưa hoàn thiện: qpdf/ Ghostscript, PPT/Office WASM browser, OCR trình duyệt, PDF/A validator, sửa đoạn văn phức tạp, secure redaction, cryptographic signing/validation, full flatten annotation, toàn bộ các trang công cụ CIT.
+- Chỉ đóng dấu “hoàn thành” cho module có mã, đường đi UI, xuất PDF thật, kiểm thử PDF thật; không đánh đồng trang công cụ với thuật toán đã tích hợp.
