@@ -4,7 +4,7 @@
 (() => {
   'use strict';
   const core=window.CITAdvancedCore;
-  if(!core){console.error('CIT Advanced Core chưa tải');return;}
+  if(!core){console.error('Bộ xử lý PDF HVD chưa tải');return;}
   const actions=new Map([
     ['Đảo thứ tự trang PDF','reverse'],['Trích trang lẻ','odd'],
     ['Trích trang chẵn','even'],['Ghép PDF xen kẽ','interleave'],
