@@ -59,7 +59,7 @@ async function main(){
   const url='http://127.0.0.1:'+server.address().port+
     '/PDF-Editor-Hdv/text-editor.html';
   await page.goto(url,{waitUntil:'domcontentloaded'});
-  await page.waitForURL(/\/PDF-Editor-Hdv\/cit-native\/edit-pdf-text\.html/,{timeout:15000});
+  await page.waitForURL(/\/PDF-Editor-Hdv\/studio\/edit-pdf-text\.html/,{timeout:15000});
   await page.locator('#file-input').waitFor();
   await page.locator('#hvd-cit-uploader-home').waitFor();
   assert.equal(await page.evaluate(()=>document.body.dataset.hvdCitHub),'original');
@@ -120,7 +120,7 @@ async function main(){
   const nav=await browser.newPage({viewport:{width:1280,height:820}});
   try{
     await nav.goto('http://127.0.0.1:'+server.address().port+
-      '/PDF-Editor-Hdv/cit-native/edit-pdf-text.html',{waitUntil:'domcontentloaded'});
+      '/PDF-Editor-Hdv/studio/edit-pdf-text.html',{waitUntil:'domcontentloaded'});
     await nav.locator('#back-to-tools').waitFor();
     await nav.locator('#back-to-tools').click();
     await nav.waitForURL(/\/PDF-Editor-Hdv\/index\.html$/,{timeout:20000});
