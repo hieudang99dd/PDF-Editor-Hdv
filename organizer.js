@@ -59,7 +59,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=38';
+            link.href = 'organizer.css?v=39';
             document.head.appendChild(link);
         }
         
@@ -375,10 +375,19 @@ class PDFOrganizer {
                 edit=window.PDFTextLayout.makeEdit(run,values);
                 edit.originalBold=run.bold;edit.originalItalic=run.italic;
                 const font=await this.getTextEditFont(await this.getTextMeasureDoc(),edit);
-                window.PDFTextLayout.layout(edit,font.pdfFont); // Reject overflow before changing the document.
+                const plan=window.PDFTextLayout.layout(edit,font.pdfFont);
+                edit.nativeSize=plan.size;
+                edit.nativeFamily=font.original ? null : font.label;
+                edit.nativeEngine='cit-pdf-1.0.0';
             }
-            page.textEdits=(page.textEdits || []).filter(e=>e.id!==run.id);
-            if(edit) page.textEdits.push(edit);
+            const edits=(page.textEdits || []).filter(e=>e.id!==run.id);
+            if(edit) edits.push(edit);
+            // Validate actual PDF output before recording a history step or closing the editor.
+            document.getElementById('po-ft-status').classList.remove('po-text-error');
+            document.getElementById('po-ft-status').textContent='Đang kiểm tra và ghi chữ gốc, vui lòng đợi…';
+            if(edits.length) await this.getNativeTextResult(page,edits);
+            if(this.abort.signal.aborted) return false;
+            page.textEdits=edits;
             this.closeTextEditor(div);
             this.pushHistory();
             this.updateTextEditState();
@@ -2275,13 +2284,46 @@ class PDFOrganizer {
     }
 
     async paintTextEdits(ctx, viewport, page) {
-        for(const edit of page.textEdits || []) {
-            if(edit.layoutVersion!==2) throw new Error('Vùng sửa chữ cũ chưa có tọa độ dòng gốc. Hãy hoàn tác và sửa lại vùng đó.');
-            const font=await this.getTextEditFont(await this.getTextMeasureDoc(),edit);
-            const plan=window.PDFTextLayout.layout(edit,font.pdfFont);
-            await this.loadTextBrowserFont(font);
-            window.PDFTextLayout.drawCanvas(ctx,viewport,edit,plan,font.cssFamily);
+        if(!page.textEdits?.length) return;
+        const result=await this.getNativeTextResult(page);
+        // Draw the actual rewritten PDF, including its original vectors/backgrounds.
+        const data=result.bytes.slice();
+        const pdf=await pdfjsLib.getDocument({data}).promise;
+        try {
+            const editedPage=await pdf.getPage(page.pageIndex+1);
+            ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+            ctx.fillStyle='#ffffff';ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+            await editedPage.render({canvasContext:ctx,viewport}).promise;
+        } finally {await pdf.destroy();}
+    }
+
+    async getNativeTextClient() {
+        if(!this.nativeTextClient) {
+            if(!this._nativeClientPromise) this._nativeClientPromise=import('./pdf-native-client.mjs?v=39')
+                .then(({NativeTextClient})=>{
+                    if(this.abort.signal.aborted) throw new Error('Phiên sửa chữ đã đóng.');
+                    return this.nativeTextClient=new NativeTextClient();
+                }).catch(error=>{this._nativeClientPromise=null;throw error;});
+            await this._nativeClientPromise;
         }
+        return this.nativeTextClient;
+    }
+
+    async getNativeTextResult(page, edits=page.textEdits || []) {
+        if(page.type!=='pdf' || this.encrypted[page.fileIndex]) throw new Error('Chưa hỗ trợ sửa chữ gốc trên trang ảnh hoặc PDF có bảo vệ quyền.');
+        this.nativeTextCache=this.nativeTextCache || new Map();
+        const key=JSON.stringify([page.fileIndex,page.pageIndex,edits]);
+        if(!this.nativeTextCache.has(key)) {
+            const task=(async()=>{
+                const client=await this.getNativeTextClient();
+                const bytes=new Uint8Array(await this.files[page.fileIndex].arrayBuffer());
+                return client.rewrite(bytes,[{pageIndex:page.pageIndex,edits}]);
+            })();
+            this.nativeTextCache.set(key,task);
+            task.catch(()=>this.nativeTextCache.delete(key));
+            while(this.nativeTextCache.size>4) this.nativeTextCache.delete(this.nativeTextCache.keys().next().value);
+        }
+        return this.nativeTextCache.get(key);
     }
 
     focusPage(id, forceRender = false) {
@@ -3018,17 +3060,14 @@ class PDFOrganizer {
                 }
             }
             
-            // One PDF baseline and one font run per replacement. No paragraph reflow.
-            const finalPages = finalDoc.getPages();
-            for(let i=0;i<targetPages.length;i++) {
-                const source=targetPages[i];
-                for(const edit of source.textEdits || []) {
-                    if(edit.layoutVersion!==2) throw new Error('Vùng sửa chữ cũ chưa có dữ liệu giữ dòng. Hãy hoàn tác và sửa lại.');
-                    if(source.type!=='pdf' || this.encrypted[source.fileIndex]) throw new Error('Chưa hỗ trợ sửa chữ gốc trên trang ảnh hoặc PDF có bảo vệ quyền.');
-                    const font=await this.getTextEditFont(finalDoc,edit);
-                    window.PDFTextLayout.drawPDF(finalPages[i],edit,font.pdfFont,window.PDFLib);
-                }
+            // Rewrite source text before annotations; replay each duplicate independently.
+            const nativePages=targetPages.map((page,pageIndex)=>({pageIndex,edits:page.textEdits || []})).filter(p=>p.edits.length);
+            if(nativePages.length) {
+                const client=await this.getNativeTextClient();
+                const rewritten=await client.rewrite(await finalDoc.save(),nativePages);
+                finalDoc=await PDFDocument.load(rewritten.bytes,{updateMetadata:false});
             }
+            const finalPages = finalDoc.getPages();
 
             // Apply Rich Annotations (Shapes, Text, Images, Signatures, Pen)
             for (let i = 0; i < targetPages.length; i++) {
@@ -3179,6 +3218,8 @@ class PDFOrganizer {
 
     destroy() {
         if (this.abort) this.abort.abort();
+        this.nativeTextClient?.destroy();
+        this.nativeTextCache?.clear();
         this.textFontSources?.clear();
         if(document.fonts) this.dynamicTextFonts?.forEach(font=>document.fonts.delete(font));
         this.textMeasureDoc=null;

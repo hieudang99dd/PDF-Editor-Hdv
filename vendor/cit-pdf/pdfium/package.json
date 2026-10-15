@@ -1,0 +1,8 @@
+{
+  "name": "bentopdf-pdfium",
+  "version": "0.0.0-813903c93c75",
+  "type": "module",
+  "main": "editcore.js",
+  "exports": { ".": "./editcore.js", "./editcore.wasm": "./editcore.wasm" },
+  "license": "AGPL-3.0"
+}

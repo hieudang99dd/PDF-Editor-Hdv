@@ -208,6 +208,14 @@ Thứ tự ưu tiên: **Giai đoạn 1 → 2 → 3 → 4**. Trong mỗi giai đo
 
 ---
 
+## Tích hợp CIT native text — 2026-10-15
+
+### [x] Thay xuất chữ overlay bằng engine sửa nội dung gốc
+> Dùng mã CIT-PDF tag 1.0.0 và runtime bentopdf-pdfium 813903c93c75, kèm AGPL-3.0/NOTICE và nguồn. Native preview/commit, font provider, stream-splice/native save; preprocessing content arrays, pattern artwork, Type3 và fragile text. Thêm worker cục bộ, cache bốn trạng thái, reset splice state giữa tài liệu; kiểm tra thực tế trước khi ghi lịch sử, không fallback overlay. Ghim baseline khi đổi cỡ/font; sửa trong không gian chưa xoay rồi khôi phục /Rotate. Giữ chặn tràn/cell của HDV, không cascade các hàng.
+> Kiểm chứng: 58 kiểm thử Node đạt; Chromium 133 thực hiện sửa/thu nhỏ/hủy/undo/redo/tải PDF và sửa trang xoay, không có lỗi trình duyệt. PDF.js đọc lại file tải xuống không còn chữ gốc tại vùng đã thay; thử bốn góc xoay, CropBox lệch, nhãn trùng tọa độ khác và hai bản sao sửa độc lập. Poppler so ảnh mẫu bảng sáu hàng: pixel thay đổi chỉ trong ô sửa (bbox 676,251–718,265 trên ảnh 1196×1400). Nguồn PDF gốc của người dùng chưa được cung cấp; xem CIT-INTEGRATION.md về phạm vi chưa hỗ trợ. Không tuyên bố tích hợp OCR/Office hoặc mọi công cụ CIT, không dùng để redaction. Runtime native được dùng nguyên bản từ CIT, chưa tái build C++.
+
+---
+
 ## Ma trận kiểm thử
 
 Đặt file mẫu vào `test-files/` (đã có trong `.gitignore`, không commit).
