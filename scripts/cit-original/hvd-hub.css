@@ -1,0 +1,43 @@
+/* Scoped HVD-brand bridge around the original upstream CIT UI.
+   Do not restyle #inspector, .editor, #overlay or the PDFium stage. */
+body[data-hvd-cit-hub="original"] .hvd-cit-hub-link {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 12px;
+  gap:5px;
+  border:1px solid rgba(34,211,180,.55);
+  background:#103a38;
+  color:#b5fff3;
+  font:650 12px/1.3 "Segoe UI",Arial,sans-serif;
+  text-decoration:none;
+  letter-spacing:.015em;
+  border-radius:7px;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+body[data-hvd-cit-hub="original"] .hvd-cit-hub-link:hover {
+  border-color:#2fe0c5;
+  background:#17544e;
+  color:#f2fffc;
+}
+body[data-hvd-cit-hub="original"] .hvd-cit-hub-link:focus-visible {
+  outline:2px solid #2fe0c5;
+  outline-offset:3px;
+}
+body[data-hvd-cit-hub="original"] #hvd-cit-uploader-home {
+  margin:0 0 16px;
+  width:max-content;
+}
+body[data-hvd-cit-hub="original"] #hvd-cit-home {
+  order: 0;
+}
+@media (max-width: 720px) {
+  body[data-hvd-cit-hub="original"] #hvd-cit-home {
+    padding:7px;
+    font-size:10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-hvd-cit-hub="original"] .hvd-cit-hub-link {transition:none}
+}
