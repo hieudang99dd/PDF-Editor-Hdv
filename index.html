@@ -132,7 +132,7 @@ function home(){const q=$('#q').value.trim().toLowerCase();
  let h='';for(const c of Object.keys(C)){if(cat!='Tất cả'&&cat!=c)continue;
   const l=T.map((t,i)=>[t,i]).filter(([t])=>t[2]==c&&(t[0]+t[1]).toLowerCase().includes(q));if(!l.length)continue;
   h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
-   const isSim = !(['merge', 'range', 'rot', 'organize', 'qr', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]) || ['Giảm dung lượng PDF','Chuyển đổi PDF','PDF OCR','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
+   const isSim = !(t[4].startsWith('cit-') || ['merge', 'range', 'rot', 'organize', 'qr', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]) || ['Giảm dung lượng PDF','Chuyển đổi PDF','PDF OCR','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
    const needsPC = ['PDF OCR','PDF sang Word','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]);
    const hybrid = t[0] === 'Chuyển đổi PDF';
    const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` :
@@ -653,6 +653,8 @@ if(window.pdfjsLib){
 </script>
 <script src="Sortable.min.js"></script>
 <script src="pdf-local-tools.js?v=20261015-pages-fix1"></script>
+<script src="cit-advanced-core.js?v=20261015-cit-1"></script>
+<script src="cit-advanced-ui.js?v=20261015-cit-1"></script>
 <script>if(!window.Sortable){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"><\/script>');}</script>
 <script src="jszip.min.js"></script>
 <script>if(!window.JSZip){document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"><\/script>');}</script>
