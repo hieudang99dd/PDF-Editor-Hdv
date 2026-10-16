@@ -17,8 +17,8 @@ test('dragging an edge moves both endpoints by identical displacement including 
  const {moveRegionHandle}=await edit();
  const original=[rect(.2,.2,.6,.7)];
  const after=moveRegionHandle(original,0,'edge',0,{x:.04,y:-.05});
- assert.deepEqual(after[0].points[0],{x:.24,y:.15});
- assert.deepEqual(after[0].points[1],{x:.64,y:.15});
+ assert.ok(approx(after[0].points[0].x,.24)&&approx(after[0].points[0].y,.15));
+ assert.ok(approx(after[0].points[1].x,.64)&&approx(after[0].points[1].y,.15));
  assert.deepEqual(after[0].points[2],original[0].points[2]);
  const closing=moveRegionHandle(original,0,'edge',3,{x:-.04,y:0});
  assert.ok(approx(closing[0].points[3].x,.16));
