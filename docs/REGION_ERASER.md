@@ -173,3 +173,15 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - **Xuất PDF**: chỉ tải bản `Blob` của lần áp dụng gần nhất, không tự chạy PDFium, không xuất PDF nguồn. Sau tải vẫn ở công cụ, người dùng có thể tạo lượt khác. Cảnh báo trước khi rời trang khi còn thay đổi chưa xuất.
 - Thanh bước 1 **Vẽ vùng** → 2 **Áp dụng** → 3 **Kiểm tra / Chỉnh lại** → 4 **Xuất PDF** hiển thị trạng thái trực quan, cùng nút quay lại dàn trang hiện có.
 - QA: `tests/pdf-region-apply-export.test.cjs`, Chromium E2E xác minh xuất bị khóa trước Áp dụng, xem trước thực, giữ nguyên vùng khi chỉnh lại, áp dụng lần hai rồi mới Xuất. Tính năng xử lý PDF ký số và hai chế độ precise/whole-object giữ nguyên.
+
+
+## 15. Workspace có hai panel cố định, cuộn độc lập (2026-10-16)
+
+- Khi đã tải PDF, body nhận class `re-workspace-open`. Chỉ trong chế độ này giao diện chuyển thành flex container chiều cao `100dvh` và `overflow:hidden`; trang chọn tệp ban đầu vẫn được cuộn bình thường. Xóa class khi làm mới/thay tệp hoặc tải thất bại.
+- Thanh tên tệp, các nút Hoàn tác/Làm lại, Áp dụng, Xuất PDF, thanh quy trình và tiêu đề “Quay lại dàn trang” không trôi khỏi màn hình. Workspace phụ thuộc kích thước viewport thực, không đặt chiều cao px cố định.
+- **Panel trái** `.re-tools`: cùng chiều cao panel phải, chỉ nội dung tùy chọn, các trường và danh sách vùng được cuộn bằng `overflow-y:auto` và `overscroll-behavior:contain`.
+- **Panel phải** `.re-preview`: toolbar chọn trang/zoom và footer trạng thái giữ cố định; chỉ canvas `#re-viewport` cuộn cả dọc/ngang để thao tác PDF lớn. Không có `max-height` cứng cũ.
+- **Dàn trang** `.re-gallery-grid` cũng cuộn nội bộ, header và điều hướng 24 trang giữ nguyên vị trí.
+- Kết quả sau **Áp dụng** mở dạng review card `position:absolute` trong workspace, không làm hai panel co ngắn lại; ô này cuộn riêng khi dài.
+- Ở màn hình hẹp dưới 760 px, hai panel xếp theo chiều dọc trong cùng khung cao cố định: khu tác vụ chiếm khoảng 36%, PDF lấy phần còn lại; cả hai giữ vùng cuộn riêng.
+- QA: `tests/pdf-region-fixed-layout.test.cjs` kiểm tra CSS/scoping/overflow; `tests/ux-browser.cjs` đo vị trí & chiều cao panel thật, cuộn tác vụ và PDF mà body không dịch, áp dụng PDF rồi xác nhận không bị thay đổi chiều cao.

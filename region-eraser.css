@@ -98,3 +98,192 @@ a{color:var(--orange2);text-decoration:none}a:hover{text-decoration:underline}[h
  .re-workflow-arrow{display:none}
  .re-doc-actions .re-export-action{flex:1}
 }
+
+/* Fixed-height editing shell. The document/header controls never scroll.
+ * Only the task list, page gallery and PDF canvas have independent overflow.
+ * Scope to a loaded document so the upload landing page remains scrollable. */
+body.re-workspace-open{
+  height:100vh;
+  height:100dvh;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.re-workspace-open .re-topbar{
+  position:relative;
+  top:auto;
+  flex:0 0 auto;
+  z-index:50;
+}
+body.re-workspace-open .re-app{
+  width:100%;
+  min-height:0;
+  height:auto;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  padding-top:12px;
+  padding-bottom:12px;
+}
+body.re-workspace-open #re-workspace:not([hidden]){
+  position:relative;
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.re-workspace-open .re-workspace-header{
+  flex:0 0 auto;
+  margin-bottom:9px;
+  padding:10px 13px;
+}
+body.re-workspace-open .re-workflow{
+  flex:0 0 auto;
+  margin-bottom:9px;
+  padding:8px 11px;
+}
+body.re-workspace-open .re-progress{
+  flex:0 0 auto;
+  margin-bottom:9px;
+}
+body.re-workspace-open #re-editor-view:not([hidden]){
+  flex:1 1 auto;
+  min-height:0;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.re-workspace-open .re-editor-header{
+  flex:0 0 auto;
+  margin-bottom:9px;
+  padding:8px 12px;
+}
+body.re-workspace-open .re-columns{
+  flex:1 1 auto;
+  min-height:0;
+  height:100%;
+  overflow:hidden;
+  align-items:stretch;
+  grid-template-columns:minmax(265px,315px) minmax(0,1fr);
+}
+body.re-workspace-open .re-tools,
+body.re-workspace-open .re-preview{
+  min-height:0;
+  max-height:none;
+  height:100%;
+  overflow:hidden;
+  overscroll-behavior:contain;
+}
+body.re-workspace-open .re-tools{
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-gutter:stable;
+}
+body.re-workspace-open .re-preview{
+  display:flex;
+  flex-direction:column;
+}
+body.re-workspace-open .re-preview-toolbar,
+body.re-workspace-open .re-footer-info{
+  flex:0 0 auto;
+}
+body.re-workspace-open .re-viewport{
+  min-height:0;
+  max-height:none;
+  height:0;
+  flex:1 1 auto;
+  overflow:auto;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+body.re-workspace-open #re-gallery-panel:not([hidden]){
+  min-height:0;
+  flex:1 1 auto;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+body.re-workspace-open .re-gallery-head{flex:0 0 auto}
+body.re-workspace-open .re-gallery-grid{
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  align-content:start;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+/* Applying a result must not change the height of the two editing panes.
+ * The compact review card floats over the preview; task/canvas remain fixed. */
+body.re-workspace-open #re-results:not([hidden]){
+  position:absolute;
+  z-index:35;
+  right:12px;
+  bottom:12px;
+  width:min(700px,calc(100% - 340px));
+  max-height:min(25dvh,150px);
+  margin:0;
+  padding:10px 13px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  box-shadow:var(--shadow);
+}
+@media(max-width:980px){
+  body.re-workspace-open .re-columns{
+    grid-template-columns:minmax(220px,260px) minmax(0,1fr);
+  }
+  body.re-workspace-open #re-results:not([hidden]){
+    width:min(630px,calc(100% - 290px));
+  }
+}
+@media(max-width:760px){
+  body.re-workspace-open .re-topbar{padding:7px 11px;min-height:0}
+  body.re-workspace-open .re-app{padding:7px 9px}
+  body.re-workspace-open .re-workspace-header{padding:7px 10px;margin-bottom:6px}
+  body.re-workspace-open .re-workflow{padding:5px 8px;margin-bottom:6px}
+  body.re-workspace-open .re-editor-header{margin-bottom:6px}
+  body.re-workspace-open .re-columns{
+    display:flex;
+    flex-direction:column;
+    gap:7px;
+    height:100%;
+    min-height:0;
+  }
+  body.re-workspace-open .re-tools{
+    display:flex;
+    flex-direction:column;
+    flex:0 0 36%;
+    min-height:0;
+    max-height:none;
+    padding:10px;
+    gap:7px;
+    overflow-y:auto;
+  }
+  body.re-workspace-open .re-preview{
+    flex:1 1 auto;
+    min-height:0;
+    height:auto;
+  }
+  body.re-workspace-open .re-viewport{
+    min-height:0;
+    max-height:none;
+    padding:10px;
+  }
+  body.re-workspace-open #re-results:not([hidden]){
+    right:8px;
+    bottom:8px;
+    width:calc(100% - 16px);
+    max-height:min(24dvh,150px);
+  }
+}
+@media(max-height:650px){
+  body.re-workspace-open .re-app{padding-top:5px;padding-bottom:5px}
+  body.re-workspace-open .re-workspace-header,
+  body.re-workspace-open .re-workflow,
+  body.re-workspace-open .re-editor-header{margin-bottom:5px}
+  body.re-workspace-open .re-viewport{padding:9px}
+}

@@ -151,6 +151,20 @@ async function sample(label){
    await page.locator('#re-workspace').waitFor({state:'visible',timeout:30000});
    await page.locator('#re-gallery-panel').waitFor({state:'visible'});
    assert.equal(await page.locator('.re-page-card').count(),2,'2-page PDF should show page storyboard');
+   const galleryLayout=await page.evaluate(()=>{
+     const h=document.querySelector('.re-gallery-head').getBoundingClientRect();
+     const grid=document.getElementById('re-gallery-grid');
+     const g=grid.getBoundingClientRect();
+     return {locked:document.body.classList.contains('re-workspace-open'),
+       documentScroll:document.documentElement.scrollHeight-innerHeight,
+       galleryOverflow:getComputedStyle(grid).overflowY,
+       gridTop:g.top,headBottom:h.bottom,gridBottom:g.bottom};
+   });
+   assert.equal(galleryLayout.locked,true,'PDF workspace should lock browser scrolling');
+   assert.ok(galleryLayout.documentScroll<=3,'document must not overflow while storyboard is open');
+   assert.equal(galleryLayout.galleryOverflow,'auto','only page tiles should scroll in gallery');
+   assert.ok(galleryLayout.gridBottom<=800&&galleryLayout.gridTop>=galleryLayout.headBottom-2,
+     'gallery cards must remain inside fixed available height');
    assert.equal(await page.locator('#re-download').isDisabled(),true,'Export must remain locked before Apply');
    assert.match(await page.locator('#re-process').innerText(),/Áp dụng/);
    assert.doesNotMatch(await page.locator('#re-process').innerText(),/xuất/i);
@@ -161,6 +175,44 @@ async function sample(label){
      const c=document.getElementById('re-canvas'),s=document.getElementById('re-page-surface');
      return c&&c.width>200&&c.height>100&&s.getBoundingClientRect().width>100;
    },{timeout:30000});
+   const lockedLayout=await page.evaluate(()=>{
+     const tools=document.querySelector('.re-tools'),preview=document.querySelector('.re-preview');
+     const viewport=document.getElementById('re-viewport');
+     const shell=document.querySelector('.re-preview-toolbar'),footer=document.querySelector('.re-footer-info');
+     const a=tools.getBoundingClientRect(),b=preview.getBoundingClientRect();
+     return {documentScroll:document.documentElement.scrollHeight-innerHeight,
+       toolsTop:a.top,previewTop:b.top,toolsHeight:a.height,previewHeight:b.height,
+       toolsScrollable:tools.scrollHeight>tools.clientHeight+5,
+       toolsOverflow:getComputedStyle(tools).overflowY,
+       pdfOverflow:getComputedStyle(viewport).overflowY,
+       previewBottom:b.bottom, toolbarTop:shell.getBoundingClientRect().top,
+       footerBottom:footer.getBoundingClientRect().bottom};
+   });
+   assert.ok(lockedLayout.documentScroll<=3,'browser itself must not scroll in editor mode');
+   assert.ok(Math.abs(lockedLayout.toolsTop-lockedLayout.previewTop)<=2,'fixed panes share the same top edge');
+   assert.ok(Math.abs(lockedLayout.toolsHeight-lockedLayout.previewHeight)<=2,'panes share the same height');
+   assert.ok(lockedLayout.toolsHeight>200&&lockedLayout.previewBottom<=800,
+     'both panes are confined to the visible viewport');
+   assert.equal(lockedLayout.toolsOverflow,'auto','task actions scroll internally');
+   assert.equal(lockedLayout.pdfOverflow,'auto','PDF canvas scrolls internally');
+   assert.ok(lockedLayout.toolsScrollable,'long task options must have their own scrollable area');
+   const beforeScroll=await page.locator('.re-tools').evaluate(el=>el.scrollTop);
+   await page.locator('.re-tools').evaluate(el=>el.scrollTop=300);
+   assert.ok(await page.locator('.re-tools').evaluate(el=>el.scrollTop)>beforeScroll+100);
+   assert.equal(await page.evaluate(()=>window.scrollY),0,'scrolling task options cannot move top controls');
+   await page.locator('.re-tools').evaluate(el=>el.scrollTop=0);
+   // Zoom the page to force independent canvas scroll, keeping header/footer pinned.
+   await page.locator('#re-zoom-in').click();
+   await page.locator('#re-zoom-in').click();
+   const pdfScroll=await page.locator('#re-viewport').evaluate(el=>{
+     const over=el.scrollWidth>el.clientWidth+3||el.scrollHeight>el.clientHeight+3;
+     el.scrollTop=80;el.scrollLeft=60;
+     return {over,top:el.scrollTop,left:el.scrollLeft};
+   });
+   assert.equal(pdfScroll.over,true,'zoomed drawing should overflow only its PDF viewport');
+   assert.ok(pdfScroll.top>0||pdfScroll.left>0,'PDF scrolling must work');
+   assert.equal(await page.evaluate(()=>window.scrollY),0);
+   await page.locator('#re-fit').click();
    async function drawZone(x0,x1,role,y0=.39,y1=.61){
      if(await page.locator('#re-role').isEnabled())await page.locator('#re-role').selectOption(role);
      await page.locator('#re-shape').selectOption('rect');
@@ -190,6 +242,18 @@ async function sample(label){
    await page.locator('#re-range-to').fill('2');
    await page.locator('#re-process').click();
    await page.locator('#re-results').waitFor({state:'visible',timeout:120000});
+   const afterApplyLayout=await page.evaluate(()=>{
+     const a=document.querySelector('.re-tools').getBoundingClientRect();
+     const b=document.querySelector('.re-preview').getBoundingClientRect();
+     const popup=document.getElementById('re-results');
+     return {a:a.height,b:b.height,position:getComputedStyle(popup).position,
+       documentScroll:document.documentElement.scrollHeight-innerHeight};
+   });
+   assert.ok(Math.abs(afterApplyLayout.a-lockedLayout.toolsHeight)<=2,
+      'review result must not change the panel height');
+   assert.ok(Math.abs(afterApplyLayout.b-lockedLayout.previewHeight)<=2);
+   assert.equal(afterApplyLayout.position,'absolute','review result is inside fixed workspace');
+   assert.ok(afterApplyLayout.documentScroll<=3);
    assert.match(await page.locator('#re-result-summary').innerText(),/PATH/);
    assert.equal(await page.locator('#re-download').isEnabled(),true,'Export unlocks only after PDFium Apply succeeds');
    assert.equal(await page.locator('#re-process').isDisabled(),true,'cannot apply an already reviewed snapshot');
