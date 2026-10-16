@@ -42,6 +42,20 @@ jobs:
           test "$ready" -eq 1
       - name: Exercise actual Pages text editor and export
         run: node tests/studio-live-browser.cjs
+      - name: Independently verify edited glyphs in exported PDF
+        run: |
+          python3 -m pip install --user --break-system-packages 'pymupdf>=1.24,<2'
+          python3 - <<'PY'
+          import fitz
+          p='test-results/studio-live/live-edited.pdf'
+          with fitz.open(p) as doc:
+              assert len(doc)==1, f'Unexpected page count: {len(doc)}'
+              text='\n'.join(page.get_text() for page in doc)
+          assert 'PDF DAO CHICH EDITED' in text, 'New text missing from exported PDF: '+repr(text)
+          assert 'PDF DAO CHICH ORIGINAL' not in text, 'Old text still embedded: '+repr(text)
+          assert 'ANOTHER TEXT LINE' in text, 'Neighbor text was lost: '+repr(text)
+          print('PASS PyMuPDF: actual edited glyphs, old glyphs absent, neighbor preserved')
+          PY
       - name: Upload visual evidence and exported PDF
         if: always()
         uses: actions/upload-artifact@v4
