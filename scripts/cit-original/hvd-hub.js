@@ -1,4 +1,4 @@
-/* PDF HVD navigation adapter for the ORIGINAL CIT-PDF v1.0.0 frontend.
+/* PDF Đạo Chích navigation adapter for the ORIGINAL CIT-PDF v1.0.0 frontend.
  * AGPL-3.0-only. Does not alter or replace CIT's editor, CSS internals,
  * PdfEngine, render logic, rich-run handling, or export routines.
  */
@@ -45,7 +45,7 @@
       const node = document.getElementById(id);
       if (node && typeof HTMLImageElement !== 'undefined' && node instanceof HTMLImageElement) {
         node.src = new URL('hvd-mark.svg', window.location.href).href;
-        node.alt = 'PDF HVD';
+        node.alt = 'PDF Đạo Chích';
       }
     }
   }
@@ -70,8 +70,8 @@
   function install() {
     if (document.body.dataset.hvdCitHub) return;
     document.body.dataset.hvdCitHub = 'original';
-    setBrand('nav-brand', 'PDF HVD');
-    setBrand('footer-brand', 'PDF HVD');
+    setBrand('nav-brand', 'PDF Đạo Chích');
+    setBrand('footer-brand', 'PDF Đạo Chích');
     brandImages();
     legalAccess();
     // Do not change upstream footer copyright: licensing details remain
@@ -81,21 +81,21 @@
     const backLabel = document.querySelector('#back-to-tools span');
     if (backLabel) {
       backLabel.removeAttribute('data-i18n');
-      backLabel.textContent = 'Trở về PDF HVD';
+      backLabel.textContent = 'Trở về PDF Đạo Chích';
     }
     const toolbarGroup = document.querySelector('#toolbar .tgroup');
-    addAnchor(toolbarGroup, 'hvd-cit-home', 'PDF HVD',
-      'Quay về bộ công cụ PDF HVD');
+    addAnchor(toolbarGroup, 'hvd-cit-home', 'PDF Đạo Chích',
+      'Quay về bộ công cụ PDF Đạo Chích');
     const landing = document.querySelector('#tool-uploader');
-    addAnchor(landing, 'hvd-cit-uploader-home', '↖ PDF HVD',
-      'Quay về trang chủ PDF HVD');
+    addAnchor(landing, 'hvd-cit-uploader-home', '↖ PDF Đạo Chích',
+      'Quay về trang chủ PDF Đạo Chích');
 
     // Document/SEO branding is applied during the site build, ahead of
     // first paint, to avoid a flash of the upstream name in browser tabs.
-    const title='Chỉnh sửa văn bản PDF – PDF HVD';
+    const title='Chỉnh sửa văn bản PDF – PDF Đạo Chích';
     if (document.title !== title) document.title = title;
     window.dispatchEvent(new CustomEvent('hvd-cit-hub:ready',
-      {detail:{product:'PDF HVD',home}}));
+      {detail:{product:'PDF Đạo Chích',home}}));
   }
 
   if (document.readyState === 'loading')
