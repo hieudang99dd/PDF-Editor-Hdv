@@ -31,3 +31,17 @@
   #text-editor-app #hvd-apply-now,
   #text-editor-app #hvd-cancel-now{font-size:12px;white-space:nowrap}
 }
+
+/* Source-synchronized CIT only: disabled by default to protect CAD tables. */
+#text-editor-app #hvd-reflow-control {
+  display:flex;align-items:center;gap:9px;
+  margin:12px 10px 10px;padding:10px 12px;
+  border:1px solid rgba(150,165,185,.23);
+  border-radius:8px;background:rgba(11,17,26,.6);
+  color:#e6ecf5;font-size:12px;line-height:1.45;
+  cursor:pointer;
+}
+#text-editor-app #hvd-reflow-control[hidden] {display:none!important}
+#text-editor-app #hvd-reflow-control input {
+  width:16px;height:16px;accent-color:#f59e0b;flex:none;
+}
