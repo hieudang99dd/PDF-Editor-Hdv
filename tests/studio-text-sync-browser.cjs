@@ -102,9 +102,11 @@ async function main() {
       window.__HVD_CIT_TEXT_API?.getPageIndex?.() === 2 &&
       document.getElementById('pageLabel')?.textContent?.includes('3 / 4')
     ,null,{timeout:30000});
+    // The native PDFium glyphs live in #page canvas, not inside the transparent
+    // editable hit boxes, so do not treat para-box.textContent as a text layer.
     await page.waitForFunction(() =>
-      [...document.querySelectorAll('#overlay .para-box')]
-        .some(el => el.textContent?.includes('THUMBNAIL PAGE 3'))
+      document.querySelectorAll('#overlay .para-box:not(.block-box)').length >= 2 &&
+      document.getElementById('page')?.width > 100
     ,null,{timeout:15000});
     assert.equal(await page.locator('#hvd-pages-list .hvd-current').count(),1);
     await page.locator('#hvd-pages-jump-input').fill('1');
