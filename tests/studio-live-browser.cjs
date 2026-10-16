@@ -82,6 +82,12 @@ async function main(){
   await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.insertText('PDF DAO CHICH EDITED');
   await page.waitForTimeout(450);
+  const apply=page.locator('#hvd-apply-now');
+  await apply.waitFor({state:'visible',timeout:12000});
+  await apply.click();
+  await page.waitForFunction(() => !document.querySelector('#overlay .editor'),null,{timeout:12000});
+  await page.screenshot({path:path.join(out,'03-native-text-applied.png'),fullPage:true});
+  assert.equal(await page.locator('#overlay .editor').count(),0,'Draft HTML must be removed after native apply');
   const dl=page.waitForEvent('download',{timeout:120000});
   await page.locator('#save').click();
   const downloaded=await dl;
