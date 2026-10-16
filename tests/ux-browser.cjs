@@ -132,43 +132,45 @@ async function sample(label){
    await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
    assert.equal(await page.locator('#po-meta-title').innerText(),'another-file');
    assert.ok(await page.locator('.po-header').isVisible());
-   // Native region deletion workflow: draw a delete zone, then create a
-   // protected inner zone, save, and prove exported output is a PDF.
-   await page.locator('#po-new-document').click();
-   await page.locator('#po-file-input').setInputFiles({
-    name:'cad-linework.pdf',mimeType:'application/pdf',buffer:await vectorSample()
+   // The Organizer must remain a text/page editing tool, with no vector eraser plugin.
+   assert.equal(await page.locator('#po-tb-region').count(),0,
+     'vector region eraser must NOT be embedded inside PDF Organizer');
+   // The new standalone route loads its own PDF, preview, zones and save workflow.
+   await page.goto(address+'region-eraser.html',{waitUntil:'domcontentloaded'});
+   await page.locator('#re-uploader').waitFor({state:'visible'});
+   assert.ok(await page.locator('#re-dropzone').isVisible());
+   await page.locator('#re-input').setInputFiles({
+      name:'cad-linework.pdf',mimeType:'application/pdf',buffer:await vectorSample()
    });
-   await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
+   await page.locator('#re-workspace').waitFor({state:'visible',timeout:30000});
    await page.waitForFunction(()=>{
-     const img=document.querySelector('#po-preview-img'),box=document.querySelector('#po-preview-wrapper');
-     return img&&box&&img.complete&&img.naturalWidth>0&&box.getBoundingClientRect().width>100&&box.getBoundingClientRect().height>100;
+     const c=document.getElementById('re-canvas'),s=document.getElementById('re-page-surface');
+     return c&&c.width>200&&c.height>100&&s.getBoundingClientRect().width>100;
    },{timeout:30000});
-   await page.locator('#po-tb-region').click();
-   await page.locator('#po-region-panel').waitFor({state:'visible'});
    async function drawZone(x0,x1,role){
-     await page.locator('#po-region-role').selectOption(role);
-     await page.locator('#po-region-shape').selectOption('rect');
-     await page.locator('#po-region-arm').click();
-     const box=await page.locator('#po-region-overlay').boundingBox();
-     if(!box||box.width<=60||box.height<=50){
-       const state=await page.evaluate(()=>{
-        const ids=['po-region-overlay','po-preview-wrapper','po-preview-img','po-preview-canvas'];
-        return ids.map(id=>{const e=document.getElementById(id),r=e?.getBoundingClientRect();return {id,rect:r&&{w:r.width,h:r.height,x:r.x,y:r.y},display:e&&getComputedStyle(e).display,visible:e&&getComputedStyle(e).visibility};});
-       });
-       throw Error('region overlay must align with PDF preview: '+JSON.stringify(state));
-     }
-     await page.mouse.move(box.x+box.width*x0,box.y+box.height*.40);
+     await page.locator('#re-role').selectOption(role);
+     await page.locator('#re-shape').selectOption('rect');
+     await page.locator('#re-draw').click();
+     const box=await page.locator('#re-overlay').boundingBox();
+     assert.ok(box&&box.width>100&&box.height>100,'standalone overlay must cover rendered PDF');
+     await page.mouse.move(box.x+box.width*x0,box.y+box.height*.39);
      await page.mouse.down();
-     await page.mouse.move(box.x+box.width*x1,box.y+box.height*.6,{steps:8});
+     await page.mouse.move(box.x+box.width*x1,box.y+box.height*.61,{steps:8});
      await page.mouse.up();
    }
    await drawZone(.3,.7,'erase');
+   assert.equal(await page.locator('.re-zone').count(),1);
+   await page.locator('#re-undo').click();
+   assert.equal(await page.locator('.re-zone').count(),0,'standalone Undo must restore zone edits');
+   await page.locator('#re-redo').click();
+   assert.equal(await page.locator('.re-zone').count(),1,'standalone Redo must reapply zone edits');
    await drawZone(.43,.57,'protect');
-   assert.equal(await page.evaluate(()=>window.organizerInstance.pages[0].eraseRegions.length),2);
-   await page.locator('#po-save').click();
-   await page.locator('#po-save-mode').selectOption('download');
-   const nativeWait=page.waitForEvent('download',{timeout:120000});
-   await page.locator('#po-save-confirm').click();
+   assert.equal(await page.locator('.re-zone').count(),2);
+   await page.locator('#re-process').click();
+   await page.locator('#re-results').waitFor({state:'visible',timeout:120000});
+   assert.match(await page.locator('#re-result-summary').innerText(),/PATH/);
+   const nativeWait=page.waitForEvent('download',{timeout:30000});
+   await page.locator('#re-download').click();
    const nativeFile=await nativeWait;
    const nativePath=path.join('/tmp','hvd-region-'+process.pid+'.pdf');
    await nativeFile.saveAs(nativePath);
@@ -179,14 +181,17 @@ async function sample(label){
    const inspected=await PdfEngine.create();
    try{
      inspected.open(new Uint8Array(nativeBytes));inspected.loadPage(0);
-     const nativePathObjects=Array.from({length:inspected.objectCount()},(_,i)=>inspected.objectAt(i))
-       .filter(o=>o?.type===2);
-     assert.ok(nativePathObjects.length>=4,
-       'downloaded PDF must contain newly split PATH objects, not an unmodified source with a visual overlay');
+     const vectorPaths=Array.from({length:inspected.objectCount()},(_,i)=>inspected.objectAt(i))
+       .filter(obj=>obj?.type===2);
+     assert.ok(vectorPaths.length>=4,'downloaded PDF must retain split PATH vectors');
    }finally{inspected.close();}
-   assert.ok(await page.locator('#po-ws').isVisible(),'native save must not exit feature');
+   assert.ok(await page.locator('#re-workspace').isVisible(),'download must keep standalone tool open');
+   await page.locator('#re-new').click();
+   await page.locator('#re-uploader').waitFor({state:'visible'});
+   assert.equal(await page.locator('.re-zone').count(),0);
+   assert.match(page.url(),/region-eraser\.html/,'reset must remain inside standalone route');
    assert.deepEqual(failures,[],'No new browser JS errors');
-   console.log('PASS: browser PDF download stays in task, organizer unload reset + cancel + reload, back-forward and mobile');
+   console.log('PASS: separate vector region eraser route + binary PDFium output + independent reset + Organizer regression');
  }finally{
    await browser?.close();
    await new Promise(resolve=>server.close(resolve));
