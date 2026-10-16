@@ -136,7 +136,9 @@ async function sample(label){
    assert.equal(await page.locator('#po-tb-region').count(),0,
      'vector region eraser must NOT be embedded inside PDF Organizer');
    // The new standalone route loads its own PDF, preview, zones and save workflow.
-   await page.goto(address+'region-eraser.html',{waitUntil:'domcontentloaded'});
+   await page.goto(address,{waitUntil:'domcontentloaded'});
+   await page.locator('.tool').filter({hasText:'Xóa vector theo vùng'}).first().click();
+   await page.waitForURL('**/region-eraser.html');
    await page.locator('#re-uploader').waitFor({state:'visible'});
    assert.ok(await page.locator('#re-dropzone').isVisible());
    await page.locator('#re-input').setInputFiles({
