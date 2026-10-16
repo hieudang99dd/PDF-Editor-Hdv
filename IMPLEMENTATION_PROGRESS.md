@@ -322,3 +322,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - CSS bổ sung chỉ áp dụng cho liên kết khôi phục ở màn hình upload; không tác động `#overlay`, `#inspector`, nút sửa/lưu hay thuật toán PDFium/CIT.
 - Nâng bài kiểm tra asset-paths bảo vệ bố cục editor gốc, panel font/cỡ chữ/giãn dòng, Undo/Redo, Export và liên kết khôi phục.
 - Kết quả E2E có trước: Chromium/PyMuPDF xác nhận sửa và xuất PDF mẫu Latin hai dòng; PDF có bảng CAD/font subset vẫn cần kiểm tra bằng mẫu thực tế.
+
+## 2026-10-16 — Áp dụng trực tiếp văn bản, không giữ lớp bản nháp
+
+- Ảnh báo lỗi cho thấy văn bản đang soạn bị chồng dòng trong ô bảng. Phân tích frontend CIT hiện tại: editor dùng HTML contenteditable và canvas native glass để xem trước; commit PDF thật gọi `endEdit(true)`.
+- Bổ sung `studio/hvd-text-apply.js` và CSS riêng: chỉ hiển thị **Áp dụng vào PDF / Hủy nhập** khi vùng text đang mở. Áp dụng gọi trực tiếp native CIT `endEdit(true)`, đóng vùng nhập và dựng lại trang PDF thay vì giữ overlay nháp.
+- **Xuất PDF** và `Ctrl+S` khi còn vùng nhập sẽ thực hiện native commit trước khi xuất, tránh lưu PDF bỏ sót chữ đang gõ. `Ctrl+Enter` áp dụng, `Escape` hủy.
+- Khi native glass được tạo, CSS ẩn mực chữ DOM để tránh nhìn cùng lúc hai lớp chữ; vẫn giữ dấu nháy và vùng chọn.
+- Không sửa minified Vite, mã nguồn PdfEngine/PDFium WASM hoặc thêm lớp che trắng/sao chép text giả. Đường dẫn route và panel đã chốt giữ nguyên.
+- Bổ sung `tests/studio-text-apply.test.cjs` vào Pages smoke CI. Nghiệm thu ảnh thực tế tiếng Việt/ô bảng từ PDF người dùng vẫn chưa thực hiện vì chỉ có ảnh màn hình, không có tệp PDF gốc; chưa khẳng định xử lý được mọi trường hợp paragraph đang chồng nội dung nhiều đối tượng.
