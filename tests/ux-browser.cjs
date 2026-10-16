@@ -217,7 +217,7 @@ async function sample(label){
    await page.locator('#re-new').click();
    await page.locator('#re-uploader').waitFor({state:'visible'});
    assert.equal(await page.locator('.re-zone').count(),0);
-   assert.match(page.url(),/region-eraser\\.html/,'reset must remain inside standalone route');
+   assert.match(page.url(),/region-eraser\.html/,'reset must remain inside standalone route');
    // Whole-object mode must physically remove text, not simply cover it.
    await page.locator('#re-input').setInputFiles({
      name:'text-report.pdf',mimeType:'application/pdf',buffer:await sample('DELETE TEXT IN BOX')
