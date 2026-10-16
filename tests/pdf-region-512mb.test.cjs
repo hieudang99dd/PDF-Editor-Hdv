@@ -59,3 +59,35 @@ test('worker supports progress, cancellation, adaptive duration and lifecycle cl
  assert.match(html,/id="re-cancel"/);
  assert.match(html,/512 MiB/);
 });
+
+test('worker receives Blob by reference, reports progress and terminates on completion',async()=>{
+ const {eraseRegionsInWorker}=await import('../pdf-region-client.mjs');
+ const original=global.Worker,events=[];
+ const pdfBlob=new Blob(['%PDF-1.7\\n'],{type:'application/pdf'});
+ class FakeWorker{
+  constructor(url,opts){events.push(['new',url.href,opts.type]);}
+  postMessage(data,transfers){
+   assert.strictEqual(data.file,pdfBlob,'Blob should be passed without File.arrayBuffer()');
+   assert.equal(transfers,undefined,'Blob should not require an additional transferable copy');
+   queueMicrotask(()=>this.onmessage({data:{id:1,progress:{stage:'reading',totalPages:1}}}));
+   queueMicrotask(()=>this.onmessage({data:{id:1,result:{bytes:new Uint8Array([37,80,68,70]),report:{changedObjects:1}}}}));
+  }
+  terminate(){events.push(['terminated']);}
+ }
+ global.Worker=FakeWorker;
+ try{
+  const report=[];
+  const output=await eraseRegionsInWorker(pdfBlob,[{pageIndex:0}],{
+    onProgress:p=>report.push(p.stage)});
+  assert.equal(output.report.changedObjects,1);
+  assert.deepEqual(report,['reading']);
+  assert.ok(events.some(v=>v[0]==='terminated'));
+ }finally{global.Worker=original;}
+});
+test('AbortSignal can cancel before starting a giant Worker',async()=>{
+ const {eraseRegionsInWorker}=await import('../pdf-region-client.mjs');
+ const abort=new AbortController();abort.abort();
+ await assert.rejects(
+  eraseRegionsInWorker(new Blob(['sample']),[{pageIndex:0}],{signal:abort.signal}),
+  /Đã hủy xử lý PDF/);
+});
