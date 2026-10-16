@@ -1,4 +1,4 @@
-/* PDF HVD / Catalog only. Preserve all original engine names and dispatch routes. */
+/* PDF Đạo Chích / Catalog only. Preserve all original engine names and dispatch routes. */
 (function(){
 'use strict';
 const main=document.querySelector('#home');
@@ -6,7 +6,7 @@ if(!main||typeof home!=='function')return;
 const hero=main.querySelector('.hero');
 hero.querySelector('h1').textContent='Bộ công cụ PDF chuyên nghiệp';
 hero.querySelector('p').textContent='Chỉnh sửa, tổ chức, chuyển đổi và xuất bản hồ sơ. Các tác vụ cần engine PC được ghi rõ.';
-if(!hero.querySelector('.eyebrow'))hero.insertAdjacentHTML('afterbegin','<span class="eyebrow">PDF HVD / KHÔNG GIAN LÀM VIỆC</span>');
+if(!hero.querySelector('.eyebrow'))hero.insertAdjacentHTML('afterbegin','<span class="eyebrow">PDF Đạo Chích / KHÔNG GIAN LÀM VIỆC</span>');
 const q=document.querySelector('#q');
 q.placeholder='Tìm: sửa Text, ghép PDF, xóa trang, OCR, chồng bản vẽ…';
 const categories=['Tất cả','Sửa Text','Biên tập','Tổ chức','Chuyển đổi','Nâng cao'];
