@@ -1,0 +1,39 @@
+name: PDF HVD UX Browser QA
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'index.html'
+      - 'hvd-ui-v2.*'
+      - 'pdf-local-tools.js'
+      - 'cit-advanced-ui.js'
+      - 'pdfium-preflight.html'
+      - 'tests/ux-browser.cjs'
+      - '.github/workflows/ux-browser.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'index.html'
+      - 'hvd-ui-v2.*'
+      - 'pdf-local-tools.js'
+      - 'cit-advanced-ui.js'
+      - 'pdfium-preflight.html'
+      - 'tests/ux-browser.cjs'
+      - '.github/workflows/ux-browser.yml'
+permissions:
+  contents: read
+jobs:
+  e2e-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium regression runtime
+        run: |
+          npm install --no-save playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Verify PDF download and workspace continuity
+        run: node tests/ux-browser.cjs
