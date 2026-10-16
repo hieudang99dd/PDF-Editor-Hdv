@@ -1,4 +1,4 @@
-import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-rotate2';
+import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-all1';
 import {validateRegions} from './pdf-region-geometry.mjs';
 import {planRegionJobs} from './pdf-region-plan.mjs';
 import {MAX_INPUT_BYTES,LARGE_FILE_NOTICE_BYTES,PREVIEW_RANGE_CHUNK_BYTES,
