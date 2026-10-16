@@ -161,3 +161,15 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - Đây là **object deletion**, chưa phải redaction an toàn tuyệt đối: nested resources, annotation/widget, OCR layer, metadata, incremental revisions hoặc bytes không tham chiếu vẫn có thể chứa dữ liệu. Không dùng cho thông tin bí mật nếu chưa có bước audit/redaction riêng.
 - Nhánh mới không thay đổi phần mềm Organizer, text editor, không bỏ kiểm tra dữ liệu đầu vào, dung lượng 512 MiB, bảo vệ ma trận trang xoay, thời gian Worker.
 - QA: `tests/pdf-region-all-objects.test.cjs` trên PDF chứa chữ/ảnh/vector tô thật và tài liệu /ByteRange; Chromium xác nhận xóa text object thật và giữ chế độ precise như trước.
+
+
+## 14. Quy trình Áp dụng → Kiểm tra → Chỉnh sửa lại → Xuất PDF (2026-10-16)
+
+- Giao diện có **hai nút trên thanh công cụ**: `✂ Áp dụng` và `↓ Xuất PDF`; hoàn toàn không dùng chung một nút.
+- **Áp dụng** gọi PDFium Worker xóa vật lý và tạo PDF kết quả trong bộ nhớ, sau đó trình xem PDF.js lập tức hiển thị **Sau xử lý**. Không có lệnh tải xuống khi Áp dụng. Có thể dùng **Bản gốc / Sau xử lý** để đối chiếu.
+- Khi chưa áp dụng: `Xuất PDF` bị disable; khi Worker xử lý hoặc bị lỗi: vẫn disable. Khi PDF kết quả hợp lệ và xem được: `Xuất PDF` mới được enable. `Áp dụng` được khóa trong trạng thái đã có bản kết quả để không lặp xử lý không chủ đích.
+- **Chỉnh sửa lại**: gỡ tài liệu kết quả tạm và Blob URL, đưa trình xem về PDF gốc nhưng **giữ nguyên các vùng chọn**, lịch sử Undo/Redo, trang và cấu hình. Mở khóa để người dùng sửa vùng và **Áp dụng** lại; `Xuất PDF` khóa cho đến khi lần xử lý mới thành công.
+- Trong trạng thái kết quả đã áp dụng: khóa chỉnh vùng, Undo/Redo và cấu hình xử lý, buộc dùng `Chỉnh sửa lại` để không vô tình xuất một kết quả không tương ứng với lựa chọn đang hiển thị.
+- **Xuất PDF**: chỉ tải bản `Blob` của lần áp dụng gần nhất, không tự chạy PDFium, không xuất PDF nguồn. Sau tải vẫn ở công cụ, người dùng có thể tạo lượt khác. Cảnh báo trước khi rời trang khi còn thay đổi chưa xuất.
+- Thanh bước 1 **Vẽ vùng** → 2 **Áp dụng** → 3 **Kiểm tra / Chỉnh lại** → 4 **Xuất PDF** hiển thị trạng thái trực quan, cùng nút quay lại dàn trang hiện có.
+- QA: `tests/pdf-region-apply-export.test.cjs`, Chromium E2E xác minh xuất bị khóa trước Áp dụng, xem trước thực, giữ nguyên vùng khi chỉnh lại, áp dụng lần hai rồi mới Xuất. Tính năng xử lý PDF ký số và hai chế độ precise/whole-object giữ nguyên.
