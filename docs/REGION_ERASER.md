@@ -139,3 +139,25 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - Áp dụng cho **Các trang đã vẽ vùng** và **Khoảng trang**: mỗi trang đều có viewport riêng; vùng chuẩn hóa tái sử dụng theo khung nhìn của từng trang. Trang xoay lẫn lộn không bắt người dùng xoay/chuẩn hóa PDF bằng công cụ khác.
 - QA: `tests/pdf-region-rotation.test.cjs` kiểm thử ma trận cho 0°,90°,180°,270° cùng CropBox có tọa độ gốc lệch, xuất PDFium và xác nhận các PATH ngoài vùng còn nguyên. Chromium kiểm thử tác vụ 2 trang trong cùng khoảng với trang thứ hai xoay 90°.
 - Ranh giới: phần mềm vẫn chỉ cắt PATH vector stroke-only chứa MoveTo/LineTo, không tự xóa text, ảnh, hatch, curve hoặc clipping path chưa được hỗ trợ; các trường hợp đó sẽ báo lỗi riêng thay vì trả PDF sai.
+
+
+## 13. Xóa rộng mọi PageObject và bản sao PDF có chữ ký (2026-10-16)
+
+### Phương thức độc lập
+
+1. **Xóa mọi đối tượng giao vùng** (`mode=whole-object`): PDFium liệt kê `FPDFPage_CountObjects/FPDFPage_GetObject`, xác định `FPDFPageObj_GetBounds` và cắt hình chữ nhật bao đối tượng với miền boolean người dùng chọn. Chỉ khi có giao diện tích dương, thực hiện `FPDFPage_RemoveObject` cùng `FPDFPageObj_Destroy`. Hỗ trợ page-object loại Text (1), Path (2, kể cả fill/hatch như path), Image (3), Shading (4), Form XObject (5) nếu PDFium biểu diễn dưới dạng page-object. `regionIntersectsRect` tôn trọng hợp vùng/vùng bảo vệ, giữa hai biên và chỉ vùng giao. Giao polygon/cạnh được tiền tính một lần mỗi trang (cache WeakMap) để tránh làm chậm nhiều page objects.
+2. **Cắt vector chính xác** (`mode=precise`): giữ thuật toán tách MoveTo/LineTo ngoài miền xóa, giữ nguyên các loại khác và báo lỗi khi đường thuộc loại chưa xử lý; không thay đổi hành vi.
+3. Khi chọn **whole-object**, một dòng chữ, khối ảnh, shape hoặc Form XObject đi ngang biên sẽ bị loại bỏ NGUYÊN ĐỐI TƯỢNG, nên có thể mất cả dữ liệu nằm ngoài vùng. Đây là đặc điểm kỹ thuật bắt buộc công khai, không được gọi là xóa chính xác từng pixel/ký tự. Chỉ hiển thị bản PDF sau xử lý thực từ worker để kiểm tra.
+
+### PDF có chữ ký số
+
+- Mặc định tài liệu có `/ByteRange` bị chặn; UI cho phép tích rõ checkbox **Cho phép xuất bản sao từ PDF đã ký số**. Chỉ khi tích, worker truyền `allowInvalidSignatures:true` và PDFium xuất bản sao đầy đủ (`incremental:false`).
+- Chữ ký cũ chắc chắn không còn chứng thực nội dung bản sao sau thay đổi. Chữ ký hiển thị/metadata có thể vẫn nằm trong PDF và trình xem PDF có thể báo chữ ký không hợp lệ; **không có cơ chế làm lại chữ ký hay giả mạo tính hợp lệ**.
+- Tệp nguồn không bị thay đổi. Chưa xác nhận mọi thuật toán chữ ký/giới hạn quyền PDF có thể mở hoặc sửa.
+- `report.signatureInvalidated` thể hiện thông tin này một lần trong màn hình kết quả thay vì toast lặp lại.
+
+### Ranh giới vẫn giữ
+
+- Đây là **object deletion**, chưa phải redaction an toàn tuyệt đối: nested resources, annotation/widget, OCR layer, metadata, incremental revisions hoặc bytes không tham chiếu vẫn có thể chứa dữ liệu. Không dùng cho thông tin bí mật nếu chưa có bước audit/redaction riêng.
+- Nhánh mới không thay đổi phần mềm Organizer, text editor, không bỏ kiểm tra dữ liệu đầu vào, dung lượng 512 MiB, bảo vệ ma trận trang xoay, thời gian Worker.
+- QA: `tests/pdf-region-all-objects.test.cjs` trên PDF chứa chữ/ảnh/vector tô thật và tài liệu /ByteRange; Chromium xác nhận xóa text object thật và giữ chế độ precise như trước.
