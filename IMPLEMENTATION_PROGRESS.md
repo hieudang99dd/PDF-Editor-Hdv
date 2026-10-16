@@ -179,3 +179,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 
 - Test Chromium cũ kiểm tra `#shortcut-text` vốn đã bị bỏ khỏi header theo quyết định UI trước đó, gây báo lỗi giả ở bước quay về trang HVD.
 - Sửa `tests/cit-original-browser.cjs` để xác minh trang đích bằng `#logo` có chữ PDF HVD và tồn tại `#tools` thay vì nút header đã bị xóa. Không thay đổi thao tác PDFium, file kết quả hoặc kiểm tra nội dung PDF.
+
+## 2026-10-16 — Repository cleanup / workflow consolidation
+
+- Đã kiểm kê nguồn của frontend `studio/` được build cố định; xác định đây là bundle dùng thật, **không xóa** JS chunk/CSS/WASM/font hay các file `.br` mà chưa có đối chiếu manifest.
+- Gộp **7 file tài liệu** theo 3 workflow: `docs/TEXT_ENGINE.md`, `docs/STUDIO_DEPLOYMENT.md`, `docs/PROCESSING_AND_QA.md`; giữ nguyên các quyết định cũ với nhãn lịch sử. Cập nhật liên kết từ `NOTICE.md`, `backend/README.md`, ma trận tính năng và nhật ký tiến độ.
+- Xóa **19 script vá thử** ở `scratch/`, xóa `debug_run.py` và `debug_run2.py`, `hvd-home-v2.css` và `hvd-legal.js` vì không còn nằm trong đường tải chính. Nội dung vẫn có thể phục hồi qua lịch sử Git trước khi merge.
+- Tạo `README.md` (điểm vào duy nhất cho người mới) và `docs/REPOSITORY_MAP.md` (mô hình folder/cleanup). Điều chỉnh `.gitignore`, cập nhật skill agent về kiến trúc Hybrid để tránh sửa nhầm production artifact.
+- Không sửa code thuật toán, PDFium, `organizer.js`, `text-editor.html`, frontend Vite đã build, backend hoặc `vendor/` trong lần dọn dẹp này.
+- QA: test Node toàn repo qua GitHub Actions và kiểm tra link/route/syntax; kiểm thử trên GitHub Pages và CAD A0/A1 cần thực hiện riêng. Không xem smoke test là chứng minh tính tương đương giao diện đã triển khai.
