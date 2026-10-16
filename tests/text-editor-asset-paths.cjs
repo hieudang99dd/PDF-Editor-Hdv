@@ -13,7 +13,7 @@ for (const id of ['text-editor-app', 'overlay', 'inspector', 'fFamily',
   'fSize', 'fLine', 'fPara', 'save', 'undo', 'redo']) {
   assert.ok(html.includes('id="' + id + '"'), 'Missing approved editor control: ' + id);
 }
-for (const marker of ['hvd-text-apply.css?v=', 'hvd-text-apply.js?v=20261016-sync2',
+for (const marker of ['hvd-text-apply.css?v=', 'hvd-text-apply.js?v=20261016-stallfix1',
   'hvd-brand.css', 'hvd-editor-recovery', 'href="./repair-editor.html"']) {
   assert.ok(html.includes(marker), 'Missing HVD text editor UI: ' + marker);
 }
@@ -46,5 +46,5 @@ if (fs.existsSync(manifest)) {
 const metadata = JSON.parse(read('studio/hvd-site.webmanifest'));
 assert.equal(metadata.start_url, '../text-editor.html');
 assert.equal(metadata.scope, '../');
-assert.ok(read('studio/sw.js').includes('pdf-dao-chich-v12'));
+assert.ok(read('studio/sw.js').includes('pdf-dao-chich-v13'));
 console.log('PASS: branded CIT/PDFium text editor routes and Vite assets are resolvable');
