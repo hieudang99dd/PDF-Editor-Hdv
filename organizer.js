@@ -3105,6 +3105,24 @@ class PDFOrganizer {
                 pageIndex,regions:p.eraseRegions||[]
             })).filter(job=>job.regions.length);
             if(regionJobs.length){
+                // Inspect ORIGINAL source documents before pdf-lib rewrites page trees:
+                // never erase from signed PDFs even if intermediary serialization
+                // has already removed the original /ByteRange marker.
+                const signedMark=new TextEncoder().encode('/ByteRange');
+                const checked=new Set();
+                for(const request of regionJobs){
+                    const fileIndex=targetPages[request.pageIndex]?.fileIndex;
+                    if(!Number.isInteger(fileIndex)||checked.has(fileIndex))continue;
+                    checked.add(fileIndex);
+                    const original=new Uint8Array(await this.files[fileIndex].arrayBuffer());
+                    searchSignature:for(let k=0;k<=original.length-signedMark.length;k++){
+                        if(original[k]!==signedMark[0])continue;
+                        for(let j=1;j<signedMark.length;j++){
+                            if(original[k+j]!==signedMark[j])continue searchSignature;
+                        }
+                        throw new Error('Tài liệu gốc chứa chữ ký số (/ByteRange); không thể xóa vector trên PDF đã ký.');
+                    }
+                }
                 const {eraseRegionsInWorker}=await import('./pdf-region-client.mjs');
                 const result=await eraseRegionsInWorker(await finalDoc.save(),regionJobs);
                 finalDoc=await PDFDocument.load(result.bytes,{updateMetadata:false});
