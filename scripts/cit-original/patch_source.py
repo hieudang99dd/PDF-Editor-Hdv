@@ -254,8 +254,160 @@ def main(upstream_root: pathlib.Path) -> None:
       });""",
         "export retains open document and avoids blocking dialog"
     )
+    # Report the actual load phase to the user instead of a permanent,
+    # unqualified spinner. No changes to the PDFium parsing algorithms.
+    entry_source = replace_once(
+        entry_source,
+        "async function launchEditor(file: File) {",
+        """function hvdOpenStage(stage: string) {
+  (window as Window & { __HVD_PDF_OPEN_STAGE?: string }).__HVD_PDF_OPEN_STAGE = stage;
+  const label = document.getElementById('loader-text');
+  if (label) label.textContent = stage;
+}
+async function launchEditor(file: File) {""",
+        "load stage reporting"
+    )
+    entry_source = replace_once(
+        entry_source,
+        """  launching = true;
+  showLoader('Loading PDF Text Editor...');
+  try {
+    hideLoader();
+    const decrypted = await batchDecryptIfNeeded([file]);""",
+        """  launching = true;
+  showLoader('Đang chuẩn bị tài liệu PDF...');
+  hvdOpenStage('Đang kiểm tra cấu trúc và mật khẩu PDF...');
+  try {
+    hideLoader();
+    const decrypted = await batchDecryptIfNeeded([file]);""",
+        "password preflight progress"
+    )
+    entry_source = replace_once(
+        entry_source,
+        """    showLoader('Loading PDF Text Editor...');
+    document.getElementById('uploader')?.classList.add('hidden');""",
+        """    showLoader('Đang tải trình chỉnh sửa PDFium...');
+    hvdOpenStage('Đang tải lõi chỉnh sửa PDFium...');
+    document.getElementById('uploader')?.classList.add('hidden');""",
+        "source module progress"
+    )
+    entry_source = replace_once(
+        entry_source,
+        """    const engineOk = await appModule.engineReady;
+    if (!engineOk) {
+      throw new Error('WASM engine failed to initialize');
+    }
+    await appModule.openFile(decrypted[0]);""",
+        """    hvdOpenStage('Đang khởi tạo lõi PDFium...');
+    const engineOk = await new Promise<boolean>((resolve, reject) => {
+      const timer = window.setTimeout(() =>
+        reject(new Error('PDFium không khởi tạo sau 45 giây; hãy thử khôi phục cache')), 45000);
+      Promise.resolve(appModule!.engineReady).then(
+        ok => { window.clearTimeout(timer); resolve(ok); },
+        error => { window.clearTimeout(timer); reject(error); }
+      );
+    });
+    if (!engineOk) {
+      throw new Error('WASM engine failed to initialize');
+    }
+    hvdOpenStage('Đang phân tích font, đối tượng và dựng trang PDF...');
+    await appModule.openFile(decrypted[0]);
+    hvdOpenStage('PDF đã mở thành công');""",
+        "PDFium ready bounded and parse phase instrumented"
+    )
+    entry_source = replace_once(
+        entry_source,
+        """  } catch (error) {
+    console.error('Error loading PDF Text Editor:', error);
+    showAlert(t('common.error'), t('tools:editPdfText.failedToLoad'));
+    closeEditor();
+  } finally {
+    hideLoader();
+    launching = false;
+  }
+}
+
+function handleFiles""",
+        """  } catch (error) {
+    const stage = (window as Window & { __HVD_PDF_OPEN_STAGE?: string })
+      .__HVD_PDF_OPEN_STAGE || 'không xác định';
+    const reason = error instanceof Error ? error.message : String(error);
+    console.error('Error loading PDF Text Editor at ' + stage, error);
+    showAlert(t('common.error'), 'Không thể mở PDF (' + stage + '): ' + reason);
+    closeEditor();
+  } finally {
+    hideLoader();
+    launching = false;
+  }
+}
+
+function handleFiles""",
+        "specific PDF open error instead of generic unknown error"
+    )
     entry.write_text(entry_source, encoding="utf-8")
-    print("PASS: pinned CIT native commit result, opt-in reflow and guarded save")
+
+    # pdf.js probes all PDFs before PDFium opens them. Some valid complex CAD
+    # PDFs leave this *optional* encryption detector pending indefinitely.
+    # After a bounded wait, proceed with the original bytes. PDFium still
+    # asks for a password itself if encryption is actually present.
+    password = upstream_root / "src/js/utils/password-prompt.ts"
+    pw_source = password.read_text(encoding="utf-8")
+    pw_source = replace_once(
+        pw_source,
+        """  return new Promise((resolve) => {
+    let settled = false;
+    const task = getPDFDocument({ data: bytes.slice(0) });
+
+    task.onPassword = () => {
+      if (!settled) {
+        settled = true;
+        resolve(true);
+        task.destroy().catch(() => {});
+      }
+    };
+
+    task.promise
+      .then((doc) => {
+        doc.destroy();
+        if (!settled) {
+          settled = true;
+          resolve(false);
+        }
+      })
+      .catch(() => {
+        if (!settled) {
+          settled = true;
+          resolve(false);
+        }
+      });
+  });""",
+        """  return new Promise((resolve) => {
+    let settled = false;
+    const task = getPDFDocument({ data: bytes.slice(0) });
+    const finish = (encrypted: boolean) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timer);
+      resolve(encrypted);
+    };
+    const timer = window.setTimeout(() => {
+      console.warn('[PDF Dao Chich] PDF.js encryption preflight timed out; native PDFium will open the original document');
+      finish(false);
+      void task.destroy().catch(() => {});
+    }, 12000);
+    task.onPassword = () => {
+      finish(true);
+      void task.destroy().catch(() => {});
+    };
+    task.promise.then(doc => {
+      void doc.destroy();
+      finish(false);
+    }).catch(() => finish(false));
+  });""",
+        "bounded nonessential PDFjs encrypted-file probe"
+    )
+    password.write_text(pw_source, encoding="utf-8")
+    print("PASS: pinned CIT/PDFium core, bounded PDF.js preflight and diagnostic open stages")
 
 
 if __name__ == "__main__":
