@@ -92,15 +92,15 @@ async function sample(label){
    // the active feature; cancellation must leave its editor state intact.
    await page.goto(address,{waitUntil:'domcontentloaded'});
    await page.evaluate(() => openTool(T.findIndex(t=>t[0]==='Chỉnh sửa PDF')));
-   await page.locator('#po-initial-upload').waitFor({state:'visible'});
+   await page.locator('#fi').setInputFiles({
+     name:'sample-original.pdf',mimeType:'application/pdf',buffer:await sample('Document original')
+   });
+   await page.locator('#go').click();
+   await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
    assert.ok(await page.locator('#po-new-document').isVisible());
    assert.ok(await page.locator('#po-back').isVisible());
    assert.match((await page.locator('#po-back').innerText()).trim(),/Danh mục công cụ/);
    assert.match((await page.locator('#po-tb-reset').innerText()).trim(),/Hoàn nguyên trang/);
-   await page.locator('#po-file-input').setInputFiles({
-     name:'sample-original.pdf',mimeType:'application/pdf',buffer:await sample('Document original')
-   });
-   await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
    assert.equal(await page.locator('#po-meta-title').innerText(),'sample-original');
    const loaded=await page.evaluate(()=>window.organizerInstance.files.length);
    assert.equal(loaded,1);
