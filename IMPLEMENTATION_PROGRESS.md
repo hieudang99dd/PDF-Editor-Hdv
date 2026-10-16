@@ -238,3 +238,13 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Cải tiến `pdf-region-worker/client`: progress theo trang/đối tượng, AbortController hủy tác vụ, watchdog 8 phút và deadline thích ứng đến 30 phút, báo lỗi thiếu RAM mà không thay đổi file nguồn.
 - Bổ sung regression `tests/pdf-region-512mb.test.cjs` và workflow `region-large.yml` kiểm tra PDF thật >80 MiB; kỹ thuật kiểm thử và giới hạn được ghi trong `docs/REGION_ERASER.md`.
 - **Lưu ý:** 512 MiB là ngưỡng nhận tệp; không có chứng chỉ thực thi mọi PDF 512 MiB và không kiểm tra mọi tổ hợp trình duyệt/thiết bị.
+
+
+## 2026-10-16 — Boolean regions + dàn trang + range + xem kết quả trước tải
+
+- `pdf-region-geometry.mjs`: hỗ trợ union (nhiều vùng riêng), between (vùng giữa hai đường bao), intersection (chỉ vùng giao), chặn polygon lỗi hoặc không giao nhau.
+- `pdf-region-plan.mjs` mới: kế hoạch xóa theo các trang đã vẽ hoặc nhân vùng từ trang đang chọn qua khoảng Từ–Đến (inclusive, tối đa 500 trang), không thay đổi dữ liệu vùng nguồn.
+- `region-eraser.html/js/css`: chuyển mặc định sang dàn trang 24 thumbnail/lượt, lazy render, nhấp trang để mở biên tập phóng to và quay lại gallery.
+- Sau **Áp dụng & xuất PDF**, mở PDF kết quả thật bằng PDF.js, cho phép Bản gốc/Sau xử lý để kiểm tra chính xác trước khi tải xuống, không dùng phủ trắng.
+- Thêm `tests/pdf-region-boolean-gallery.test.cjs`, nâng Chromium E2E cho PDF 2 trang với dải giữa hai biên, khoảng 1–2 và xem trước/sau.
+- Giữ nguyên tách biệt khỏi Organizer, giới hạn 512 MiB, worker cancellation, cùng chính sách không sửa file PDF gốc.

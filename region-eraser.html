@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>Xóa vector theo vùng — PDF HVD</title>
 <meta name="description" content="Xóa thực đoạn vector PATH nằm trong một hoặc nhiều vùng chọn, giữ lại phần bên ngoài. Hoạt động độc lập với Chỉnh sửa PDF.">
-<link rel="stylesheet" href="region-eraser.css?v=20261016-512mb1">
+<link rel="stylesheet" href="region-eraser.css?v=20261016-boolean1">
 </head>
 <body>
 <header class="re-topbar">
@@ -48,22 +48,53 @@
    <progress id="re-progress-bar" value="0" max="100"></progress>
    <span id="re-progress-note">Tệp lớn có thể cần vài phút và nhiều bộ nhớ.</span>
   </div>
-  <div class="re-columns">
+  <section id="re-gallery-panel" class="re-gallery-panel" aria-label="Dàn trang PDF">
+    <div class="re-gallery-head"><div><p class="re-kicker">01 · DÀN TRANG</p><h2>Chọn trang để phóng to và vẽ vùng xóa</h2><p>Nhấp vào một trang bất kỳ để mở không gian thao tác. Dàn trang chỉ dựng ảnh nhỏ khi cần để tiết kiệm RAM.</p></div>
+      <div class="re-gallery-nav"><button class="re-btn re-outline" id="re-gallery-prev" type="button">← 24 trang trước</button>
+       <span id="re-gallery-range">1–24</span><button class="re-btn re-outline" id="re-gallery-next" type="button">24 trang sau →</button></div>
+    </div>
+    <div class="re-gallery-grid" id="re-gallery-grid"></div>
+   </section>
+   <div id="re-editor-view" hidden>
+    <div class="re-editor-header"><button class="re-btn re-outline" id="re-gallery-back" type="button">← Quay lại dàn trang</button>
+      <div><strong id="re-editor-title">Trang 1 · Vẽ vùng xóa</strong><span>Nhấp chuột và kéo để chọn vùng. Sau khi xóa có thể xem PDF kết quả ngay tại đây.</span></div>
+      <div class="re-review-switch" id="re-review-switch" hidden>
+       <button class="re-btn re-ghost" id="re-before" type="button">Bản gốc</button>
+       <button class="re-btn re-primary" id="re-after" type="button">Sau xử lý</button>
+      </div>
+    </div>
+    <div class="re-columns">
    <aside class="re-tools" aria-label="Tùy chọn vùng xóa">
     <h2>01 · Kiểu vùng chọn</h2>
     <label for="re-shape">Hình dạng</label>
     <select id="re-shape"><option value="rect">Hình chữ nhật</option><option value="poly">Đa giác tự do</option></select>
-    <label for="re-role">Phép toán hình học</label>
-    <select id="re-role"><option value="erase">Xóa trong vùng</option><option value="protect">Giữ bên trong (vùng bảo vệ)</option></select>
+    <label for="re-operation">Kết hợp các vùng</label>
+    <select id="re-operation">
+      <option value="union">Hợp vùng — xóa tất cả vùng riêng biệt</option>
+      <option value="between">Hai vùng lồng nhau — xóa phần ở giữa</option>
+      <option value="intersection">Hai vùng giao nhau — chỉ xóa phần giao</option>
+    </select>
+    <p class="re-hint" id="re-operation-help">Có thể vẽ nhiều vùng, phần được xóa là hợp của các vùng.</p>
+    <label for="re-role">Vai trò vùng (dành cho Hợp vùng)</label>
+    <select id="re-role"><option value="erase">Vùng xóa</option><option value="protect">Vùng bảo vệ</option></select>
     <button type="button" id="re-draw" class="re-btn re-primary re-full">＋ Bắt đầu vẽ vùng</button>
     <button type="button" id="re-finish" class="re-btn re-outline re-full" hidden>✓ Hoàn thành đa giác</button>
-    <p class="re-hint">Vẽ các vùng đỏ để xóa. Vùng xanh sẽ được loại trừ khỏi miền xóa, kể cả khi nằm giữa hai vùng.</p>
+    <p class="re-hint">Vùng màu đỏ: đường bao để tính toán. Với phép Hợp vùng, vùng xanh bảo vệ nội dung; với Giữa/Giao chỉ vẽ đúng 2 đường bao đỏ.</p>
     <div class="re-sep"></div>
     <h2>02 · Vùng đã chọn</h2>
     <div id="re-zones" class="re-zones"><p>Chưa có vùng nào.</p></div>
     <button id="re-clear-page" type="button" class="re-btn re-ghost re-full">Xóa vùng của trang này</button>
     <div class="re-sep"></div>
-    <h2>03 · Phạm vi xử lý</h2>
+    <h2>03 · Trang áp dụng</h2>
+    <label for="re-scope">Phạm vi xóa</label>
+    <select id="re-scope"><option value="drawn">Các trang có vùng đã vẽ</option><option value="range">Áp dụng vùng của trang này cho một khoảng trang</option></select>
+    <div id="re-range-fields" class="re-range-fields" hidden>
+      <label>Từ trang <input type="number" id="re-range-from" min="1" value="1"></label>
+      <label>Đến trang <input type="number" id="re-range-to" min="1" value="1"></label>
+      <p class="re-hint">Dùng cùng tọa độ vùng của trang đang mở cho toàn bộ khoảng trang. Chỉ phù hợp các trang có bố cục tương ứng.</p>
+    </div>
+    <div class="re-sep"></div>
+    <h2>04 · Giới hạn kỹ thuật</h2>
     <p class="re-hint">Chỉ xóa thực PATH vector nét liền không tô kín. Văn bản, ảnh, hatch, Bézier và đường nét đứt không được giả xóa. Trang xoay hoặc path không hỗ trợ có thể khiến tác vụ bị từ chối.</p>
     <a href="docs/REGION_ERASER.md" target="_blank" rel="noopener" class="re-doc-link">Đọc giới hạn thuật toán ↗</a>
    </aside>
@@ -80,9 +111,10 @@
     </div>
     <div class="re-footer-info"><span id="re-page-info">Chọn vùng trực tiếp trên trang PDF.</span><span>PDF gốc · vùng đỏ: xóa · vùng xanh: giữ</span></div>
    </section>
-  </div>
+   </div>
+   </div>
   <section id="re-results" class="re-results" hidden>
-   <div><strong id="re-result-title">Đã xử lý</strong><p id="re-result-summary"></p></div>
+   <div><strong id="re-result-title">Đã xử lý</strong><p id="re-result-summary"></p><p class="re-hint">Trang đang mở hiển thị kết quả đã chỉnh sửa. Bấm “Bản gốc” để đối chiếu hoặc tải PDF ngay.</p></div>
    <button type="button" class="re-btn re-primary" id="re-download">↓ Tải PDF kết quả</button>
   </section>
  </section>
@@ -93,6 +125,6 @@
 window.pdfjsLib=window.pdfjsLib||window['pdfjs-dist/build/pdf'];
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';
 </script>
-<script type="module" src="region-eraser.js?v=20261016-512mb1"></script>
+<script type="module" src="region-eraser.js?v=20261016-boolean1"></script>
 </body>
 </html>

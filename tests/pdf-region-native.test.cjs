@@ -59,3 +59,32 @@ test('signed PDF and unchanged region never produce a misleading document',async
  const marker=new Uint8Array(original.length+13);marker.set(original);marker.set(new TextEncoder().encode('/ByteRange'),original.length);
  await assert.rejects(erasePdfRegions(marker,[{pageIndex:0,regions:[polygon(.4,.3,.6,.7)]}]),/chữ ký số/);
 });
+
+test('PDFium removes only the physical intersection of two polygons and preserves both outside arms',async()=>{
+ const {erasePdfRegions}=await import('../pdf-region-native.mjs');
+ const input=await source();
+ const result=await erasePdfRegions(input,[{pageIndex:0,operation:'intersection',regions:[
+   polygon(.2,.3,.6,.7),polygon(.4,.3,.8,.7)
+ ]}]);
+ assert.equal(result.report.changedObjects,1);
+ assert.equal(result.report.newFragments,2);
+ const after=await vectorSnapshot(result.bytes);
+ const horizontal=after.filter(o=>o.type===2 && o.points.some(p=>Math.abs(p[1]-200)<.01));
+ assert.ok(horizontal.length>=2);
+ assert.ok(horizontal.every(o=>o.points.every(p=>p[0]<=240.01||p[0]>=359.99)),
+  'actual PATH geometry must not have any segment inside x=240..360');
+});
+test('PDFium nested ring keeps interior PATH and external PATH, cutting only between boundaries',async()=>{
+ const {erasePdfRegions}=await import('../pdf-region-native.mjs');
+ const result=await erasePdfRegions(await source(),[{pageIndex:0,operation:'between',regions:[
+   polygon(.2,.2,.8,.8),polygon(.4,.4,.6,.6)
+ ]}]);
+ assert.equal(result.report.changedObjects,1);
+ assert.equal(result.report.newFragments,3);
+ const after=await vectorSnapshot(result.bytes);
+ const horizontal=after.filter(o=>o.type===2 && o.points.some(p=>Math.abs(p[1]-200)<.01));
+ assert.ok(horizontal.some(o=>o.points.every(p=>p[0]>=239.99&&p[0]<=360.01)),
+  'center path must survive between-mode deletion');
+ assert.ok(after.some(o=>o.type===2&&o.points.some(p=>Math.abs(p[1]-50)<.01)),
+  'unselected lower vector must not be erased');
+});

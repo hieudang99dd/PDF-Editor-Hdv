@@ -53,6 +53,6 @@ test('standalone eraser has independent route and no Organizer save/history coup
  assert.match(html,/id="re-overlay"/);
  assert.match(html,/region-eraser\.js/);
  assert.match(ui,/eraseRegionsInWorker\(state\.file,pages/);
- assert.match(ui,/validateRegions\(zones\)/);
+ assert.match(ui,/planRegionJobs\(state\.regions/);
  assert.doesNotMatch(ui,/PDFOrganizer|initOrganizer|organizerInstance/);
 });

@@ -30,9 +30,12 @@ function site(){
 }
 
 async function vectorSample(){
- const doc=await PDFLib.PDFDocument.create();const p=doc.addPage([600,400]);
- p.drawLine({start:{x:30,y:200},end:{x:570,y:200},thickness:1,color:PDFLib.rgb(0,0,0)});
- p.drawLine({start:{x:30,y:70},end:{x:570,y:70},thickness:1,color:PDFLib.rgb(0,0,0)});
+ const doc=await PDFLib.PDFDocument.create();
+ for(let i=0;i<2;i++){
+  const p=doc.addPage([600,400]);
+  p.drawLine({start:{x:30,y:200},end:{x:570,y:200},thickness:1,color:PDFLib.rgb(0,0,0)});
+  p.drawLine({start:{x:30,y:70},end:{x:570,y:70},thickness:1,color:PDFLib.rgb(0,0,0)});
+ }
  return Buffer.from(await doc.save());
 }
 async function sample(label){
@@ -145,32 +148,47 @@ async function sample(label){
       name:'cad-linework.pdf',mimeType:'application/pdf',buffer:await vectorSample()
    });
    await page.locator('#re-workspace').waitFor({state:'visible',timeout:30000});
+   await page.locator('#re-gallery-panel').waitFor({state:'visible'});
+   assert.equal(await page.locator('.re-page-card').count(),2,'2-page PDF should show page storyboard');
+   await page.locator('.re-page-card').first().click();
+   await page.locator('#re-editor-view').waitFor({state:'visible'});
+   assert.ok(await page.locator('#re-gallery-back').isVisible());
    await page.waitForFunction(()=>{
      const c=document.getElementById('re-canvas'),s=document.getElementById('re-page-surface');
      return c&&c.width>200&&c.height>100&&s.getBoundingClientRect().width>100;
    },{timeout:30000});
-   async function drawZone(x0,x1,role){
-     await page.locator('#re-role').selectOption(role);
+   async function drawZone(x0,x1,role,y0=.39,y1=.61){
+     if(await page.locator('#re-role').isEnabled())await page.locator('#re-role').selectOption(role);
      await page.locator('#re-shape').selectOption('rect');
      await page.locator('#re-draw').click();
      const box=await page.locator('#re-overlay').boundingBox();
      assert.ok(box&&box.width>100&&box.height>100,'standalone overlay must cover rendered PDF');
-     await page.mouse.move(box.x+box.width*x0,box.y+box.height*.39);
+     await page.mouse.move(box.x+box.width*x0,box.y+box.height*y0);
      await page.mouse.down();
-     await page.mouse.move(box.x+box.width*x1,box.y+box.height*.61,{steps:8});
+     await page.mouse.move(box.x+box.width*x1,box.y+box.height*y1,{steps:8});
      await page.mouse.up();
    }
+   await page.locator('#re-operation').selectOption('between');
    await drawZone(.3,.7,'erase');
    assert.equal(await page.locator('.re-zone').count(),1);
    await page.locator('#re-undo').click();
    assert.equal(await page.locator('.re-zone').count(),0,'standalone Undo must restore zone edits');
    await page.locator('#re-redo').click();
    assert.equal(await page.locator('.re-zone').count(),1,'standalone Redo must reapply zone edits');
-   await drawZone(.43,.57,'protect');
+   await drawZone(.43,.57,'erase',.44,.56);
    assert.equal(await page.locator('.re-zone').count(),2);
+   await page.locator('#re-scope').selectOption('range');
+   await page.locator('#re-range-from').fill('1');
+   await page.locator('#re-range-to').fill('2');
    await page.locator('#re-process').click();
    await page.locator('#re-results').waitFor({state:'visible',timeout:120000});
    assert.match(await page.locator('#re-result-summary').innerText(),/PATH/);
+   assert.ok(await page.locator('#re-review-switch').isVisible(),'real output review should be shown immediately');
+   assert.ok(await page.locator('#re-overlay').isHidden(),'region overlay must not impersonate the processed PDF');
+   await page.locator('#re-before').click();
+   assert.ok(await page.locator('#re-overlay').isVisible(),'before mode returns to the original PDF');
+   await page.locator('#re-after').click();
+   assert.ok(await page.locator('#re-overlay').isHidden(),'after mode must show real processed PDF');
    const nativeWait=page.waitForEvent('download',{timeout:30000});
    await page.locator('#re-download').click();
    const nativeFile=await nativeWait;
@@ -178,14 +196,17 @@ async function sample(label){
    await nativeFile.saveAs(nativePath);
    const nativeBytes=fs.readFileSync(nativePath);fs.unlinkSync(nativePath);
    assert.equal(nativeBytes.subarray(0,5).toString('ascii'),'%PDF-');
-   assert.equal((await PDFLib.PDFDocument.load(nativeBytes)).getPageCount(),1);
+   assert.equal((await PDFLib.PDFDocument.load(nativeBytes)).getPageCount(),2);
    const {PdfEngine}=await import('../vendor/cit-pdf/editcore/core.js');
    const inspected=await PdfEngine.create();
    try{
-     inspected.open(new Uint8Array(nativeBytes));inspected.loadPage(0);
-     const vectorPaths=Array.from({length:inspected.objectCount()},(_,i)=>inspected.objectAt(i))
-       .filter(obj=>obj?.type===2);
-     assert.ok(vectorPaths.length>=4,'downloaded PDF must retain split PATH vectors');
+     inspected.open(new Uint8Array(nativeBytes));
+     for(let i=0;i<2;i++){
+      inspected.loadPage(i);
+      const vectorPaths=Array.from({length:inspected.objectCount()},(_,j)=>inspected.objectAt(j))
+        .filter(obj=>obj?.type===2);
+      assert.ok(vectorPaths.length>=4,'page '+(i+1)+' must contain native split paths after range operation');
+     }
    }finally{inspected.close();}
    assert.ok(await page.locator('#re-workspace').isVisible(),'download must keep standalone tool open');
    await page.locator('#re-new').click();

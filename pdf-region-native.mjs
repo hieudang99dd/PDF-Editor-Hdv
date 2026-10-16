@@ -119,7 +119,8 @@ export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}
    if(!Number.isInteger(pageIndex)||pageIndex<0||pageIndex>=engine.pageCount||seen.has(pageIndex))
     throw Error('Chỉ số trang/vùng xóa không hợp lệ.');
    seen.add(pageIndex);
-   const raw=validateRegions(req.regions);
+   const operation=req.operation||'union';
+   const raw=validateRegions(req.regions,operation);
    engine.loadPage(pageIndex);
    emit('page-start',{pageIndex,completedPages:jobIndex,totalPages:pageRequests.length});
    if(engine.M._FPDFPage_GetRotation(engine.page)!==0)
@@ -147,7 +148,7 @@ export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}
      const pieces=[];
      for(const [a,b2] of path.edges){
       const worldA=transform(path.matrix,a),worldB=transform(path.matrix,b2);
-      const kept=keepSegment(worldA,worldB,regions);
+      const kept=keepSegment(worldA,worldB,regions,operation);
       const delta=segDist(worldA,worldB);
       if(!delta)continue;
       if(kept.length!==1||segDist(kept[0].a,worldA)>1e-6||segDist(kept[0].b,worldB)>1e-6)touched=true;

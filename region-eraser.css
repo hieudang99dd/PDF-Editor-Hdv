@@ -31,3 +31,40 @@ a{color:var(--orange2);text-decoration:none}a:hover{text-decoration:underline}[h
 .re-progress span{font-size:12px;color:var(--muted)}
 #re-cancel{border-color:var(--red);color:#ffd2d2}
 @media(max-width:650px){.re-progress{gap:8px}.re-progress label{width:100%}}
+
+/* Region Eraser v2 — storyboard first, expand a page only when editing. */
+.re-gallery-panel{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:20px 22px}
+.re-gallery-head{display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;padding-bottom:18px;border-bottom:1px solid var(--edge)}
+.re-gallery-head h2{font-size:20px;line-height:1.3;margin:0 0 5px}
+.re-gallery-head p{margin:3px 0;font-size:12px;color:var(--muted)}
+.re-gallery-head .re-kicker{color:var(--orange2);font-weight:750;letter-spacing:.13em}
+.re-gallery-nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.re-gallery-nav>span{font-size:13px;color:var(--muted)}
+.re-gallery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:16px;padding-top:19px}
+.re-page-card{color:var(--text);display:flex;flex-direction:column;align-items:center;gap:6px;
+ border:1px solid var(--edge);border-radius:11px;padding:12px 8px;background:#1d2837;
+ min-height:222px;transition:background .18s,border-color .18s}
+.re-page-card canvas{max-width:100%;height:175px;width:auto;max-height:175px;
+ background:#fdfdfd;object-fit:contain;box-shadow:0 2px 12px rgba(0,0,0,.3)}
+.re-page-card:hover,.re-page-card:focus-visible{border-color:var(--orange);background:#382b2a}
+.re-page-number{font-weight:750;font-size:13px;margin-top:4px}
+.re-page-count{color:var(--muted);font-size:11px;text-align:center;line-height:1.25}
+.re-page-card:has(.re-page-count:not(:empty)){cursor:pointer}
+.re-editor-header{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:10px 14px;margin-bottom:13px;
+ background:var(--panel);border:1px solid var(--edge);border-radius:11px}
+.re-editor-header>div:nth-child(2){flex:1;min-width:190px;display:flex;flex-direction:column;gap:2px}
+.re-editor-header strong{font-size:14px}.re-editor-header span{font-size:11px;color:var(--muted)}
+.re-review-switch{display:flex;gap:7px;flex-wrap:wrap}
+.re-tools .re-range-fields{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.re-range-fields label{display:flex;flex-direction:column;gap:3px}
+.re-range-fields input{min-width:0;width:100%;background:#243142;border:1px solid var(--edge);
+ border-radius:7px;padding:8px 7px;color:var(--text)}
+.re-range-fields .re-hint{grid-column:1/-1}
+#re-operation-help{padding:9px;border:1px solid #5a462f;border-radius:8px;background:#382b25;color:#ffcea0}
+#re-overlay[hidden]{display:none!important}
+@media(max-width:760px){.re-gallery-panel{padding:14px}.re-gallery-grid{grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:9px}
+ .re-page-card{padding:8px 5px;min-height:180px}.re-page-card canvas{height:130px;max-height:130px}
+ .re-gallery-nav{width:100%;justify-content:space-between}
+ .re-gallery-nav .re-btn{font-size:11px;white-space:normal}
+ .re-editor-header>div:nth-child(2){min-width:130px}
+}

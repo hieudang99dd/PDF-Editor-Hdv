@@ -1,5 +1,6 @@
 import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-512mb1';
 import {validateRegions} from './pdf-region-geometry.mjs';
+import {planRegionJobs} from './pdf-region-plan.mjs';
 import {MAX_INPUT_BYTES,LARGE_FILE_NOTICE_BYTES,PREVIEW_RANGE_CHUNK_BYTES,
   validateInputSize,cappedPreviewScale} from './pdf-region-limits.mjs?v=20261016-512mb1';
 
@@ -16,7 +17,9 @@ const state={
  file:null,pdf:null,pageIndex:0,zoom:1,regions:new Map(),
  history:[],cursor:-1,drawing:false,start:null,vertices:[],shape:'rect',role:'erase',
  renderToken:0,renderTask:null,busy:false,result:null,downloadUrls:new Set(),
- previewUrl:null,abortController:null
+ previewUrl:null,abortController:null,
+ operation:'union',galleryStart:0,galleryGeneration:0,galleryObserver:null,
+ reviewPdf:null,reviewUrl:null,reviewMode:false
 };
 function status(message,type=''){
  dom.status.textContent=message;dom.status.className='re-status'+(type?' '+type:'');
@@ -41,12 +44,27 @@ function recover(index){
  state.regions=new Map(JSON.parse(state.history[index]));
  stopDrawing();invalidateResult();refreshZones();drawRegions();updateControls();
 }
-function invalidateResult(){if(!state.result)return;state.result=null;dom.results.hidden=true;}
+function releaseReview(){
+ state.reviewMode=false;
+ $('re-review-switch').hidden=true;
+ dom.overlay.removeAttribute('hidden');dom.overlay.style.display='';
+ const pdf=state.reviewPdf,url=state.reviewUrl;
+ state.reviewPdf=null;state.reviewUrl=null;
+ if(pdf)Promise.resolve(pdf.destroy()).catch(()=>{}).finally(()=>{if(url)URL.revokeObjectURL(url)});
+ else if(url)URL.revokeObjectURL(url);
+}
+function invalidateResult(){
+ if(!state.result&&!state.reviewPdf)return;
+ const wasReview=state.reviewMode;
+ releaseReview();state.result=null;dom.results.hidden=true;
+ if(wasReview&&state.pdf&&!$('re-editor-view').hidden)
+  renderPage().catch(e=>status('Không tải lại được bản gốc: '+e.message,'error'));
+}
 function updateControls(){
  $('re-undo').disabled=state.busy||state.cursor<=0;
  $('re-redo').disabled=state.busy||state.cursor>=state.history.length-1;
  dom.process.disabled=state.busy||!state.file||!([...state.regions.values()].some(z=>z.some(v=>v.mode==='erase')));
- $('re-draw').disabled=state.busy||!state.pdf;
+ $('re-draw').disabled=state.busy||!state.pdf||state.reviewMode;
  $('re-clear-page').disabled=state.busy||!activeRegions().length;
  $('re-prev').disabled=state.busy||state.pageIndex<=0;
  $('re-next').disabled=state.busy||!state.pdf||state.pageIndex>=state.pdf.numPages-1;
@@ -56,16 +74,24 @@ function updateControls(){
  $('re-replace').disabled=state.busy;
  $('re-new').disabled=state.busy;
  $('re-shape').disabled=state.busy;
- $('re-role').disabled=state.busy;
+ $('re-role').disabled=state.busy||state.operation!=='union';
+ $('re-operation').disabled=state.busy;
+ $('re-scope').disabled=state.busy;
+ $('re-range-from').disabled=state.busy;
+ $('re-range-to').disabled=state.busy;
+ $('re-gallery-back').disabled=state.busy;
+ $('re-gallery-prev').disabled=state.busy||state.galleryStart===0;
+ $('re-gallery-next').disabled=state.busy||!state.pdf||state.galleryStart+24>=state.pdf.numPages;
  $('re-cancel').hidden=!state.abortController;
 }
 function setBusy(value){state.busy=value;updateControls();$('re-finish').disabled=value;}
 function clearResults(){
  for(const url of state.downloadUrls)URL.revokeObjectURL(url);
- state.downloadUrls.clear();state.result=null;dom.results.hidden=true;
+ state.downloadUrls.clear();releaseReview();state.result=null;dom.results.hidden=true;
 }
 async function teardown(){
- state.renderToken++;
+ state.renderToken++;state.galleryGeneration++;
+ state.galleryObserver?.disconnect();state.galleryObserver=null;
  if(state.renderTask){try{state.renderTask.cancel();await state.renderTask.promise;}catch(_){}state.renderTask=null;}
  if(state.pdf){try{await state.pdf.destroy();}catch(_){}state.pdf=null;}
  if(state.previewUrl){URL.revokeObjectURL(state.previewUrl);state.previewUrl=null;}
@@ -75,8 +101,10 @@ async function reset(check=true,selectNew=false){
  if(check&&state.file&&(countRegions()>0||state.result)&&!confirm('Đóng PDF hiện tại? Các vùng chọn và kết quả chưa lưu sẽ bị bỏ.'))return;
  await teardown();stopDrawing();clearResults();
  state.file=null;state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
+ state.galleryStart=0;state.operation='union';$('re-operation').value='union';
  dom.input.value='';dom.workspace.hidden=true;dom.upload.hidden=false;
  dom.canvas.width=0;dom.canvas.height=0;dom.overlay.replaceChildren();dom.zones.replaceChildren();
+ $('re-gallery-grid').replaceChildren();$('re-editor-view').hidden=true;$('re-gallery-panel').hidden=false;
  dom.filename.textContent='';status('Có thể mở PDF khác mà không cần quay về trang chủ.');
  if(selectNew)dom.input.click();
 }
@@ -91,6 +119,7 @@ async function load(file){
  try{
   await teardown();stopDrawing();clearResults();
   state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
+  state.galleryStart=0;state.operation='union';$('re-operation').value='union';
   if(!window.pdfjsLib)throw new Error('Không tải được trình xem PDF. Vui lòng tải lại trang.');
   // Let PDF.js fetch the Blob URL. Do not allocate a full-size File.arrayBuffer()
   // on the main UI thread just to preview the first page.
@@ -107,8 +136,11 @@ async function load(file){
   dom.filesize.textContent=(file.size/1024/1024).toFixed(2)+' MB · '+pdf.numPages+' trang';
   dom.page.max=pdf.numPages;
   dom.total.textContent='/ '+pdf.numPages;
+  $('re-range-from').max=pdf.numPages;$('re-range-to').max=pdf.numPages;
+  $('re-range-from').value=1;$('re-range-to').value=pdf.numPages;
+  $('re-gallery-panel').hidden=false;$('re-editor-view').hidden=true;
   record();
-  await showPage(0);
+  await showGallery(0);
   status('Đã mở PDF. Vẽ một hoặc nhiều vùng để bắt đầu.','success');
  }catch(error){
   status(error.message||'Không mở được PDF.','error');
@@ -116,6 +148,63 @@ async function load(file){
   await teardown();
   dom.workspace.hidden=true;dom.upload.hidden=false;
  }finally{setBusy(false);}
+}
+// Memory-bounded storyboard: 24 page cards, lazy 150-pixel thumbnails,
+// serial renders to avoid allocating hundreds of canvas bitmaps at once.
+let thumbnailQueue=Promise.resolve();
+async function showGallery(start=0){
+ if(!state.pdf)return;
+ const generation=++state.galleryGeneration;
+ state.galleryObserver?.disconnect();state.galleryObserver=null;
+ const total=state.pdf.numPages;
+ const first=Math.max(0,Math.min(Math.floor(start/24)*24,Math.floor((total-1)/24)*24));
+ state.galleryStart=first;
+ $('re-gallery-range').textContent=(first+1)+'–'+Math.min(total,first+24)+' / '+total;
+ $('re-gallery-prev').disabled=first===0;
+ $('re-gallery-next').disabled=first+24>=total;
+ const grid=$('re-gallery-grid');grid.replaceChildren();
+ const observer=typeof IntersectionObserver==='function'?
+  new IntersectionObserver(entries=>{
+   for(const item of entries)if(item.isIntersecting){
+    observer.unobserve(item.target);
+    thumbnailQueue=thumbnailQueue.then(()=>renderThumbnail(item.target,generation)).catch(()=>{});
+   }
+  },{rootMargin:'250px'}):null;
+ state.galleryObserver=observer;
+ for(let i=first;i<Math.min(total,first+24);i++){
+  const card=document.createElement('button');
+  card.type='button';card.className='re-page-card';card.dataset.page=String(i);
+  card.setAttribute('aria-label','Phóng to trang '+(i+1)+' để thao tác xóa vùng');
+  const canvas=document.createElement('canvas');canvas.width=112;canvas.height=145;
+  const title=document.createElement('span');title.className='re-page-number';title.textContent='Trang '+(i+1);
+  const count=document.createElement('small');count.className='re-page-count';
+  const n=(state.regions.get(i)||[]).length;
+  count.textContent=n?n+' vùng đã vẽ':'Nhấp để phóng to';
+  card.append(canvas,title,count);
+  card.addEventListener('click',()=>enterPage(i));
+  grid.append(card);
+  if(observer)observer.observe(card);
+  else thumbnailQueue=thumbnailQueue.then(()=>renderThumbnail(card,generation)).catch(()=>{});
+ }
+}
+async function renderThumbnail(card,generation){
+ if(generation!==state.galleryGeneration||!state.pdf||!card.isConnected)return;
+ const index=Number(card.dataset.page),canvas=card.querySelector('canvas');
+ try{
+  const page=await state.pdf.getPage(index+1);
+  if(generation!==state.galleryGeneration)return;
+  const box=page.getViewport({scale:1});
+  const scale=Math.min(144/box.width,175/box.height,1);
+  const view=page.getViewport({scale});
+  canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);
+  const task=page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport:view});
+  await task.promise;page.cleanup?.();
+ }catch(error){
+  if(generation===state.galleryGeneration){
+   const label=card.querySelector('.re-page-count');
+   if(label)label.textContent='Không xem được hình thu nhỏ';
+  }
+ }
 }
 function pos(e){
  const r=dom.overlay.getBoundingClientRect();
@@ -133,7 +222,26 @@ function svgPoly(points,mode,temporary=false){
 }
 function drawRegions(temporary=[]){
  dom.overlay.replaceChildren();
- for(const r of activeRegions())dom.overlay.append(svgPoly(r.points,r.mode));
+ const zones=activeRegions(),ns='http://www.w3.org/2000/svg';
+ const polygonText=points=>points.map(p=>(p.x*1000)+','+(p.y*1000)).join(' ');
+ if(zones.length===2&&state.operation==='between'){
+  const shape=document.createElementNS(ns,'path');
+  const shapePath=pts=>'M '+pts.map(p=>(p.x*1000)+' '+(p.y*1000)).join(' L ')+' Z';
+  shape.setAttribute('d',shapePath(zones[0].points)+' '+shapePath(zones[1].points));
+  shape.setAttribute('fill-rule','evenodd');shape.setAttribute('fill','rgba(250,108,42,.31)');
+  shape.setAttribute('pointer-events','none');dom.overlay.append(shape);
+ }else if(zones.length===2&&state.operation==='intersection'){
+  const defs=document.createElementNS(ns,'defs');
+  const clip=document.createElementNS(ns,'clipPath');clip.id='re-operation-overlap';
+  const poly=document.createElementNS(ns,'polygon');
+  poly.setAttribute('points',polygonText(zones[0].points));clip.append(poly);defs.append(clip);
+  const overlap=document.createElementNS(ns,'polygon');
+  overlap.setAttribute('points',polygonText(zones[1].points));
+  overlap.setAttribute('clip-path','url(#re-operation-overlap)');
+  overlap.setAttribute('fill','rgba(255,119,28,.38)');
+  dom.overlay.append(defs,overlap);
+ }
+ for(const r of zones)dom.overlay.append(svgPoly(r.points,r.mode));
  if(temporary.length>=2)dom.overlay.append(svgPoly(temporary,state.role,true));
 }
 function refreshZones(){
@@ -163,8 +271,9 @@ function stopDrawing(){
 }
 function startDrawing(){
  if(state.busy||!state.pdf)return;
+ if(state.reviewMode){status('Chuyển về Bản gốc để chỉnh lại vùng.','error');return;}
  if(state.drawing){stopDrawing();return;}
- state.shape=dom.shape.value;state.role=dom.role.value;
+ state.shape=dom.shape.value;state.role=state.operation==='union'?dom.role.value:'erase';
  state.drawing=true;state.start=null;state.vertices=[];
  dom.overlay.classList.add('drawing');
  $('re-draw').textContent='✕ Hủy vẽ';
@@ -176,12 +285,26 @@ function addRegion(points){
  const candidate={mode:state.role,points:points.map(p=>({x:p.x,y:p.y}))};
  const regions=activeRegions().concat([candidate]);
  try{
+  if(state.operation!=='union'&&regions.length>2)
+   throw Error('Chế độ này chỉ cho phép đúng hai đường bao.');
   const regionsForCheck=regions.some(z=>z.mode==='erase')?regions:[{mode:'erase',points:candidate.points},...regions];
-  validateRegions(regionsForCheck);
+  validateRegions(regionsForCheck,state.operation!=='union'&&regions.length===2?state.operation:'union');
  }catch(e){status(e.message,'error');return;}
  state.regions.set(state.pageIndex,regions);
  record();stopDrawing();refreshZones();
  status('Đã thêm vùng. Có thể tiếp tục vẽ vùng khác trước khi xuất PDF.','success');
+}
+async function enterPage(index){
+ if(!state.pdf||(state.busy&&!state.reviewMode)||index<0||index>=state.pdf.numPages)return;
+ $('re-gallery-panel').hidden=true;$('re-editor-view').hidden=false;
+ $('re-editor-title').textContent='Trang '+(index+1)+' · Chọn vùng xóa';
+ await showPage(index);
+}
+async function returnGallery(){
+ if(state.busy)return;
+ stopDrawing();
+ $('re-editor-view').hidden=true;$('re-gallery-panel').hidden=false;
+ await showGallery(Math.floor(state.pageIndex/24)*24);
 }
 async function showPage(index){
  if(!state.pdf||state.busy&&state.file===null)return;
@@ -195,7 +318,8 @@ async function renderPage(){
  const token=++state.renderToken;
  const old=state.renderTask;
  if(old){try{old.cancel();await old.promise;}catch(_){}}
- const page=await state.pdf.getPage(state.pageIndex+1);
+ const pdf=state.reviewMode&&state.reviewPdf?state.reviewPdf:state.pdf;
+ const page=await pdf.getPage(state.pageIndex+1);
  if(token!==state.renderToken)return;
  const box=page.getViewport({scale:1});
  const available=Math.max(200,dom.viewport.clientWidth-60);
@@ -218,6 +342,8 @@ async function renderPage(){
  if(state.renderTask===render)state.renderTask=null;
  if(token!==state.renderToken)return;
  $('re-zoom-label').textContent=Math.round(state.zoom*100)+'%'+(scale<desiredScale-.0001?' · giới hạn RAM':'');
+ dom.overlay.toggleAttribute('hidden',state.reviewMode);
+ dom.overlay.style.display=state.reviewMode?'none':'';
  drawRegions();refreshZones();
 }
 function havePending(){
@@ -225,13 +351,14 @@ function havePending(){
 }
 async function apply(){
  if(state.busy||!state.file)return;
- const pages=[...state.regions.entries()].filter(([,zones])=>zones.some(z=>z.mode==='erase')).map(([pageIndex,regions])=>({pageIndex,regions}));
- if(!pages.length){status('Cần ít nhất một vùng xóa màu đỏ.','error');return;}
- for(const [pageIndex,zones] of state.regions){
-  if(!zones.length)continue;
-  if(!zones.some(z=>z.mode==='erase')){status('Trang '+(pageIndex+1)+' có vùng bảo vệ nhưng không có vùng xóa.','error');return;}
-  try{validateRegions(zones);}catch(e){status('Trang '+(pageIndex+1)+': '+e.message,'error');return;}
- }
+ let pages;
+ try{
+  pages=planRegionJobs(state.regions,{
+   scope:$('re-scope').value,pageIndex:state.pageIndex,
+   from:Number($('re-range-from').value),to:Number($('re-range-to').value),
+   totalPages:state.pdf.numPages,operation:state.operation
+  });
+ }catch(error){status(error.message,'error');return;}
  const controller=new AbortController();
  state.abortController=controller;
  setBusy(true);
@@ -264,12 +391,26 @@ async function apply(){
    }
   });
   if(!result?.bytes?.length)throw new Error('Không nhận được PDF kết quả.');
-  state.result=result;
+  // Keep only a Blob for output after Worker returns. The real output PDF
+  // is rendered by PDF.js for before/after comparison, never faked by masks.
+  const blob=new Blob([result.bytes],{type:'application/pdf'});
+  releaseReview();
+  state.result={blob,report:result.report};
+  state.reviewUrl=URL.createObjectURL(blob);
+  const loading=window.pdfjsLib.getDocument({url:state.reviewUrl,
+   rangeChunkSize:PREVIEW_RANGE_CHUNK_BYTES,disableAutoFetch:true});
+  try{state.reviewPdf=await loading.promise;}
+  catch(error){state.reviewPdf=null;URL.revokeObjectURL(state.reviewUrl);state.reviewUrl=null;
+   throw Error('PDF đã xuất nhưng không mở được xem trước: '+error.message);}
+  state.reviewMode=true;
+  $('re-before').className='re-btn re-ghost';$('re-after').className='re-btn re-primary';
+  $('re-review-switch').hidden=false;
+  await enterPage(state.pageIndex);
   $('re-result-title').textContent='PDF đã được xử lý · vùng đã cắt thật';
   $('re-result-summary').textContent=result.report.changedObjects+' PATH bị thay đổi · '+result.report.newFragments+' đoạn vector được giữ lại · '+result.report.skippedNonVector+' đối tượng phi vector bị bỏ qua. Tệp nguồn vẫn nguyên vẹn.';
   dom.results.hidden=false;
   dom.results.scrollIntoView({behavior:'smooth',block:'nearest'});
-  status('Xử lý thành công. Bấm Tải PDF kết quả để lưu mà không rời công cụ.','success');
+  status('Đã xóa vector thật và mở kết quả để kiểm tra. Chuyển Trước/Sau hoặc tải PDF.','success');
  }catch(error){invalidateResult();status('Không thể xóa an toàn: '+(error.message||String(error)),'error');}
  finally{
   state.abortController=null;
@@ -279,7 +420,7 @@ async function apply(){
 }
 function download(){
  if(!state.result||!state.file)return;
- const blob=new Blob([state.result.bytes],{type:'application/pdf'});
+ const blob=state.result.blob;
  const url=URL.createObjectURL(blob);state.downloadUrls.add(url);
  const a=document.createElement('a');a.href=url;a.download=safeFileName(state.file);
  document.body.append(a);a.click();a.remove();
@@ -313,6 +454,43 @@ function wire(){
  dom.input.addEventListener('change',e=>{const f=e.target.files[0];if(f)load(f);});
  $('re-new').addEventListener('click',()=>reset());
  $('re-replace').addEventListener('click',()=>reset(true,true));
+ $('re-gallery-prev').addEventListener('click',()=>showGallery(state.galleryStart-24));
+ $('re-gallery-next').addEventListener('click',()=>showGallery(state.galleryStart+24));
+ $('re-gallery-back').addEventListener('click',returnGallery);
+ $('re-before').addEventListener('click',()=>{
+  if(!state.reviewPdf||state.busy)return;
+  state.reviewMode=false;
+  dom.overlay.removeAttribute('hidden');dom.overlay.style.display='';
+  $('re-before').className='re-btn re-primary';
+  $('re-after').className='re-btn re-ghost';
+  renderPage();updateControls();
+ });
+ $('re-after').addEventListener('click',()=>{
+  if(!state.reviewPdf||state.busy)return;
+  state.reviewMode=true;
+  dom.overlay.setAttribute('hidden','');dom.overlay.style.display='none';
+  $('re-before').className='re-btn re-ghost';
+  $('re-after').className='re-btn re-primary';
+  renderPage();updateControls();
+ });
+ $('re-operation').addEventListener('change',()=>{
+  if(state.busy)return;
+  state.operation=$('re-operation').value;
+  $('re-role').value='erase';
+  const names={
+   union:'Hợp vùng: xóa đồng thời một hoặc nhiều vùng riêng biệt; có thể thêm vùng bảo vệ.',
+   between:'Giữa hai đường bao: vẽ vùng ngoài TRƯỚC, vùng trong SAU. Chỉ xóa phần nằm giữa hai vùng.',
+   intersection:'Giao hai vùng: vẽ đúng hai vùng có phần chồng nhau. Chỉ xóa nội dung ở phần giao.'
+  };
+  $('re-operation-help').textContent=names[state.operation];
+  stopDrawing();invalidateResult();refreshZones();drawRegions();updateControls();
+ });
+ $('re-scope').addEventListener('change',()=>{
+  $('re-range-fields').hidden=$('re-scope').value!=='range';
+  invalidateResult();updateControls();
+ });
+ $('re-range-from').addEventListener('change',invalidateResult);
+ $('re-range-to').addEventListener('change',invalidateResult);
  $('re-undo').addEventListener('click',()=>recover(state.cursor-1));
  $('re-redo').addEventListener('click',()=>recover(state.cursor+1));
  $('re-draw').addEventListener('click',startDrawing);

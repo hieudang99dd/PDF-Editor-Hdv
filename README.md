@@ -50,3 +50,7 @@ Bài test browser end-to-end và build frontend CIT yêu cầu dependencies đư
 ### Giới hạn tệp lớn của Xóa vector theo vùng
 
 Công cụ độc lập tại `region-eraser.html` nhận PDF tối đa **512 MiB**, cảnh báo bộ nhớ từ 256 MiB, xử lý trong Worker và giới hạn canvas xem trước 16 triệu pixel. Máy tính/trình duyệt vẫn có thể thiếu RAM với PDF phức tạp; xem `docs/REGION_ERASER.md`.
+
+### Xóa vector theo vùng: dàn trang và ba phép xóa
+
+Mở `region-eraser.html`, chọn trang trong dàn trang để phóng to. Hỗ trợ hợp nhiều vùng, xóa phần giữa hai đường bao lồng nhau và chỉ xóa phần giao của hai vùng. Có tùy chọn áp dụng các vùng đã vẽ hoặc áp dụng một mẫu vùng cho khoảng trang Từ–Đến. Nút **Áp dụng & xuất PDF** xử lý ngay, hiển thị PDF thực trước/sau, sau đó mới tải. Xem `docs/REGION_ERASER.md`.
