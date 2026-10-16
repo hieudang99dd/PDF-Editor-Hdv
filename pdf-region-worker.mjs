@@ -1,8 +1,8 @@
 // PDF HVD vector eraser: each PDF processing request gets an isolated Worker.
 // Blob/File inputs are read inside this Worker to avoid a 512 MiB ArrayBuffer
 // allocation on the main UI thread before PDFium needs the bytes.
-import {erasePdfRegions} from './pdf-region-native.mjs';
-import {validateInputSize} from './pdf-region-limits.mjs';
+import {erasePdfRegions} from './pdf-region-native.mjs?v=20261016-512mb1';
+import {validateInputSize} from './pdf-region-limits.mjs?v=20261016-512mb1';
 self.onmessage=async ({data})=>{
  const {id,file,bytes,pages}=data||{};
  try{
