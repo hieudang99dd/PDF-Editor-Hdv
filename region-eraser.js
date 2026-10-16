@@ -1,7 +1,7 @@
-import {eraseRegionsInWorker} from './pdf-region-client.mjs';
+import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-512mb1';
 import {validateRegions} from './pdf-region-geometry.mjs';
 import {MAX_INPUT_BYTES,LARGE_FILE_NOTICE_BYTES,PREVIEW_RANGE_CHUNK_BYTES,
-  validateInputSize,cappedPreviewScale} from './pdf-region-limits.mjs';
+  validateInputSize,cappedPreviewScale} from './pdf-region-limits.mjs?v=20261016-512mb1';
 
 const $=id=>document.getElementById(id);
 const dom={
