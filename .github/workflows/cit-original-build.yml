@@ -3,8 +3,8 @@ on:
   push:
     branches: [master]
     paths:
-      - 'scripts/cit-original/patch_source.py'
-      - 'scripts/cit-original/sync_text_build.py'
+      - 'scripts/cit-original/**'
+      - '.github/workflows/cit-original-build.yml'
   workflow_dispatch:
 permissions:
   contents: write
