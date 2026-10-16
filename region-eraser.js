@@ -75,8 +75,8 @@ function updateWorkflow(){
  }
 }
 function updateControls(){
- $('re-undo').disabled=state.busy||state.cursor<=0;
- $('re-redo').disabled=state.busy||state.cursor>=state.history.length-1;
+ $('re-undo').disabled=state.busy||!!state.result||state.cursor<=0;
+ $('re-redo').disabled=state.busy||!!state.result||state.cursor>=state.history.length-1;
  dom.process.disabled=state.busy||!!state.result||!state.file||
   !([...state.regions.values()].some(z=>z.some(v=>v.mode==='erase')));
  $('re-download').disabled=state.busy||!state.result||!state.result.blob;
@@ -275,7 +275,7 @@ function refreshZones(){
   const row=document.createElement('div');row.className='re-zone re-zone-'+z.mode;
   const span=document.createElement('span');span.textContent=(i+1)+'. '+(z.mode==='erase'?'Vùng xóa':'Vùng bảo vệ')+' · '+z.points.length+' đỉnh';
   const remove=document.createElement('button');remove.type='button';remove.textContent='✕';remove.setAttribute('aria-label','Bỏ vùng '+(i+1));
-  remove.disabled=state.busy;remove.addEventListener('click',()=>{
+  remove.disabled=state.busy||!!state.result;remove.addEventListener('click',()=>{
    const copy=activeRegions().slice();copy.splice(i,1);
    if(copy.length)state.regions.set(state.pageIndex,copy);else state.regions.delete(state.pageIndex);
    record();refreshZones();drawRegions();
