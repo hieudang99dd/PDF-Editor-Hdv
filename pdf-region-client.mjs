@@ -1,6 +1,6 @@
 // PDF HVD: input File/Blob is structured-cloned (no eager main-thread bytes).
 // The worker materializes it once; final PDF bytes transfer without copying.
-import {validateInputSize,recommendedWorkerDurationMs,WORKER_IDLE_TIMEOUT_MS} from './pdf-region-limits.mjs';
+import {validateInputSize,recommendedWorkerDurationMs,WORKER_IDLE_TIMEOUT_MS} from './pdf-region-limits.mjs?v=20261016-512mb1';
 export function eraseRegionsInWorker(source,pages,{timeoutMs,onProgress=()=>{},signal,
  idleTimeoutMs=WORKER_IDLE_TIMEOUT_MS}={}){
  const isBlob=typeof Blob!=='undefined' && source instanceof Blob;
@@ -12,7 +12,7 @@ export function eraseRegionsInWorker(source,pages,{timeoutMs,onProgress=()=>{},s
  if(signal?.aborted)return Promise.reject(new Error('Đã hủy xử lý PDF.'));
  return new Promise((resolve,reject)=>{
   let worker;
-  try{worker=new Worker(new URL('./pdf-region-worker.mjs',import.meta.url),{type:'module'});}
+  try{worker=new Worker(new URL('./pdf-region-worker.mjs?v=20261016-512mb1',import.meta.url),{type:'module'});}
   catch(error){reject(new Error('Không khởi động được PDFium Worker: '+error.message));return;}
   let settled=false,activityTimer;
   const done=(error,result)=>{
