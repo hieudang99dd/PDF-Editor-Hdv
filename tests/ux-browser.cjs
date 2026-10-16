@@ -46,7 +46,8 @@ async function sample(label){
    const page=await browser.newPage({viewport:{width:1280,height:800},acceptDownloads:true});
    const failures=[];
    page.on('pageerror',e=>failures.push(e.message));
-   page.on('dialog',dialog=>dialog.accept());
+   let acceptDialogs=true;
+   page.on('dialog',dialog=>acceptDialogs?dialog.accept():dialog.dismiss());
    await page.goto(address,{waitUntil:'domcontentloaded'});
    await page.locator('button.catalog-tile').filter({hasText:'Ghép PDF'}).first().click();
    await page.locator('button.catalog-action').filter({hasText:'Ghép PDF'}).first().click();
@@ -105,9 +106,9 @@ async function sample(label){
    assert.equal(loaded,1);
 
    // Declining an explicit reset must keep the source, pages, and output.
-   const deny=dialog=>dialog.dismiss();
-   page.prependOnceListener('dialog',deny);
+   acceptDialogs=false;
    await page.locator('#po-new-document').click();
+   acceptDialogs=true;
    assert.ok(await page.locator('#po-ws').isVisible(),'cancel must retain open document');
    assert.equal(await page.evaluate(()=>window.organizerInstance.files.length),1);
    await page.locator('#po-new-document').click();
