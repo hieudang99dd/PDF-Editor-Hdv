@@ -55,7 +55,10 @@ function releaseReview(){
 }
 function invalidateResult(){
  if(!state.result&&!state.reviewPdf)return;
+ const wasReview=state.reviewMode;
  releaseReview();state.result=null;dom.results.hidden=true;
+ if(wasReview&&state.pdf&&!$('re-editor-view').hidden)
+  renderPage().catch(e=>status('Không tải lại được bản gốc: '+e.message,'error'));
 }
 function updateControls(){
  $('re-undo').disabled=state.busy||state.cursor<=0;
@@ -457,6 +460,7 @@ function wire(){
  $('re-before').addEventListener('click',()=>{
   if(!state.reviewPdf||state.busy)return;
   state.reviewMode=false;
+  dom.overlay.removeAttribute('hidden');dom.overlay.style.display='';
   $('re-before').className='re-btn re-primary';
   $('re-after').className='re-btn re-ghost';
   renderPage();updateControls();
@@ -464,6 +468,7 @@ function wire(){
  $('re-after').addEventListener('click',()=>{
   if(!state.reviewPdf||state.busy)return;
   state.reviewMode=true;
+  dom.overlay.setAttribute('hidden','');dom.overlay.style.display='none';
   $('re-before').className='re-btn re-ghost';
   $('re-after').className='re-btn re-primary';
   renderPage();updateControls();
