@@ -207,3 +207,6 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Thiết kế lại màn hình upload, hỗ trợ Enter/Space; thu gọn header Studio thừa tại `studio/hvd-brand.css` (không đụng dữ liệu/engine).
 - `tests/organizer-reset.test.cjs` kiểm tra hủy và cho phép, trạng thái đang đọc/lưu; cập nhật Chromium E2E với PDF thật và workflow `ux-browser.yml` tự chạy khi sửa organizer; tài liệu quy trình `docs/UX_WORKFLOW.md` đã cập nhật.
 - QA cần xác nhận Node/Chromium trước khi gộp; các tài liệu CAD A0/A1 với font Type3 và thay đổi text phức tạp vẫn cần thử riêng.
+
+
+- Tách điều kiện tự chạy `cit-original-build.yml`: thay đổi `organizer.js` hoặc trang chủ không còn gây build lại và ghi đè `studio/`; workflow vẫn có `workflow_dispatch` và triggers theo nguồn Studio. Tăng cache version `organizer.js` trong cả trang chính lẫn trình editor dự phòng, và `hvd-brand.css` trong Studio.
