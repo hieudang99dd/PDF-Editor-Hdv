@@ -175,6 +175,15 @@ async function sample(label){
    const nativeBytes=fs.readFileSync(nativePath);fs.unlinkSync(nativePath);
    assert.equal(nativeBytes.subarray(0,5).toString('ascii'),'%PDF-');
    assert.equal((await PDFLib.PDFDocument.load(nativeBytes)).getPageCount(),1);
+   const {PdfEngine}=await import('../vendor/cit-pdf/editcore/core.js');
+   const inspected=await PdfEngine.create();
+   try{
+     inspected.open(new Uint8Array(nativeBytes));inspected.loadPage(0);
+     const nativePathObjects=Array.from({length:inspected.objectCount()},(_,i)=>inspected.objectAt(i))
+       .filter(o=>o?.type===2);
+     assert.ok(nativePathObjects.length>=4,
+       'downloaded PDF must contain newly split PATH objects, not an unmodified source with a visual overlay');
+   }finally{inspected.close();}
    assert.ok(await page.locator('#po-ws').isVisible(),'native save must not exit feature');
    assert.deepEqual(failures,[],'No new browser JS errors');
    console.log('PASS: browser PDF download stays in task, organizer unload reset + cancel + reload, back-forward and mobile');
