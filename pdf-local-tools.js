@@ -104,7 +104,7 @@
   }
 
   function showDownload(result, output) {
-    const url = URL.createObjectURL(result.blob);
+    const url = window.hvdTrackDownloadUrl?.(result.blob) || URL.createObjectURL(result.blob);
     const wrapper = document.createElement('div');
     wrapper.className = 'res';
     const heading = document.createElement('b');
@@ -131,6 +131,7 @@
     const output = document.getElementById('out');
     if (!files.length) return;
     button.disabled = true;
+    window.hvdReleaseWorkspaceDownloads?.();
     output.replaceChildren();
     const status = document.createElement('p');
     status.textContent = 'Đang kiểm tra engine tại máy của bạn…';
@@ -177,7 +178,7 @@
       if (!blob.size) throw new Error('Engine trả về tệp rỗng');
       const suffix = isOcr ? (document.getElementById('ocr-target')?.value || 'pdf') : target;
       const nameOut = filenameFor(files[0].name, endpoint === '/compress' ? 'compress' : suffix, isOcr);
-      const objectUrl = URL.createObjectURL(blob);
+      const objectUrl = window.hvdTrackDownloadUrl?.(blob) || URL.createObjectURL(blob);
       const wrapper = document.createElement('div');
       wrapper.className = 'res';
       const title = document.createElement('b');
