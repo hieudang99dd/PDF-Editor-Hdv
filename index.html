@@ -109,6 +109,7 @@ const T=[
 ['Chỉnh sửa văn bản PDF','Chỉnh sửa chữ gốc, phông chữ, định dạng và bố cục văn bản trực tiếp trên PDF.','Chỉnh sửa','T','cit-text-route','.pdf'],
 ['Chỉnh sửa PDF','Thêm chữ, ảnh, chữ ký, che trắng, highlight, vẽ tay','Chỉnh sửa','✎','organize','.pdf'],
 ['Trình chú thích PDF','Tô sáng, che trắng, vẽ tay, ghi chú','Chỉnh sửa','▬','organize','.pdf'],
+['Kiểm tra chất lượng PDF','Kiểm tra cấu trúc, phông chữ và rủi ro trước khi chỉnh sửa bằng bộ máy PDF chuyên sâu','Chỉnh sửa','✓','pdfium-inspect-route','.pdf'],
 ['Trình đọc PDF','Xem và duyệt nhanh tài liệu','Chỉnh sửa','👁','organize','.pdf'],
 ['Đánh số trang','Thêm số trang vào chân trang','Chỉnh sửa','#','pnum','.pdf'],
 ['Cắt lề PDF','Cắt bớt viền trang','Chỉnh sửa','⌗','organize','.pdf'],
@@ -135,7 +136,7 @@ function home(){const q=$('#q').value.trim().toLowerCase();
  let h='';for(const c of Object.keys(C)){if(cat!='Tất cả'&&cat!=c)continue;
   const l=T.map((t,i)=>[t,i]).filter(([t])=>t[2]==c&&(t[0]+t[1]).toLowerCase().includes(q));if(!l.length)continue;
   h+=`<h2 class="cat">${c}</h2><div class="grid">`+l.map(([t,i])=>{
-   const isSim = !(t[4].startsWith('cit-') || ['merge', 'range', 'rot', 'organize', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]) || ['Giảm dung lượng PDF','Chuyển đổi PDF','PDF OCR','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
+   const isSim = !(t[4].startsWith('cit-') || t[4].startsWith('pdfium-') || ['merge', 'range', 'rot', 'organize', 'img', 'pdf2jpg', 'pdf2png', 'wm', 'pnum', 'sign', 'flatten'].includes(t[4]) || ['Giảm dung lượng PDF','Chuyển đổi PDF','PDF OCR','PDF sang Word','PDF sang TXT','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]));
    const needsPC = ['PDF OCR','PDF sang Word','PDF sang TIFF','Word sang PDF','Excel sang PDF','PPT sang PDF'].includes(t[0]);
    const hybrid = t[0] === 'Chuyển đổi PDF';
    const badge = isSim ? `<span style="font-size:10px; background:var(--line); color:var(--mute); padding:2px 6px; border-radius:4px; align-self:center">Sắp ra mắt</span>` :
@@ -165,7 +166,7 @@ const OPT={
  chat:`<label>Câu hỏi về tài liệu<input type="text" placeholder="Ví dụ: Điều khoản thanh toán là gì?"></label>`,
  qr:`<label>Mã QR sẽ chứa liên kết tải tài liệu của bạn. Quá trình xử lý diễn ra bảo mật.</label>`,
  none:''};
-function openTool(i){if(T[i]?.[4]==='cit-text-route'){location.href='./text-editor.html';return;}tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
+function openTool(i){if(T[i]?.[4]==='cit-text-route'){location.href='./text-editor.html';return;}if(T[i]?.[4]==='pdfium-inspect-route'){location.href='./pdfium-preflight.html';return;}tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
  $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render()}
 function render(){const k=tool[4], o=(tool[0]==='Chồng 2 PDF (Overlay)'?OPT['cit-overlay']:OPT[k])||'', multi=k=='merge'||tool[5].includes('image');
  let h='';

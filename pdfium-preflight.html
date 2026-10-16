@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>PDF HVD – Kiểm tra chất lượng PDF</title>
+<style>
+:root{font-family:"Be Vietnam Pro","Segoe UI",system-ui,sans-serif;color-scheme:dark;--bg:#101522;--surface:#1b2333;--text:#f3f5fa;--muted:#b0bdd0;--border:#334155;--accent:#fb784c;--warn:#ffd08a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);line-height:1.5}
+a{color:inherit}header{border-bottom:1px solid var(--border);background:#151c2a}
+nav{max-width:1120px;margin:auto;padding:16px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{font-size:18px;font-weight:800;text-decoration:none}.actions{display:flex;gap:20px;font-size:13px;color:var(--muted)}
+main{max-width:1120px;margin:auto;padding:36px 22px 80px}h1{font-size:clamp(25px,3.4vw,38px);line-height:1.2;margin:0 0 10px}h2{font-size:18px;margin:0 0 12px}
+.lead{max-width:760px;color:var(--muted);margin-bottom:24px}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-top:20px}
+#drop{border:2px dashed #506078;border-radius:12px;padding:32px 16px;text-align:center}
+#drop.drag{border-color:var(--accent);background:#ffffff0a}
+button,.file-select{border:0;border-radius:9px;padding:11px 18px;font:inherit;font-weight:650;cursor:pointer;background:var(--accent);color:#171a21;display:inline-block}
+button:disabled{opacity:.5;cursor:wait}.secondary{background:transparent;color:var(--text);border:1px solid var(--border)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.controls{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap;align-items:center}
+#filename{display:block;margin-top:12px;color:var(--muted);overflow-wrap:anywhere}
+#status{color:var(--muted);margin:16px 0 0}#status.error{color:#ffaaa5}
+.metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.metric{background:#121a28;border-radius:12px;padding:16px}.metric strong{font-size:24px;display:block}.metric span{font-size:12px;color:var(--muted)}
+.notice{border-left:3px solid var(--warn);background:#ffffff08;padding:10px 14px;margin:10px 0;border-radius:6px}
+.notice.info{border-color:#79bafd}.notice small{color:var(--muted)}
+.scroll{max-width:100%;overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:610px;font-size:13px}th,td{padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)}th{color:var(--muted);font-weight:600}
+.note{color:var(--muted);font-size:12px}.hidden{display:none!important}
+@media(max-width:700px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.panel{padding:16px}main{padding:24px 16px 60px}}
+</style>
+</head>
+<body>
+<header><nav>
+<a class="brand" href="./index.html">PDF HVD</a>
+<div class="actions"><a href="./text-editor.html">Chỉnh sửa văn bản</a><a href="./index.html">Tất cả công cụ</a></div>
+</nav></header>
+<main>
+<h1>Kiểm tra chất lượng PDF</h1>
+<p class="lead">Đọc cấu trúc trang và nhận diện những vùng chữ có thể khó chỉnh sửa an toàn. Công cụ chỉ phân tích tại trình duyệt, không sửa nội dung hoặc tải tài liệu lên máy chủ.</p>
+<section class="panel" aria-label="Chọn PDF">
+<div id="drop"><label class="file-select" for="file">Chọn tệp PDF</label><input id="file" type="file" accept=".pdf,application/pdf" hidden><p>Kéo thả PDF vào đây hoặc chọn từ máy tính.</p><span id="filename">Chưa chọn tệp.</span></div>
+<div class="controls"><button id="run" disabled>Kiểm tra PDF</button><button id="clear" class="secondary" type="button">Chọn lại</button></div>
+<p id="status" role="status" aria-live="polite">Tối đa 80 MB; quét tối đa 50 trang đầu để hạn chế bộ nhớ.</p>
+</section>
+<section id="results" class="panel hidden" aria-label="Báo cáo kiểm tra">
+<div class="controls" style="justify-content:space-between;margin:0 0 18px"><h2 style="margin:0">Báo cáo chất lượng</h2><button class="secondary" id="export" type="button">Xuất báo cáo JSON</button></div>
+<div class="metrics" id="metrics"></div>
+<h2 style="margin-top:26px">Nhận xét và cảnh báo</h2><div id="warnings"></div>
+<h2 style="margin-top:26px">Thống kê theo trang</h2><div class="scroll"><table><thead><tr><th>Trang</th><th>Kích thước (pt)</th><th>Góc xoay</th><th>Cụm chữ</th><th>Không sửa an toàn</th><th>Đa dòng</th><th>Ký tự chưa rõ</th></tr></thead><tbody id="pages"></tbody></table></div>
+<p class="note">Đây là bước kiểm tra sơ bộ, không phải chứng nhận PDF/A, xác minh chữ ký số hay bảo đảm mọi vùng chữ đều có thể chỉnh sửa. Dữ liệu văn bản không được đưa vào báo cáo.</p>
+</section>
+</main>
+<script type="module">
+import { MAX_BYTES } from './pdfium-preflight-core.mjs';
+const $ = id => document.getElementById(id);
+let file = null, report = null, worker = null, watchdog = null, downloadUrl = null, requestId = 0;
+const text = (parent, tag, value, className) => {
+  const element = document.createElement(tag);
+  element.textContent = String(value);
+  if (className) element.className = className;
+  parent.appendChild(element);
+  return element;
+};
+function status(message, error = false) { $('status').textContent = message; $('status').classList.toggle('error', error); }
+function release() {
+  clearTimeout(watchdog);
+  if (worker) { worker.terminate(); worker = null; }
+}
+function choose(candidate) {
+  release(); report = null; $('results').classList.add('hidden');
+  file = candidate || null;
+  $('filename').textContent = file ? file.name + ' · ' + (file.size / 1048576).toFixed(2) + ' MB' : 'Chưa chọn tệp.';
+  $('run').disabled = !file;
+  if (!file) return status('Tối đa 80 MB; quét tối đa 50 trang đầu để hạn chế bộ nhớ.');
+  if (file.size === 0 || file.size > MAX_BYTES) {
+    $('run').disabled = true; status('Tệp rỗng hoặc vượt giới hạn 80 MB.', true);
+  } else status('Đã chọn tệp. Nhấn Kiểm tra PDF để phân tích.');
+}
+const input = $('file');
+input.addEventListener('change', () => choose(input.files[0]));
+$('clear').addEventListener('click', () => { input.value = ''; choose(null); });
+const drop = $('drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('drag');
+  if (e.dataTransfer.files.length) choose(e.dataTransfer.files[0]);
+});
+function metric(label, value) {
+  const card = text($('metrics'), 'div', '', 'metric');
+  text(card, 'strong', value); text(card, 'span', label);
+}
+function display(result) {
+  report = result;
+  $('results').classList.remove('hidden');
+  $('metrics').replaceChildren(); $('warnings').replaceChildren(); $('pages').replaceChildren();
+  metric('Tổng số trang', result.totalPages);
+  metric('Trang đã quét', result.scannedPages);
+  metric('Cụm văn bản', result.summary.paragraphs);
+  metric('Vùng không sửa an toàn', result.summary.notEditable);
+  if (!result.warnings.length) text($('warnings'), 'p', 'Chưa phát hiện bất thường theo các tiêu chí kiểm tra hiện có.');
+  for (const warn of result.warnings) {
+    const panel = text($('warnings'), 'div', '', 'notice' + (warn.level === 'info' ? ' info' : ''));
+    text(panel, 'div', warn.message);
+    if (warn.pages && warn.pages.length) text(panel, 'small', 'Trang: ' + warn.pages.join(', '));
+  }
+  for (const page of result.pages) {
+    const row = document.createElement('tr'); $('pages').appendChild(row);
+    for (const value of [page.page, String(page.width) + ' × ' + String(page.height),
+      String(page.rotation) + '°', page.paragraphs, page.notEditable,
+      page.multiline, page.unknownGlyphs]) text(row, 'td', value);
+  }
+}
+$('run').addEventListener('click', async () => {
+  if (!file || worker) return;
+  const selected = file;
+  $('run').disabled = true;
+  status('Đang đọc tệp…');
+  try {
+    const bytes = await selected.arrayBuffer();
+    if (selected !== file) return;
+    if (!bytes.byteLength || bytes.byteLength > MAX_BYTES) throw new Error('Kích thước tệp không hợp lệ.');
+    const id = ++requestId;
+    worker = new Worker(new URL('./pdfium-preflight-worker.mjs', location.href), { type: 'module' });
+    const active = worker;
+    const finish = () => { release(); $('run').disabled = !file; };
+    active.onmessage = ({ data }) => {
+      if (active !== worker || data.id !== id) return;
+      if (data.progress) return status(data.progress);
+      finish();
+      if (data.error) return status('Không thể kiểm tra: ' + data.error, true);
+      display(data.result);
+      status('Hoàn tất. PDF gốc không thay đổi.');
+    };
+    active.onerror = () => { if (active !== worker) return; finish(); status('Không tải được bộ máy kiểm tra PDF.', true); };
+    watchdog = setTimeout(() => { if (active !== worker) return; finish(); status('Kiểm tra quá thời gian an toàn. Hãy thử với tệp nhỏ hơn.', true); }, 120000);
+    active.postMessage({ id, type: 'inspect', bytes }, [bytes]);
+  } catch (error) {
+    release(); $('run').disabled = !file; status(error.message || String(error), true);
+  }
+});
+$('export').addEventListener('click', () => {
+  if (!report) return;
+  if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+  downloadUrl = URL.createObjectURL(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }));
+  const link = document.createElement('a');
+  link.href = downloadUrl; link.download = 'pdf-hvd-kiem-tra-chat-luong.json';
+  document.body.appendChild(link); link.click(); link.remove();
+});
+addEventListener('pagehide', () => { release(); if (downloadUrl) URL.revokeObjectURL(downloadUrl); });
+</script>
+</body>
+</html>
