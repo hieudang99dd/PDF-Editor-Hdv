@@ -252,7 +252,10 @@ function svgPoly(points,mode,temporary=false){
 }
 function drawRegions(temporary=[]){
  dom.overlay.replaceChildren();
- const zones=activeRegions(),ns='http://www.w3.org/2000/svg';
+ const zones=state.editDrag?.draftZones||activeRegions(),ns='http://www.w3.org/2000/svg';
+ const canEdit=!state.drawing&&!state.busy&&!state.result&&zones.length>0;
+ dom.overlay.classList.toggle('editing',canEdit);
+ dom.overlay.classList.toggle('drawing',state.drawing);
  const polygonText=points=>points.map(p=>(p.x*1000)+','+(p.y*1000)).join(' ');
  if(zones.length===2&&state.operation==='between'){
   const shape=document.createElementNS(ns,'path');
@@ -271,7 +274,44 @@ function drawRegions(temporary=[]){
   overlap.setAttribute('fill','rgba(255,119,28,.38)');
   dom.overlay.append(defs,overlap);
  }
- for(const r of zones)dom.overlay.append(svgPoly(r.points,r.mode));
+ for(const [i,r] of zones.entries()){
+  const polygon=svgPoly(r.points,r.mode);
+  polygon.dataset.zoneIndex=String(i);
+  polygon.classList.add('re-zone-shape');
+  if(i===state.selectedZone)polygon.classList.add('re-zone-selected');
+  dom.overlay.append(polygon);
+ }
+ if(canEdit&&zones[state.selectedZone]){
+  const points=zones[state.selectedZone].points;
+  const bounds=dom.overlay.getBoundingClientRect();
+  const rx=1000*6/Math.max(1,bounds.width),ry=1000*6/Math.max(1,bounds.height);
+  const group=document.createElementNS(ns,'g');
+  group.setAttribute('aria-label','Tay nắm chỉnh sửa đường bao');
+  for(let i=0;i<points.length;i++){
+   const a=points[i],b=points[(i+1)%points.length];
+   const edge=document.createElementNS(ns,'line');
+   edge.setAttribute('x1',a.x*1000);edge.setAttribute('y1',a.y*1000);
+   edge.setAttribute('x2',b.x*1000);edge.setAttribute('y2',b.y*1000);
+   edge.classList.add('re-edit-hit-edge');
+   edge.dataset.editHandle='edge';edge.dataset.handleIndex=String(i);
+   group.append(edge);
+   const middle=document.createElementNS(ns,'ellipse');
+   middle.setAttribute('cx',(a.x+b.x)*500);middle.setAttribute('cy',(a.y+b.y)*500);
+   middle.setAttribute('rx',rx);middle.setAttribute('ry',ry);
+   middle.classList.add('re-edit-grip-edge');
+   middle.dataset.editHandle='edge';middle.dataset.handleIndex=String(i);
+   group.append(middle);
+  }
+  for(let i=0;i<points.length;i++){
+   const point=points[i],vertex=document.createElementNS(ns,'ellipse');
+   vertex.setAttribute('cx',point.x*1000);vertex.setAttribute('cy',point.y*1000);
+   vertex.setAttribute('rx',rx*1.2);vertex.setAttribute('ry',ry*1.2);
+   vertex.classList.add('re-edit-grip-vertex');
+   vertex.dataset.editHandle='vertex';vertex.dataset.handleIndex=String(i);
+   group.append(vertex);
+  }
+  dom.overlay.append(group);
+ }
  if(temporary.length>=2)dom.overlay.append(svgPoly(temporary,state.role,true));
 }
 function refreshZones(){
