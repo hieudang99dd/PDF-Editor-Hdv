@@ -149,7 +149,13 @@ async function sample(label){
      await page.locator('#po-region-shape').selectOption('rect');
      await page.locator('#po-region-arm').click();
      const box=await page.locator('#po-region-overlay').boundingBox();
-     assert.ok(box&&box.width>100&&box.height>100,'region overlay must align with PDF preview');
+     if(!box||box.width<=100||box.height<=100){
+       const state=await page.evaluate(()=>{
+        const ids=['po-region-overlay','po-preview-wrapper','po-preview-img','po-preview-canvas'];
+        return ids.map(id=>{const e=document.getElementById(id),r=e?.getBoundingClientRect();return {id,rect:r&&{w:r.width,h:r.height,x:r.x,y:r.y},display:e&&getComputedStyle(e).display,visible:e&&getComputedStyle(e).visibility};});
+       });
+       throw Error('region overlay must align with PDF preview: '+JSON.stringify(state));
+     }
      await page.mouse.move(box.x+box.width*x0,box.y+box.height*.40);
      await page.mouse.down();
      await page.mouse.move(box.x+box.width*x1,box.y+box.height*.6,{steps:8});
