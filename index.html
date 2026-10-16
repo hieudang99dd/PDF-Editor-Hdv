@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>PDF HVD – Công cụ PDF và trình chỉnh sửa văn bản</title>
+<title>PDF Đạo Chích – Công cụ PDF và trình chỉnh sửa văn bản</title>
 <style>
 :root{--bg:#f6f7fb;--card:#fff;--ink:#1a1f36;--mute:#667085;--line:#e1e5ee;--acc:#e8453c;--accs:#fdeceb;--navy:#1a1f36;--ok:#1f9d55;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1220;--card:#181c2f;--ink:#eceef8;--mute:#9aa1bd;--line:#2a3050;--acc:#ff6a61;--accs:#3a1f27;--navy:#090b16}}
@@ -54,7 +54,7 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--navy);color:#fff;padding:9px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}#toast.on{opacity:1}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
-<link rel="stylesheet" href="hvd-ui-v2.css?v=20261016-ux3">
+<link rel="stylesheet" href="hvd-ui-v2.css?v=20261016-dao1">
 <style>
 .hvd-workspace-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:20px}
 .hvd-workspace-nav .back{margin:0;padding:10px 0;font-weight:650}
@@ -66,7 +66,7 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
 </head>
 <body>
 <header>
-  <button class="logo" id="logo">PDF HVD</button>
+  <button class="logo" id="logo" aria-label="PDF Đạo Chích – Trang chủ"><span class="dao-mark" aria-hidden="true">Đ</span><span>PDF Đạo Chích</span></button>
   <nav id="nav"></nav>
   <a class="hvd-info-toggle" id="hvd-legal-source" href="NOTICE.md" target="_blank" rel="noopener noreferrer" aria-label="Xem thông tin mã nguồn và giấy phép" title="Mã nguồn và giấy phép">ⓘ</a>
   <button class="btn g" id="theme" type="button" aria-label="Đổi chế độ sáng hoặc tối" title="Đổi giao diện sáng/tối" style="color:#fff;border-color:#ffffff40">◐</button>
@@ -717,7 +717,7 @@ document.addEventListener('click',e=>{
 });
 $('#q').oninput=home;home();
 </script>
-<script src="hvd-ui-v2.js?v=20261016-region1"></script>
+<script src="hvd-ui-v2.js?v=20261016-dao1"></script>
 <script src="pdf-lib.min.js"></script>
 <script>if(!window.PDFLib){document.write('<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"><\/script>');}</script>
 <script src="pdf.min.js"></script>

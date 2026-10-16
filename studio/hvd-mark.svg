@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PDF HVD">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="PDF Đạo Chích">
   <defs><linearGradient id="g" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#0b8d82"/><stop offset="1" stop-color="#11b6a7"/></linearGradient></defs>
   <rect width="64" height="64" rx="14" fill="#182329"/>
   <rect x="4" y="4" width="56" height="56" rx="12" fill="url(#g)"/>
-  <path d="M17 15h8v13h14V15h8v34h-8V36H25v13h-8z" fill="#ffffff"/>
+  <text x="32" y="46" text-anchor="middle" font-family="Arial,DejaVu Sans,sans-serif" font-size="40" font-weight="800" fill="#ffffff">Đ</text>
   <path d="M17 54h30" stroke="#ffd091" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

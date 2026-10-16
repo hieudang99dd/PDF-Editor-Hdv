@@ -1,4 +1,4 @@
-name: PDF HVD Large-File Region QA
+name: PDF Đạo Chích Large-File Region QA
 on:
   pull_request:
     branches: [master]

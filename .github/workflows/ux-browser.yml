@@ -1,4 +1,4 @@
-name: PDF HVD UX Browser QA
+name: PDF Đạo Chích UX Browser QA
 on:
   pull_request:
     branches: [master]
