@@ -5,6 +5,9 @@ on:
     paths:
       - 'index.html'
       - 'organizer.js'
+      - 'region-eraser.html'
+      - 'region-eraser.js'
+      - 'region-eraser.css'
       - 'pdf-region*'
       - 'organizer.css'
       - 'studio/hvd-brand.css'
@@ -19,6 +22,9 @@ on:
     paths:
       - 'index.html'
       - 'organizer.js'
+      - 'region-eraser.html'
+      - 'region-eraser.js'
+      - 'region-eraser.css'
       - 'pdf-region*'
       - 'organizer.css'
       - 'studio/hvd-brand.css'
