@@ -331,3 +331,14 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Khi native glass được tạo, CSS ẩn mực chữ DOM để tránh nhìn cùng lúc hai lớp chữ; vẫn giữ dấu nháy và vùng chọn.
 - Không sửa minified Vite, mã nguồn PdfEngine/PDFium WASM hoặc thêm lớp che trắng/sao chép text giả. Đường dẫn route và panel đã chốt giữ nguyên.
 - Bổ sung `tests/studio-text-apply.test.cjs` vào Pages smoke CI. Nghiệm thu ảnh thực tế tiếng Việt/ô bảng từ PDF người dùng vẫn chưa thực hiện vì chỉ có ảnh màn hình, không có tệp PDF gốc; chưa khẳng định xử lý được mọi trường hợp paragraph đang chồng nội dung nhiều đối tượng.
+
+## 2026-10-16 — Đồng bộ source CIT-PDFium và nghiệm thu Auto-Apply/Export
+
+- Chuẩn hóa đúng cit-pdf tag 1.0.0/SHA `3c9c138d980a417de7439f383f37882a1d730ab6`; patch trong mã nguồn ở `scripts/cit-original/patch_source.py`, không sửa trực tiếp các JS đã minify.
+- API native cố định `window.__HVD_CIT_TEXT_API` phản hồi thành công/thất bại và tự phục hồi UI/hồ sơ history khi commit bị từ chối trong phạm vi hỗ trợ; bridge bỏ tên chunk Vite cố định. Giữ Apply và Export tách riêng.
+- `cascadeParagraphGrowth` mặc định tắt nhằm giữ vị trí các chữ lân cận trong bảng CAD; bổ sung tùy chọn kích hoạt thủ công tại inspector của bản build nguồn.
+- `saveFile` không đóng tài liệu sau xuất; tình trạng Apply/Xuất được hiển thị tại thanh công cụ, Blob URL không thu hồi ngay; thao tác xuất bị chặn nếu native commit đang mở thất bại.
+- Sửa lỗi build đường dẫn khi đổi repository sang `/PDF-Editor1/`, bổ sung bước TypeScript, Vite, regression và kiểm PDF sau xuất. `sync_text_build.py` giữ nguyên HTML/CSS đã chốt, các công cụ khác và metadata giấy phép, chỉ chép tài nguyên cần cho phiên chỉnh text.
+- Workflow CI `38914907967`: **thành công đầy đủ**; Chromium chạy PDFium nguồn thật, PyMuPDF xác minh chữ sau lưu; đã commit bộ frontend mới `8e8a51465a3851a805e65e6e25baca91ea99473a`.
+- Manifest `studio/hvd-text-build.json` có 676 tài nguyên và SHA-256 để phát hiện thay đổi ngoài dự kiến. Ghi chi tiết và giới hạn nghiệm thu tại `docs/TEXT_CIT_SYNC_RELEASE.md`.
+- Chưa có PDF gốc từ ảnh lỗi để nghiệm thu CAD phức tạp, font Type3/tiếng Việt/scan/chữ ký điện tử. Không khẳng định mọi lỗi WASM rollback nguyên tử.
