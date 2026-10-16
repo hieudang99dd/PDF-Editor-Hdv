@@ -69,7 +69,7 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
   <button class="logo" id="logo">PDF HVD</button>
   <nav id="nav"></nav>
   <a class="hvd-info-toggle" id="hvd-legal-source" href="NOTICE.md" target="_blank" rel="noopener noreferrer" aria-label="Xem thông tin mã nguồn và giấy phép" title="Mã nguồn và giấy phép">ⓘ</a>
-  <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
+  <button class="btn g" id="theme" type="button" aria-label="Đổi chế độ sáng hoặc tối" title="Đổi giao diện sáng/tối" style="color:#fff;border-color:#ffffff40">◐</button>
   <button class="btn" id="refresh-app" type="button" title="Làm mới nội dung đang xem, không tải lại trang" style="background:#4a5568">↻ Làm mới</button>
 </header>
 
@@ -144,6 +144,10 @@ const T=[
 ['Tạo câu hỏi','Sinh câu hỏi ôn tập từ tài liệu','AI PDF','?','none','.pdf'],
 ['Trình quét PDF','Chụp giấy tờ thành PDF','Quét','⎙','img','image/*']];
 let cat='Tất cả',tool=null,files=[];
+try{
+ const savedTheme=localStorage.getItem('hvd-theme');
+ if(savedTheme==='light'||savedTheme==='dark')document.documentElement.dataset.theme=savedTheme;
+}catch(_){} 
 const cats=['Tất cả',...Object.keys(C)];
 const hvdDownloadUrls=new Set();
 let hvdDownloadRequested=false;
@@ -687,7 +691,15 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  if(b.id=='back')back();
  if(b.id=='ws-refresh')resetWorkspace(false);
  if(b.id=='ws-new')resetWorkspace(true);
- if(b.id=='theme'){const r=document.documentElement,dk=getComputedStyle(r).getPropertyValue('--bg').trim()=='#0f1220';r.dataset.theme=dk?'light':'dark'}
+ if(b.id=='theme'){
+  const r=document.documentElement;
+  const prefersDark=window.matchMedia?.('(prefers-color-scheme: dark)').matches||false;
+  const isDark=r.dataset.theme==='dark'||(!r.dataset.theme&&prefersDark);
+  const next=isDark?'light':'dark';
+  r.dataset.theme=next;
+  try{localStorage.setItem('hvd-theme',next)}catch(_){}
+  b.setAttribute('aria-label',next==='dark'?'Chuyển sang giao diện sáng':'Chuyển sang giao diện tối');
+}
  if(b.id=='refresh-app'){
   if($('#ws').style.display!=='none')resetWorkspace(false);
   else{$('#q').value='';cat='Tất cả';home();toast('Đã làm mới danh mục công cụ.');}
