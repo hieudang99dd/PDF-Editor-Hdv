@@ -342,3 +342,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Workflow CI `38914907967`: **thành công đầy đủ**; Chromium chạy PDFium nguồn thật, PyMuPDF xác minh chữ sau lưu; đã commit bộ frontend mới `8e8a51465a3851a805e65e6e25baca91ea99473a`.
 - Manifest `studio/hvd-text-build.json` có 676 tài nguyên và SHA-256 để phát hiện thay đổi ngoài dự kiến. Ghi chi tiết và giới hạn nghiệm thu tại `docs/TEXT_CIT_SYNC_RELEASE.md`.
 - Chưa có PDF gốc từ ảnh lỗi để nghiệm thu CAD phức tạp, font Type3/tiếng Việt/scan/chữ ký điện tử. Không khẳng định mọi lỗi WASM rollback nguyên tử.
+
+## 2026-10-16 — Xử lý màn hình tải text xoay liên tục trên browser
+
+- Ảnh người dùng cho thấy modal `loader-modal` có dòng “Đang tải Trình chỉnh sửa văn bản PDF...” che toàn bộ trang. Đây là trạng thái native `launchEditor(file)` đang xử lý. Không thể khẳng định lỗi do cache, module, WASM hoặc PDF đầu vào chỉ từ ảnh.
+- Đã đối chiếu và kiểm thử *site live* (không phải local/mock) bằng Chromium trên GitHub Pages: phiên sạch và phiên cho phép Service Worker đều mở được trang `studio/edit-pdf-text.html`, tải PDF fixture, nhận diện hai paragraph, tạo API CIT/PDFium, không lỗi JS; [workflow startup](https://github.com/hieudang99dd/PDF-Editor1/actions/workflows/studio-startup-live.yml).
+- Do chưa có PDF thực tế gây treo, chưa tái hiện được nguyên nhân sâu; không khẳng định đã xử lý được **mọi** trường hợp. Bổ sung watchdog 25 giây trên loader, nút **Tải lại trình chỉnh sửa** và lối **Khôi phục cache**. Không ép hủy phiên native, không thay đổi content stream của PDF.
+- Tăng cache Service Worker từ `pdf-dao-chich-v12` lên `pdf-dao-chich-v13`; cache bust `hvd-text-apply.js/css?v=20261016-stallfix1`; sửa QA đường dẫn và thêm bài kiểm tra phục hồi.
+- Node/Pages smoke, Chromium website thật và build nguồn cit-pdf/PDFium đã đạt sau cập nhật; [source CI](https://github.com/hieudang99dd/PDF-Editor1/actions/runs/38917298592) hoàn tất thành công.
+- **Còn cần:** PDF gốc dẫn đến spinner và mẫu CAD/font subset/Unicode để bắt được đúng tình huống, phân biệt tải WASM chậm, browser caching, logic mở PDF và tính tương thích thuật toán. Không gọi tương đương cit-pdf “100%” vì có bản vá native result, tùy chọn cascade và UX Apply/Export.
