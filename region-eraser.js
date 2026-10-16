@@ -368,6 +368,22 @@ async function apply(){
  $('re-progress-note').textContent='Xử lý trong Worker; file gốc giữ nguyên.';
  status('Đang xử lý trong PDFium Worker. Có thể Hủy nếu cần.');
  try{
+  // Supply the *per-page* affine viewport from the same PDF.js rendering
+  // engine used to draw the selection overlay. This preserves exact cursor
+  // coordinates when pages have inherited /Rotate, CropBox, off-origin page
+  // bounds and mixed portrait/landscape layouts within a selected range.
+  for(let i=0;i<pages.length;i++){
+   if(controller.signal.aborted)throw Error('Đã hủy thao tác.');
+   $('re-progress-label').textContent='Đồng bộ tọa độ trang '+(i+1)+' / '+pages.length;
+   $('re-progress-bar').value=Math.min(12,Math.floor((i+1)*12/pages.length));
+   const page=await state.pdf.getPage(pages[i].pageIndex+1);
+   const viewport=page.getViewport({scale:1});
+   pages[i].viewport={
+    width:viewport.width,height:viewport.height,
+    transform:Array.from(viewport.transform),
+    rotation:((page.rotate%360)+360)%360
+   };
+  }
   // Transfer a File reference; the Worker reads it into its own memory.
   // No File.arrayBuffer() or Uint8Array.slice() in the main UI save path.
   const result=await eraseRegionsInWorker(state.file,pages,{
