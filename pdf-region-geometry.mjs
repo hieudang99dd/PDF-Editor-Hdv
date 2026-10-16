@@ -97,7 +97,14 @@ export function validateRegions(regions,operation='union'){
    const interior=(p,polygon)=>insidePolygon(p,polygon) &&
     !polygon.some((a,i)=>onEdge(p,a,polygon[(i+1)%polygon.length]));
    const [p,q]=clean.map(z=>z.points);
-   let overlapping=p.some(v=>interior(v,q))||q.some(v=>interior(v,p));
+   const midpoint=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+   const pointsToSample=[...p,...q,
+    ...p.map((v,i)=>midpoint(v,p[(i+1)%p.length])),
+    ...q.map((v,i)=>midpoint(v,q[(i+1)%q.length]))];
+   const center=pts=>({x:pts.reduce((a,v)=>a+v.x,0)/pts.length,
+    y:pts.reduce((a,v)=>a+v.y,0)/pts.length});
+   pointsToSample.push(center(p),center(q));
+   let overlapping=pointsToSample.some(v=>interior(v,p)&&interior(v,q));
    if(!overlapping){
     outer:for(let i=0;i<p.length;i++)for(let j=0;j<q.length;j++){
      const a=p[i],b=p[(i+1)%p.length],c=q[j],d=q[(j+1)%q.length];
