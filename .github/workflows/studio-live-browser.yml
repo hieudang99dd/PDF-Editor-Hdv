@@ -6,6 +6,8 @@ on:
       - '.github/workflows/studio-live-browser.yml'
       - 'tests/studio-live-browser.cjs'
       - 'studio/edit-pdf-text.html'
+      - 'studio/hvd-text-apply.js'
+      - 'studio/hvd-text-apply.css'
       - 'studio/hvd-brand.css'
       - 'studio/sw.js'
       - 'studio/assets/main-DwO0x_KA.js'
@@ -37,6 +39,26 @@ jobs:
             actual="$(curl --retry 2 --fail --silent --show-error --location "$url" | sha256sum | awk '{print $1}')" || actual=""
             if [[ "$actual" == "$desired" ]]; then ready=1; break; fi
             echo "Waiting for updated Pages asset ($i/18)"
+            sleep 10
+          done
+          test "$ready" -eq 1
+      - name: Wait for deployed native-apply controls and CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          desired_js="$(sha256sum studio/hvd-text-apply.js | awk '{print $1}')"
+          desired_css="$(sha256sum studio/hvd-text-apply.css | awk '{print $1}')"
+          ready=0
+          for i in {1..24}; do
+            base="https://hieudang99dd.github.io/PDF-Editor1/studio"
+            js="$(curl --fail --silent --show-error "$base/hvd-text-apply.js?verify=$i" | sha256sum | awk '{print $1}')" || js=""
+            css="$(curl --fail --silent --show-error "$base/hvd-text-apply.css?verify=$i" | sha256sum | awk '{print $1}')" || css=""
+            html="$(curl --fail --silent --show-error "$base/edit-pdf-text.html?verify=$i")" || html=""
+            if [[ "$js" == "$desired_js" && "$css" == "$desired_css" && "$html" == *'hvd-text-apply.js?v=20261016-live1'* ]]; then
+              ready=1
+              break
+            fi
+            echo "Waiting for matching native apply build ($i/24)"
             sleep 10
           done
           test "$ready" -eq 1
