@@ -146,8 +146,10 @@ const T=[
 let cat='Tất cả',tool=null,files=[];
 const cats=['Tất cả',...Object.keys(C)];
 const hvdDownloadUrls=new Set();
+let hvdDownloadRequested=false;
 function trackDownloadUrl(blob){const url=URL.createObjectURL(blob);hvdDownloadUrls.add(url);return url;}
 function releaseWorkspaceDownloads(){
+ hvdDownloadRequested=false;
  if(!hvdDownloadUrls.size)return;
  const urls=[...hvdDownloadUrls];hvdDownloadUrls.clear();
  // Browsers start large downloads asynchronously: give the generated URL time to be read.
@@ -645,6 +647,7 @@ function back(){
  if($('#ws').style.display!=='none'&&$('#go')?.disabled){
   toast('Đang xử lý PDF. Vui lòng chờ hoàn tất trước khi rời tác vụ.');return;
  }
+ if($('#ws').style.display!=='none'&&$('#stage a[download]')&&!hvdDownloadRequested&&!confirm('Kết quả đã tạo nhưng chưa được yêu cầu tải xuống. Bạn vẫn muốn rời công cụ?'))return;
  showCatalog();
  if(history.state?.hvdTool!==undefined)history.back();
  else if(location.hash.startsWith('#hvd-tool='))history.replaceState(null,'',location.pathname+location.search);
@@ -693,6 +696,7 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
 document.addEventListener('click',e=>{
  const link=e.target.closest('#ws a[download], #stage a[download]');
  if(link&&$('#ws').style.display!=='none'){
+  hvdDownloadRequested=true;
   $('#ws-status').textContent='Đã yêu cầu tải xuống. Bạn có thể tiếp tục chỉnh tùy chọn hoặc xử lý tệp khác tại đây.';
  }
 });
