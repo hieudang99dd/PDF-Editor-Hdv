@@ -282,3 +282,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Bổ sung cache-busting cho CSS/JS/SVG thương hiệu trên GitHub Pages.
 - Thêm regression `tests/brand-dao-chich.test.cjs`, cập nhật test cũ và tên GitHub Actions.
 - Bảo toàn đường dẫn GitHub, định danh `hvd-*`, thuật toán PDF, NOTICE.md/LICENSE và ghi nhận thư viện nguồn mở; đổi thương hiệu không thay đổi nghĩa vụ giấy phép.
+
+
+## 2026-10-16 — Khóa chiều cao panel tác vụ và xem PDF, chỉ cuộn bên trong
+
+- Chỉnh `region-eraser.css` để giao diện đang mở PDF chiếm đúng chiều cao cửa sổ (100dvh), thanh điều khiển/tiến trình và tiêu đề đứng yên; panel tác vụ trái và PDF phải có chiều cao bằng nhau.
+- `re-tools` cuộn tùy chọn riêng, `re-viewport` cuộn bản vẽ riêng, `re-gallery-grid` cuộn thumbnail riêng. Không để cuộn toàn bộ trang khi thao tác; ở mobile panel xếp dọc với mỗi vùng cuộn độc lập.
+- Bảng kiểm tra kết quả sau Áp dụng nổi trong workspace, không co height của panel; JS thêm/xóa trạng thái `re-workspace-open` khi mở, làm mới, hoặc gặp lỗi.
+- Cache-bust HTML CSS/JS và bổ sung Node/CSS + Chromium E2E assertions về kích thước, vị trí, khả năng cuộn riêng và chiều cao không đổi.
