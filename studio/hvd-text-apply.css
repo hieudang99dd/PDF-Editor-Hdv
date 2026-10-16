@@ -1,0 +1,33 @@
+/* Native CIT text edit application controls; no new text rendering layer. */
+#text-editor-app #hvd-apply-now {
+  background:#0d9488;border-color:#30d8c7;color:#fff;font-weight:700;
+}
+#text-editor-app #hvd-cancel-now {
+  background:#343b48;border-color:#758195;color:#e9f3fb;
+}
+#text-editor-app #hvd-apply-now[hidden],
+#text-editor-app #hvd-cancel-now[hidden],
+#text-editor-app #hvd-apply-state[hidden] {display:none!important}
+#text-editor-app #hvd-apply-state {
+  max-width:min(400px,38vw);color:#b2eee0;font-size:11px;line-height:1.4;
+}
+#text-editor-app #hvd-apply-state[data-error="true"] {color:#ffb7a6}
+#text-editor-app #hvd-apply-now:focus-visible,
+#text-editor-app #hvd-cancel-now:focus-visible {outline:2px solid #8bffe7;outline-offset:2px}
+/* Native glass and HTML must never paint glyphs at the same time.
+   Keep the DOM caret/selection live while the native glass supplies glyph ink. */
+#text-editor-app #overlay .editor:has(> canvas.glass-live) > [contenteditable="true"],
+#text-editor-app #overlay .editor:has(> canvas.glass-live) > [contenteditable="true"] * {
+  color:transparent!important;
+  -webkit-text-fill-color:transparent!important;
+  -webkit-text-stroke-color:transparent!important;
+  text-shadow:none!important;
+}
+#text-editor-app #overlay .editor:has(> canvas.glass-live) > [contenteditable="true"] {
+  caret-color:#111!important;
+}
+@media(max-width:780px){
+  #text-editor-app #hvd-apply-state{max-width:100%;order:10}
+  #text-editor-app #hvd-apply-now,
+  #text-editor-app #hvd-cancel-now{font-size:12px;white-space:nowrap}
+}
