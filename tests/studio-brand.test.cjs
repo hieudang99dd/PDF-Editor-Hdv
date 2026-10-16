@@ -18,7 +18,7 @@ test('text editor uses PDF Đạo Chích first-party navigation and accurate nat
   assert.match(html, /Chỉnh sửa văn bản PDF/);
   assert.doesNotMatch(html, /<meta[^>]+content="Click any paragraph and edit it in place with live reflow/i);
   assert.match(html, /"name": "PDF Đạo Chích – Chỉnh sửa văn bản PDF"/);
-  assert.match(html, /hvd-brand\.css\?v=20261016-brand2/);
+  assert.match(html, /hvd-brand\.css\?v=20261016-dao1/);
 });
 
 test('legacy marketing is not rendered but native editor DOM and assets remain untouched', () => {
