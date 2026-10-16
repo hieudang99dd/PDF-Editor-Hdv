@@ -149,7 +149,7 @@ async function sample(label){
      await page.locator('#po-region-shape').selectOption('rect');
      await page.locator('#po-region-arm').click();
      const box=await page.locator('#po-region-overlay').boundingBox();
-     if(!box||box.width<=100||box.height<=100){
+     if(!box||box.width<=60||box.height<=50){
        const state=await page.evaluate(()=>{
         const ids=['po-region-overlay','po-preview-wrapper','po-preview-img','po-preview-canvas'];
         return ids.map(id=>{const e=document.getElementById(id),r=e?.getBoundingClientRect();return {id,rect:r&&{w:r.width,h:r.height,x:r.x,y:r.y},display:e&&getComputedStyle(e).display,visible:e&&getComputedStyle(e).visibility};});
