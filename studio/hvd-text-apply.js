@@ -25,6 +25,12 @@
     }
     const save = byId('save');
     if (save) save.dataset.hvdNativeBusy = busy ? 'true' : 'false';
+    const reflow = byId('hvd-text-auto-reflow');
+    const control = byId('hvd-reflow-control');
+    const api = window.__HVD_CIT_TEXT_API;
+    if (control) control.hidden = typeof api?.setAutoReflow !== 'function';
+    if (reflow && typeof api?.getAutoReflow === 'function')
+      reflow.checked = Boolean(api.getAutoReflow());
   }
 
   function scheduleSync() {
@@ -161,6 +167,32 @@
     save.insertAdjacentElement('afterend', apply);
     apply.insertAdjacentElement('afterend', cancel);
     cancel.insertAdjacentElement('afterend', status);
+    // Reflow is opt-in: moving text but not CAD table rules corrupts alignment.
+    // Only show it when the pinned source-build exposes the native switch.
+    const inspector = byId('inspector');
+    if (inspector && !byId('hvd-reflow-control')) {
+      const label = document.createElement('label');
+      label.id = 'hvd-reflow-control';
+      label.className = 'hvd-reflow-control';
+      label.hidden = true;
+      const checkbox = document.createElement('input');
+      checkbox.id = 'hvd-text-auto-reflow';
+      checkbox.type = 'checkbox';
+      checkbox.checked = false;
+      const caption = document.createElement('span');
+      caption.textContent = 'Tự dồn đoạn bên dưới';
+      label.appendChild(checkbox);
+      label.appendChild(caption);
+      inspector.appendChild(label);
+      checkbox.addEventListener('change', () => {
+        const api = window.__HVD_CIT_TEXT_API;
+        if (typeof api?.setAutoReflow !== 'function') return;
+        api.setAutoReflow(checkbox.checked);
+        announce(checkbox.checked
+          ? 'Đã bật dồn đoạn. Kiểm tra kỹ bảng và đường kẻ sau khi áp dụng.'
+          : 'Đã tắt dồn đoạn: giữ nguyên vị trí các dòng lân cận.');
+      });
+    }
     // Suppress native blur auto-commit until the desired action is explicit.
     for (const button of [apply, cancel]) {
       button.addEventListener('mousedown', event => event.preventDefault());
