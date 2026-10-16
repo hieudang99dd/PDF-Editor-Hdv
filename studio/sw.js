@@ -5,7 +5,7 @@
  * Version: 1.1.0
  */
 
-const CACHE_VERSION = 'bentopdf-v11';
+const CACHE_VERSION = 'pdf-dao-chich-v12';
 const CACHE_NAME = `${CACHE_VERSION}-static`;
 
 const trustedCdnOrigins = new Set(['https://cdn.jsdelivr.net']);
@@ -60,7 +60,7 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if (cacheName.startsWith('bentopdf-') && cacheName !== CACHE_NAME) {
+            if ((cacheName.startsWith('bentopdf-') || cacheName.startsWith('pdf-dao-chich-')) && cacheName !== CACHE_NAME) {
               // console.log('[ServiceWorker] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
@@ -104,6 +104,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (isLocal && url.pathname.includes('/locales/')) {
+    event.respondWith(networkFirstStrategy(event.request));
+  } else if (isLocal && /\.(?:js|mjs|css)$/.test(url.pathname)) {
+    // Mutable bundles were previously cached under unchanged filenames.
+    // Always fetch current code/styles first; use offline cache only if network fails.
     event.respondWith(networkFirstStrategy(event.request));
   } else if (shouldCache(url.pathname, isCDN)) {
     event.respondWith(cacheFirstStrategyWithDedup(event.request, isCDN));
@@ -207,23 +211,8 @@ async function findCachedFile(fileName, requestUrl) {
     await cache.delete(requestUrl);
   }
 
-  const requests = await cache.keys();
-  for (const req of requests) {
-    const reqUrl = new URL(req.url);
-    const trustedOrigin =
-      reqUrl.origin === location.origin || trustedCdnOrigins.has(reqUrl.origin);
-    if (trustedOrigin && reqUrl.pathname.split('/').pop() === fileName) {
-      const response = await cache.match(req);
-      if (response) {
-        const clone = response.clone();
-        const buffer = await clone.arrayBuffer();
-        if (buffer.byteLength > 0) {
-          return response;
-        }
-        await cache.delete(req);
-      }
-    }
-  }
+  // Never reuse an asset solely because its filename matches another deployment.
+  // A previous build used a different repository base path with identical filenames.
   return null;
 }
 
