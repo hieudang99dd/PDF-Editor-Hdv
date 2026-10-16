@@ -29,7 +29,7 @@ test('review and progress never resize the canvas panels, responsive layout rema
 });
 test('workspace scope is entered on PDF load and fully cleared on reset and failure',()=>{
  assert.match(js,/dom\.upload\.hidden=true;dom\.workspace\.hidden=false;\s*document\.body\.classList\.add\('re-workspace-open'\)/);
- const clears=js.match(/document\.body\.classList\.remove\('re-workspace-open'\)/g)||[];
+ const clears=js.match(/document\.body\.classList\.remove\('re-workspace-open','re-editor-active','re-focus-page'\)/g)||[];
  assert.equal(clears.length,2);
  assert.match(js,/dom\.workspace\.hidden=true;dom\.upload\.hidden=false/);
 });
