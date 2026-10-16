@@ -13,6 +13,10 @@
   let syncing = false;
   let nativeModulePromise = null;
   let replayingSave = false;
+  let trackedFontKey = '';
+  let fontInspectionPending = '';
+  let fontStatusCache = '';
+
 
   function updateControls() {
     const active = !!activeEditor();
@@ -31,6 +35,64 @@
     if (control) control.hidden = typeof api?.setAutoReflow !== 'function';
     if (reflow && typeof api?.getAutoReflow === 'function')
       reflow.checked = Boolean(api.getAutoReflow());
+    updateOriginalFontInfo(api);
+  }
+
+  function updateOriginalFontInfo(api) {
+    const infoHost = byId('hvd-original-font-info');
+    if (!infoHost) return;
+    let info = null;
+    try { info = api?.getFontInfo?.() || null; }
+    catch (error) { console.warn('[PDF Dao Chich] inspect font:', error); }
+    if (!info) {
+      infoHost.hidden = true;
+      trackedFontKey = '';
+      return;
+    }
+    infoHost.hidden = false;
+    const family = info.displayFamily || info.rawFamily || 'Không xác định';
+    const label = infoHost.querySelector('.hvd-original-font-name');
+    const detail = infoHost.querySelector('.hvd-original-font-detail');
+    const status = infoHost.querySelector('.hvd-original-font-state');
+    const title = infoHost.querySelector('.hvd-original-font-title');
+    if (!label || !detail || !status || !title) return;
+    title.textContent = 'Font gốc của vùng đang chọn';
+    label.textContent = family;
+    label.title = 'Tên trong PDF: ' + (info.rawFamily || family);
+    const modes = [];
+    if (info.bold) modes.push('đậm');
+    if (info.italic) modes.push('nghiêng');
+    detail.textContent = (Number.isFinite(info.size) ? info.size.toFixed(1) + ' pt' : '') +
+      (modes.length ? ' · ' + modes.join(', ') : '') +
+      (info.mixed ? ' · Đoạn có nhiều font; đặt con trỏ vào chữ để xem từng font' : '');
+    const descriptions = {
+      embedded: 'Đã nạp font từ dữ liệu PDF',
+      local: 'Font phù hợp đã nạp từ thiết bị',
+      loading: 'Đang thử nạp font nhúng gốc',
+      unavailable: 'Không thể nạp font nhúng vào trình duyệt'
+    };
+    status.textContent = descriptions[info.source] || 'Chưa xác định tình trạng font';
+    status.dataset.state = info.source || 'unknown';
+    const hint = infoHost.querySelector('.hvd-original-font-hint');
+    const caution = info.subset
+      ? 'Font subset có thể chỉ chứa các ký tự cũ; chữ mới có thể cần font đầy đủ.'
+      : 'Chỉ đổi font khi bạn chủ động chọn; trình sửa không tự đổi font gốc.';
+    if (hint) hint.textContent = info.source === 'unavailable'
+      ? 'Có thể cần cấp quyền phông chữ hệ thống hoặc cung cấp font được phép sử dụng. ' + caution
+      : caution;
+    const key = info.paraId + ':' + info.runIndex + ':' + info.rawFamily;
+    if (info.source === 'loading' && typeof api?.ensureSelectedOriginalFont === 'function' &&
+        fontInspectionPending !== key) {
+      fontInspectionPending = key;
+      Promise.resolve(api.ensureSelectedOriginalFont()).catch(error =>
+        console.warn('[PDF Dao Chich] cannot load embedded font:', error)
+      ).finally(() => scheduleSync());
+    }
+    if (key !== trackedFontKey) {
+      trackedFontKey = key;
+      window.__HVD_LAST_ORIGINAL_FONT = info;
+    }
+    fontStatusCache = info.source || '';
   }
 
   function scheduleSync() {
@@ -248,6 +310,34 @@
           : 'Đã tắt dồn đoạn: giữ nguyên vị trí các dòng lân cận.');
       });
     }
+    const fontPanel = document.createElement('div');
+    fontPanel.id = 'hvd-original-font-info';
+    fontPanel.className = 'hvd-original-font-info';
+    fontPanel.hidden = true;
+    if (inspector) {
+      const title = document.createElement('strong');
+      title.className = 'hvd-original-font-title';
+      const name = document.createElement('div');
+      name.className = 'hvd-original-font-name';
+      const detail = document.createElement('div');
+      detail.className = 'hvd-original-font-detail';
+      const state = document.createElement('div');
+      state.className = 'hvd-original-font-state';
+      state.setAttribute('role', 'status');
+      const hint = document.createElement('p');
+      hint.className = 'hvd-original-font-hint';
+      const fontsButton = document.createElement('button');
+      fontsButton.type = 'button';
+      fontsButton.className = 'hvd-original-font-local';
+      fontsButton.textContent = 'Nạp font từ máy (cần cấp quyền)';
+      fontsButton.addEventListener('click', () => {
+        const originalButton = byId('sysFonts');
+        if (originalButton) originalButton.click();
+        else announce('Trình duyệt không hỗ trợ truy cập font hệ thống.', true);
+      });
+      fontPanel.append(title, name, detail, state, hint, fontsButton);
+      inspector.prepend(fontPanel);
+    }
     // Suppress native blur auto-commit until the desired action is explicit.
     for (const button of [apply, cancel]) {
       button.addEventListener('mousedown', event => event.preventDefault());
@@ -299,6 +389,11 @@
       }
     }, true);
     new MutationObserver(scheduleSync).observe(overlay, { childList: true, subtree: true });
+    // CIT syncInspector supplies native values for the specific text run;
+    // this status panel only observes it and never writes to fFamily.
+    overlay.addEventListener('pointerup', scheduleSync);
+    document.addEventListener('selectionchange', scheduleSync);
+    document.addEventListener('keyup', scheduleSync);
     updateControls();
   }
 
