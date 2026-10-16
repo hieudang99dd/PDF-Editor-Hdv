@@ -8,6 +8,8 @@ on:
       - 'studio/edit-pdf-text.html'
       - 'studio/hvd-brand.css'
       - 'studio/sw.js'
+      - 'studio/assets/main-DwO0x_KA.js'
+      - 'studio/assets/lucide-DZsz3ibU.css'
   workflow_dispatch:
 permissions:
   contents: read
@@ -24,6 +26,20 @@ jobs:
         run: |
           npm install --no-save playwright@1.57.0
           npx playwright install --with-deps chromium
+      - name: Wait for matching deployed Pages JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          desired="$(sha256sum studio/assets/main-DwO0x_KA.js | awk '{print $1}')"
+          ready=0
+          for i in {1..18}; do
+            url="https://hieudang99dd.github.io/PDF-Editor1/studio/assets/main-DwO0x_KA.js?deploy_probe=$i"
+            actual="$(curl --retry 2 --fail --silent --show-error --location "$url" | sha256sum | awk '{print $1}')" || actual=""
+            if [[ "$actual" == "$desired" ]]; then ready=1; break; fi
+            echo "Waiting for updated Pages asset ($i/18)"
+            sleep 10
+          done
+          test "$ready" -eq 1
       - name: Exercise actual Pages text editor and export
         run: node tests/studio-live-browser.cjs
       - name: Upload visual evidence and exported PDF
