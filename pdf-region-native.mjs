@@ -5,7 +5,7 @@
 // geometrically intersects a deletion region but cannot safely be reconstructed).
 import {PdfEngine} from './vendor/cit-pdf/editcore/core.js';
 import {validateRegions, normalizedToUser, keepSegment} from './pdf-region-geometry.mjs';
-import {validateInputSize} from './pdf-region-limits.mjs';
+import {validateInputSize} from './pdf-region-limits.mjs?v=20261016-512mb1';
 const readF=(M,p,i=0)=>M.HEAPF32[(p+i*4)>>2];
 const writeF=(M,p,i,value)=>{M.HEAPF32[(p+i*4)>>2]=value};
 const LIM_FRAGMENTS=20000;
