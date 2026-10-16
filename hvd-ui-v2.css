@@ -68,16 +68,84 @@ header .hvd-info-toggle:focus-visible{
 }
 @media(max-width:550px){header .hvd-info-toggle{width:30px;height:30px}}
 
-/* Compact grouped PDF tools; native Text stays a separate full-width tile. */
-.catalog-tile{width:100%;min-width:0;text-align:left;cursor:pointer}
-.catalog-tile .catalog-icon{flex:0 0 40px}
-.catalog-tile .tool-body{display:block;min-width:0;padding-bottom:22px}
-.catalog-tile .tool-body>b{font-size:14px;line-height:1.4}
-.catalog-tile .tool-body>span:not(.catalog-status){display:block;color:var(--mute);font-size:12px}
-.catalog-tile .catalog-status{position:absolute;bottom:10px;left:68px;font-size:10px;font-weight:700;color:var(--acc)}
+/* Catalog tiles: nested SPANs inherit the base .tool span rule (display:block).
+   Explicitly establish the icon and label layout to avoid clipped/offset glyphs. */
+.catalog-tile{display:flex;align-items:flex-start;width:100%;min-width:0;text-align:left;cursor:pointer;white-space:normal}
+.catalog-tile .catalog-icon{
+  display:grid;place-items:center;align-self:flex-start;
+  width:44px;height:44px;flex:0 0 44px;
+  background:var(--acc);color:#fff;
+  font-size:15px;font-weight:800;line-height:1;
+  border-radius:11px;letter-spacing:0;
+}
+.catalog-tile .tool-body{
+  display:flex;flex:1 1 auto;flex-direction:column;
+  align-items:flex-start;min-width:0;gap:4px;padding:0;
+}
+.catalog-tile .tool-body>b{display:block;font-size:14px;line-height:1.4;margin:0;overflow-wrap:anywhere}
+.catalog-tile .tool-body>span:not(.catalog-status){
+  display:block;color:var(--mute);font-size:12px;line-height:1.55;
+}
+.catalog-tile .catalog-status{
+  display:inline-flex;align-items:center;position:static;
+  width:auto;max-width:100%;margin-top:8px;
+  padding:4px 9px;border:1px solid var(--line);
+  border-radius:6px;background:var(--bg);
+  color:var(--mute);font-size:11px;font-weight:650;line-height:1.25;
+  white-space:normal;
+}
+.catalog-tile .catalog-status::before{
+  content:'';flex:none;display:inline-block;
+  width:6px;height:6px;margin-right:6px;border-radius:50%;
+  background:var(--acc);
+}
 .catalog-tile .catalog-chevron{align-self:center;color:var(--acc);font-size:19px}
-.catalog-group[data-category="Sửa Text"] .grid{grid-template-columns:minmax(0,1fr)}
-.catalog-group[data-category="Sửa Text"] .catalog-tile{background:linear-gradient(105deg,var(--accs),var(--card) 64%);border-color:var(--acc);min-height:102px}
+/* Featured text editor stays independent but no longer stretches across 1370px. */
+.catalog-group[data-category="Sửa Text"] .grid{
+  grid-template-columns:minmax(0,1fr);
+  max-width:920px;
+}
+.catalog-group[data-category="Sửa Text"] .catalog-tile{
+  display:flex;align-items:center;gap:16px;
+  min-height:118px;padding:18px 20px;
+  background:linear-gradient(100deg,var(--accs),var(--card) 77%);
+  border-color:var(--acc);
+}
+.catalog-group[data-category="Sửa Text"] .catalog-icon{
+  display:grid;place-items:center;flex:0 0 52px;
+  width:52px;height:52px;
+  font-size:24px;line-height:1;color:#fff;
+  background:var(--acc);
+}
+.catalog-group[data-category="Sửa Text"] .tool-body>b{
+  font-size:17px;line-height:1.35;
+}
+.catalog-group[data-category="Sửa Text"] .tool-body>span:not(.catalog-status){
+  font-size:13px;max-width:570px;
+}
+.catalog-tile .catalog-cta{
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto;gap:10px;min-height:40px;
+  padding:9px 13px;margin-left:auto;
+  border-radius:9px;background:var(--acc);color:#fff;
+  font-size:13px;font-weight:750;line-height:1.2;white-space:nowrap;
+}
+.catalog-tile .catalog-cta-arrow{display:inline-block;color:inherit;font-size:18px;line-height:1}
+.catalog-tile:hover .catalog-cta,.catalog-tile:focus-visible .catalog-cta{
+  filter:brightness(.92);
+}
+@media(max-width:640px){
+  .catalog-group[data-category="Sửa Text"] .catalog-tile{
+    flex-wrap:wrap;gap:11px 12px;padding:16px;min-height:unset;
+  }
+  .catalog-group[data-category="Sửa Text"] .catalog-icon{
+    width:44px;height:44px;flex-basis:44px;font-size:21px;
+  }
+  .catalog-group[data-category="Sửa Text"] .tool-body>b{font-size:15px}
+  .catalog-tile .catalog-cta{
+    flex:1 0 100%;margin-left:0;min-height:38px;
+  }
+}
 .catalog-action-panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:12px;box-shadow:0 5px 16px #10223c0c}
 .catalog-action-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
 .catalog-panel-close{height:32px;width:32px;border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--ink);font-size:20px;cursor:pointer}

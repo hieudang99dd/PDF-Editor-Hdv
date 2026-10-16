@@ -6,6 +6,7 @@ const path=require('node:path');
 const root=path.resolve(__dirname,'..');
 const html=fs.readFileSync(path.join(root,'index.html'),'utf8');
 const ui=fs.readFileSync(path.join(root,'hvd-ui-v2.js'),'utf8');
+const css=fs.readFileSync(path.join(root,'hvd-ui-v2.css'),'utf8');
 const cit=fs.readFileSync(path.join(root,'cit-advanced-ui.js'),'utf8');
 function mock(data){
  const saved=structuredClone(data);
@@ -25,6 +26,9 @@ test('Text editing remains a separate native tool routed to its existing page',(
  assert.match(h.html(),/Chỉnh sửa Text — công cụ độc lập/);
  assert.match(h.html(),/Sửa Text PDF gốc/);
  assert.match(h.html(),/data-i="0"/);
+ assert.match(h.html(),/class="catalog-cta" aria-hidden="true">Mở trình chỉnh sửa/);
+ assert.match(h.html(),/class="ic catalog-icon" aria-hidden="true">T<\/span>/);
+ assert.match(h.html(),/class="catalog-status">Trình duyệt<\/span>/);
  assert.equal((h.html().match(/Sửa Text PDF gốc/g)||[]).length,1);
 });
 test('15 catalog definitions, original registry immutable, unsupported tools hidden',()=>{
@@ -59,5 +63,19 @@ test('CIT route and editor engine stay unmodified',()=>{
  assert.match(cit,/for\(const t of tools\)if\(!existing\.has\(t\[0\]\)\)T\.push\(t\)/);
  assert.match(cit,/home\(\);\s*\}\)\(\);/);
  assert.doesNotMatch(ui,/T\.push\(|T\[[^\]]+\]\s*=/);
- assert.match(html,/hvd-ui-v2\.js\?v=20261016-compact1/);
+ assert.match(html,/hvd-ui-v2\.js\?v=20261016-texttile2/);
+ assert.match(html,/hvd-ui-v2\.css\?v=20261016-texttile2/);
+});
+test('catalog icon and featured text tile use explicit centered, responsive layout',()=>{
+ assert.match(css,/\.catalog-tile \.catalog-icon\s*\{[^}]*display:grid;place-items:center/s,
+   'Explicit grid must override the inherited `.tool span{display:block}` rule');
+ assert.match(css,/\.catalog-tile \.catalog-icon\s*\{[^}]*color:#fff/s,
+   'Text icons must contrast on primary accent background');
+ assert.match(css,/\.catalog-group\[data-category="Sửa Text"\] \.grid\s*\{[^}]*max-width:920px/s,
+   'The featured card must not span the entire desktop canvas');
+ assert.match(css,/\.catalog-tile \.catalog-status\s*\{[^}]*position:static/s,
+   'Status pill must stay inside its text flow, not float in the tile');
+ assert.match(css,/@media\(max-width:640px\)[\s\S]*?\.catalog-tile \.catalog-cta/s,
+   'Text editor CTA must wrap correctly on phones');
+ assert.match(css,/\.catalog-tile \.catalog-cta\s*\{[^}]*white-space:nowrap/s);
 });
