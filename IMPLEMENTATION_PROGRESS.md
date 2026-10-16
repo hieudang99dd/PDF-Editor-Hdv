@@ -229,3 +229,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Gỡ plugin UI `pdf-region-ui.js`, styles `po-region-*`, mọi trường `eraseRegions` và xử lý `eraseRegionsInWorker` khỏi `organizer.js`; Organizer giữ nguyên chức năng sửa text, trang và chú thích.
 - Bảo toàn thuật toán lõi `pdf-region-geometry.mjs`, `pdf-region-native.mjs`, `pdf-region-worker.mjs`; adapter riêng không dùng PDFLib, để xuất từ PDF nguồn, tránh làm ảnh hưởng tới nội dung chỉnh sửa khác.
 - Cập nhật test Node kiểm tra sự độc lập và bài Chromium cho luồng route độc lập → vẽ vùng → xem kết quả → tải PDF thực → làm mới.
+
+
+## 2026-10-16 — Nâng dung lượng Region Eraser lên 512 MiB
+
+- Đồng bộ cấu hình 512 MiB ở UI và PDFium qua `pdf-region-limits.mjs`, cảnh báo RAM từ 256 MiB.
+- Xem trước PDF.js qua Blob URL, giới hạn canvas 16 triệu pixel, giải phóng preview URL khi đóng PDF. Không nhân bản `file.arrayBuffer()` trên main thread ở bước xuất; Worker nhận File rồi tự đọc, transferable output PDF.
+- Cải tiến `pdf-region-worker/client`: progress theo trang/đối tượng, AbortController hủy tác vụ, watchdog 8 phút và deadline thích ứng đến 30 phút, báo lỗi thiếu RAM mà không thay đổi file nguồn.
+- Bổ sung regression `tests/pdf-region-512mb.test.cjs` và workflow `region-large.yml` kiểm tra PDF thật >80 MiB; kỹ thuật kiểm thử và giới hạn được ghi trong `docs/REGION_ERASER.md`.
+- **Lưu ý:** 512 MiB là ngưỡng nhận tệp; không có chứng chỉ thực thi mọi PDF 512 MiB và không kiểm tra mọi tổ hợp trình duyệt/thiết bị.
