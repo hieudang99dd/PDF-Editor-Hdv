@@ -96,7 +96,9 @@ async function main(){
   console.log('PASS LIVE STUDIO CSS, navigation, upload, native edit, PDF export');
  }catch(e){
   console.error('FAILED live browser run',e.stack||String(e));
-  console.log('OTHER browser errors',JSON.stringify(errors.slice(0,100)));
+  const important=errors.filter(x=>!x.includes('/inter-')&&!x.includes('Failed to load resource: the server responded with a status of 404'));
+  console.log('NON-FONT BROWSER ERRORS',JSON.stringify(important.slice(0,75)));
+  console.log('LAST BROWSER ERRORS',JSON.stringify(errors.slice(-25)));
   if(diagPage){
    try{
     const state=await diagPage.evaluate(()=>({
