@@ -320,3 +320,145 @@ body.re-workspace-open #re-results:not([hidden]){
  #re-overlay .re-edit-hit-edge{stroke-width:25px}
  .re-zone .re-zone-select{padding:8px}
 }
+
+/* PDF Đạo Chích / Region Editor: reclaim vertical pixels for full-page drawing.
+ * This is intentionally scoped to the EDITOR, not the storyboard/uploader. */
+body.re-workspace-open.re-editor-active .re-topbar{
+  min-height:43px;
+  padding:5px clamp(9px,1.1vw,18px);
+  gap:12px;
+}
+body.re-editor-active .re-mark{width:26px;height:26px;border-radius:6px;font-size:17px}
+body.re-editor-active .re-brand{gap:6px;font-size:14px}
+body.re-editor-active .re-page-name{flex-direction:row;align-items:center;gap:6px}
+body.re-editor-active .re-page-name .re-page-label{display:none}
+body.re-editor-active .re-page-name strong{font-size:12px;white-space:nowrap}
+body.re-editor-active .re-top-actions{flex-wrap:nowrap;gap:5px}
+body.re-editor-active .re-top-actions .re-btn{min-height:29px;padding:4px 9px;font-size:11px}
+body.re-workspace-open.re-editor-active .re-app{
+  max-width:none;
+  padding:5px 10px 6px;
+}
+body.re-workspace-open.re-editor-active .re-workspace-header{
+  min-height:41px;max-height:48px;margin-bottom:5px;
+  padding:4px 10px;gap:7px;flex-wrap:nowrap;
+}
+body.re-editor-active .re-document{
+  flex:1 1 auto;min-width:80px;flex-direction:row;gap:8px;align-items:center;
+}
+body.re-editor-active .re-document .re-document-label{display:none}
+body.re-editor-active .re-document strong{
+  max-width:clamp(110px,23vw,380px);
+  font-size:12px;
+}
+body.re-editor-active .re-document #re-filesize{font-size:10px;white-space:nowrap}
+body.re-editor-active .re-doc-actions{
+  gap:5px;flex:0 1 auto;flex-wrap:nowrap;min-width:0;
+}
+body.re-editor-active .re-doc-actions .re-btn{
+  min-height:30px;padding:5px 9px;font-size:11px;border-radius:7px;
+}
+body.re-workspace-open.re-editor-active .re-workflow{
+  gap:5px;min-height:28px;padding:3px 8px;margin-bottom:5px;flex-wrap:nowrap;
+  overflow-x:auto;scrollbar-width:thin;
+}
+body.re-editor-active .re-workflow-step{
+  font-size:10px;padding:3px 8px;white-space:nowrap;
+}
+body.re-editor-active .re-workflow-arrow{font-size:9px}
+body.re-workspace-open.re-editor-active .re-editor-header{
+  flex-wrap:nowrap;gap:7px;min-height:36px;max-height:42px;
+  margin-bottom:5px;padding:3px 8px;
+}
+body.re-editor-active .re-editor-header .re-btn{
+  min-height:28px;padding:4px 8px;font-size:11px;border-radius:7px;
+}
+body.re-editor-active .re-editor-header>div:nth-child(3){
+  flex:1 1 auto;min-width:0;
+}
+body.re-editor-active .re-editor-header strong{font-size:12px}
+body.re-editor-active .re-editor-header>div:nth-child(3)>span{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;
+}
+body.re-editor-active .re-review-switch{flex-wrap:nowrap;gap:4px}
+body.re-workspace-open.re-editor-active .re-columns{
+  grid-template-columns:minmax(208px,248px) minmax(0,1fr);
+  gap:7px;
+}
+body.re-workspace-open.re-editor-active .re-tools{
+  padding:10px;gap:6px;scrollbar-gutter:stable;
+}
+body.re-editor-active .re-tools h2{
+  font-size:11px;line-height:1.25;margin:4px 0 2px;
+}
+body.re-editor-active .re-tools label{font-size:11px}
+body.re-editor-active .re-tools select{padding:6px 8px;border-radius:6px;font-size:11px}
+body.re-editor-active .re-tools .re-hint{font-size:10px;line-height:1.4}
+body.re-editor-active .re-tools .re-sep{margin:3px 0}
+body.re-editor-active .re-tools .re-btn{min-height:31px;padding:6px 8px;font-size:11px}
+body.re-editor-active .re-tools .re-zone{padding:5px 6px}
+body.re-editor-active .re-tools .re-signature-consent{padding:6px}
+body.re-workspace-open.re-editor-active .re-preview-toolbar{
+  min-height:36px;padding:3px 8px;gap:5px;flex-wrap:nowrap;
+  overflow-x:auto;scrollbar-width:thin;
+}
+body.re-editor-active .re-preview-toolbar button{
+  min-width:27px;min-height:27px;padding:4px 7px;font-size:11px;
+}
+body.re-editor-active .re-paging,
+body.re-editor-active .re-view-actions{gap:5px;flex-wrap:nowrap;white-space:nowrap}
+body.re-editor-active .re-paging input{width:42px;padding:4px}
+body.re-workspace-open.re-editor-active .re-viewport{
+  padding:6px;
+  justify-content:flex-start;
+  align-items:flex-start;
+  scroll-behavior:auto;
+}
+body.re-editor-active .re-page-surface{
+  margin-left:auto;margin-right:auto;
+}
+body.re-editor-active .re-footer-info{
+  padding:3px 9px;gap:5px;min-height:22px;font-size:10px;flex-wrap:nowrap;
+}
+body.re-editor-active .re-footer-info span{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+body.re-workspace-open.re-editor-active.re-focus-page .re-columns{
+  grid-template-columns:minmax(0,1fr);
+}
+body.re-workspace-open.re-editor-active.re-focus-page .re-tools{display:none}
+body.re-editor-active .re-toggle-tools{white-space:nowrap}
+body.re-editor-active #re-fit[aria-pressed="true"],
+body.re-editor-active #re-fit-width[aria-pressed="true"],
+body.re-editor-active #re-toggle-tools[aria-pressed="true"]{
+  border-color:var(--orange);background:#463327;color:#ffd9b8;
+}
+@media(max-width:980px){
+ body.re-editor-active .re-document #re-filesize{display:none}
+ body.re-editor-active .re-document strong{max-width:18vw}
+ body.re-workspace-open.re-editor-active .re-columns{
+  grid-template-columns:minmax(180px,220px) minmax(0,1fr)
+ }
+}
+@media(max-width:760px){
+ body.re-workspace-open.re-editor-active .re-topbar{min-height:0;padding:4px 8px}
+ body.re-editor-active .re-page-name{display:none}
+ body.re-editor-active .re-top-actions .re-btn{padding:4px 6px}
+ body.re-editor-active .re-doc-actions{overflow-x:auto;scrollbar-width:none;max-width:65vw}
+ body.re-workspace-open.re-editor-active .re-workspace-header{max-height:51px;padding:4px 6px}
+ body.re-workspace-open.re-editor-active .re-editor-header{padding:3px 5px}
+ body.re-editor-active .re-editor-header>div:nth-child(3)>span{display:none}
+ body.re-editor-active .re-editor-header>div:nth-child(3){min-width:0}
+ body.re-workspace-open.re-editor-active .re-columns{
+  display:flex;flex-direction:column;gap:5px;
+ }
+ body.re-workspace-open.re-editor-active .re-tools{flex:0 0 26%;min-height:0}
+ body.re-workspace-open.re-editor-active.re-focus-page .re-tools{display:none}
+ body.re-workspace-open.re-editor-active.re-focus-page .re-preview{flex:1 1 auto}
+ body.re-editor-active .re-footer-info span:last-child{display:none}
+}
+@media(max-height:680px){
+ body.re-editor-active .re-topbar .re-page-name{display:none}
+ body.re-workspace-open.re-editor-active .re-workflow{min-height:23px;padding:1px 6px}
+ body.re-editor-active .re-editor-header>div:nth-child(3)>span{display:none}
+}
