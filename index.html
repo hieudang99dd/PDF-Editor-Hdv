@@ -55,6 +55,14 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 <link rel="stylesheet" href="hvd-ui-v2.css?v=20261016-texttile2">
+<style>
+.hvd-workspace-nav{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:20px}
+.hvd-workspace-nav .back{margin:0;padding:10px 0;font-weight:650}
+.hvd-workspace-actions{display:flex;gap:8px;flex-wrap:wrap}
+.hvd-workspace-actions .btn{padding:9px 12px;font-size:13px;white-space:nowrap}
+.hvd-workspace-status{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:8px;padding:10px 12px;color:var(--mute);font-size:13px;margin:0 0 14px}
+@media(max-width:550px){.hvd-workspace-nav{align-items:stretch}.hvd-workspace-actions{width:100%}.hvd-workspace-actions .btn{flex:1;white-space:normal}}
+</style>
 </head>
 <body>
 <header>
@@ -62,7 +70,7 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
   <nav id="nav"></nav>
   <a class="hvd-info-toggle" id="hvd-legal-source" href="NOTICE.md" target="_blank" rel="noopener noreferrer" aria-label="Xem thông tin mã nguồn và giấy phép" title="Mã nguồn và giấy phép">ⓘ</a>
   <button class="btn g" id="theme" style="color:#fff;border-color:#ffffff40">◐</button>
-  <button class="btn" id="refresh-app" style="background:#4a5568">Làm mới</button>
+  <button class="btn" id="refresh-app" type="button" title="Làm mới nội dung đang xem, không tải lại trang" style="background:#4a5568">↻ Làm mới</button>
 </header>
 
 <main id="home">
@@ -77,8 +85,15 @@ footer{padding:24px 5vw;color:var(--mute);font-size:13px;text-align:center}
 </main>
 
 <main id="ws">
-  <button class="back" id="back">← Tất cả công cụ</button>
+  <div class="hvd-workspace-nav" role="group" aria-label="Điều hướng tác vụ PDF">
+    <button class="back" id="back" type="button">← Danh mục công cụ</button>
+    <div class="hvd-workspace-actions">
+      <button class="btn g" id="ws-refresh" type="button" title="Đặt lại tùy chọn và kết quả nhưng giữ tệp đã chọn">↻ Làm mới tác vụ</button>
+      <button class="btn g" id="ws-new" type="button" title="Chọn tệp mới và tiếp tục trong công cụ này">＋ Tệp khác</button>
+    </div>
+  </div>
   <h1 id="wt"></h1><p class="d" id="wd"></p>
+  <p id="ws-status" class="hvd-workspace-status" role="status" aria-live="polite">Chọn tệp để bắt đầu.</p>
   <div id="stage"></div>
 </main>
 <div id="toast" role="status"></div>
@@ -166,8 +181,14 @@ const OPT={
  chat:`<label>Câu hỏi về tài liệu<input type="text" placeholder="Ví dụ: Điều khoản thanh toán là gì?"></label>`,
  qr:`<label>Mã QR sẽ chứa liên kết tải tài liệu của bạn. Quá trình xử lý diễn ra bảo mật.</label>`,
  none:''};
-function openTool(i){if(T[i]?.[4]==='cit-text-route'){location.href='./text-editor.html';return;}if(T[i]?.[4]==='pdfium-inspect-route'){location.href='./pdfium-preflight.html';return;}tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
- $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render()}
+function openTool(i, restore=false){
+ if(!Number.isInteger(i)||!T[i])return;
+ if(T[i]?.[4]==='cit-text-route'){location.href='./text-editor.html';return;}
+ if(T[i]?.[4]==='pdfium-inspect-route'){location.href='./pdfium-preflight.html';return;}
+ tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
+ $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render();
+ if(!restore)history.pushState({hvdTool:i},'', '#hvd-tool='+i);
+}
 function render(){const k=tool[4], o=(tool[0]==='Chồng 2 PDF (Overlay)'?OPT['cit-overlay']:OPT[k])||'', multi=k=='merge'||tool[5].includes('image');
  let h='';
  if (k === 'compress') {
@@ -190,6 +211,7 @@ function render(){const k=tool[4], o=(tool[0]==='Chồng 2 PDF (Overlay)'?OPT['c
   if(o)h+=`<div class="opts">${o}</div>`;
   h+=`<button class="btn" id="go">${tool[0]}</button><div id="out"></div>`}
  $('#stage').innerHTML=h;
+ $('#ws-status').textContent=files.length ? files.length+' tệp đã chọn · Có thể xử lý và tải nhiều lần trong công cụ này.' : 'Chọn tệp để bắt đầu. Khi tải kết quả, công cụ vẫn mở.';
  const dz=$('#dz'),fi=$('#fi');$('#pick').onclick=()=>fi.click();fi.onchange=()=>add(fi.files);
  dz.ondragover=e=>{e.preventDefault();dz.classList.add('hov')};dz.ondragleave=()=>dz.classList.remove('hov');
  dz.ondrop=e=>{e.preventDefault();dz.classList.remove('hov');add(e.dataTransfer.files)};
@@ -605,16 +627,60 @@ function done(){const tot=files.reduce((a,f)=>a+f.size,0),k=tool[4];
  const extra=k=='compress'?`Dung lượng giảm từ ${sz(tot)} còn khoảng ${sz(tot*.42)} (ước tính mô phỏng).`:`${files.length} tệp đã được xử lý.`;
  $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> ${extra}<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn" id="dl">Tải xuống</button><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
  $('#dl').onclick=()=>toast('Đây là giao diện mẫu, chưa tạo tệp thật');$('#again').onclick=()=>{files=[];render()};$('#go').disabled=false}
-function back(){$('#ws').style.display='none';$('#home').style.display='block';home()}
+function showCatalog(){
+ $('#ws').style.display='none';$('#home').style.display='block';home();
+}
+function back(){
+ showCatalog();
+ if(history.state?.hvdTool!==undefined)history.back();
+}
+function resetWorkspace(clearFiles=false){
+ if($('#ws').style.display==='none'||!tool)return;
+ if(tool[4]==='organize'&&document.querySelector('#po-back')){
+  toast('Vui lòng dùng nút Làm mới trong trình quản lý PDF.');return;
+ }
+ if($('#go')?.disabled){toast('Đang xử lý. Vui lòng chờ hoàn tất trước khi làm mới.');return;}
+ if(files.length&&!confirm(clearFiles?'Chọn tệp mới? Tệp đang chọn và kết quả trên màn hình sẽ được bỏ khỏi công cụ này.':'Làm mới tùy chọn và kết quả? Tệp đang chọn sẽ được giữ lại.'))return;
+ if(clearFiles)files=[];
+ render();
+ $('#ws-status').textContent=clearFiles?'Có thể tải tài liệu mới vào công cụ hiện tại.':'Đã làm mới tác vụ. Bạn có thể chỉnh tùy chọn và thực hiện lại.';
+}
+window.addEventListener('popstate',()=>{
+ const match=location.hash.match(/^#hvd-tool=(\\d+)$/);
+ const idx=match?Number(match[1]):-1;
+ if(idx>=0&&T[idx]&&!['cit-text-route','pdfium-inspect-route'].includes(T[idx][4])){
+  openTool(idx,true);
+ }else showCatalog();
+});
+window.addEventListener('DOMContentLoaded',()=>{
+ const match=location.hash.match(/^#hvd-tool=(\\d+)$/);
+ if(match){
+  const idx=Number(match[1]);
+  if(T[idx]&&!['cit-text-route','pdfium-inspect-route'].includes(T[idx][4]))openTool(idx,true);
+ }
+});
 document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
  if(b.dataset.c){cat=b.dataset.c;home()}
  if(b.dataset.nav){back();cat=b.dataset.nav;home();$('#tools').scrollIntoView()}
  if(b.dataset.i!=null&&b.classList.contains('tool'))openTool(+b.dataset.i);
  if(b.dataset.x!=null){files.splice(+b.dataset.x,1);render()}
  if(b.dataset.m){const[k,d]=b.dataset.m.split(':').map(Number),j=k+d;if(files[j]){[files[k],files[j]]=[files[j],files[k]];render()}}
- if(b.id=='logo'||b.id=='back'){cat='Tất cả';back()}
+ if(b.id=='logo'){cat='Tất cả';$('#q').value='';back()}
+ if(b.id=='back')back();
+ if(b.id=='ws-refresh')resetWorkspace(false);
+ if(b.id=='ws-new')resetWorkspace(true);
  if(b.id=='theme'){const r=document.documentElement,dk=getComputedStyle(r).getPropertyValue('--bg').trim()=='#0f1220';r.dataset.theme=dk?'light':'dark'}
- if(b.id=='refresh-app')location.reload()});
+ if(b.id=='refresh-app'){
+  if($('#ws').style.display!=='none')resetWorkspace(false);
+  else{$('#q').value='';cat='Tất cả';home();toast('Đã làm mới danh mục công cụ.');}
+ }
+});
+document.addEventListener('click',e=>{
+ const link=e.target.closest('#ws a[download], #stage a[download]');
+ if(link&&$('#ws').style.display!=='none'){
+  $('#ws-status').textContent='Đã yêu cầu tải xuống. Bạn có thể tiếp tục chỉnh tùy chọn hoặc xử lý tệp khác tại đây.';
+ }
+});
 $('#q').oninput=home;home();
 </script>
 <script src="hvd-ui-v2.js?v=20261016-texttile2"></script>
