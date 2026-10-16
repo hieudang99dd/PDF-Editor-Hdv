@@ -94,6 +94,7 @@ async function sample(label){
    await page.setViewportSize({width:375,height:740});
    assert.ok(await page.locator('#refresh-app').isVisible(),'refresh must remain accessible on mobile');
    assert.ok(await page.locator('#ws-new').isVisible(),'New File action must remain accessible on mobile');
+   await page.setViewportSize({width:1280,height:800});
    // Organizer: a real new-document reset must unload the PDF but preserve
    // the active feature; cancellation must leave its editor state intact.
    await page.goto(address,{waitUntil:'domcontentloaded'});
