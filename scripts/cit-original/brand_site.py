@@ -11,13 +11,13 @@ import pathlib
 import re
 import sys
 
-PAGE_BASE = "/PDF-Editor-Hdv/studio/"
+PAGE_BASE = "/PDF-Editor1/studio/"
 SITE_ROOT = "https://hieudang99dd.github.io"
-SITE_URL = SITE_ROOT + "/PDF-Editor-Hdv/"
-APP_TITLE = "PDF HVD – Chỉnh sửa văn bản"
+SITE_URL = SITE_ROOT + "/PDF-Editor1/"
+APP_TITLE = "PDF EDITOR – Chỉnh sửa văn bản"
 MANIFEST = {
-    "name": "PDF HVD – Trình chỉnh sửa PDF",
-    "short_name": "PDF HVD",
+    "name": "PDF EDITOR – Trình chỉnh sửa PDF",
+    "short_name": "PDF EDITOR",
     "description": "Chỉnh sửa văn bản PDF, giữ định dạng và xuất PDF ngay trên trình duyệt.",
     "lang": "vi",
     "start_url": SITE_URL + "text-editor.html",
@@ -37,21 +37,21 @@ def rebrand_page(html: str, page_name: str) -> str:
     title = APP_TITLE if page_name == "edit-pdf-text.html" else None
     def title_repl(match: re.Match[str]) -> str:
         current = match.group(2).strip()
-        actual = title or re.sub(r"\s*[|–-]\s*BentoPDF\s*$", " – PDF HVD", current, flags=re.I)
+        actual = title or re.sub(r"\s*[|–-]\s*BentoPDF\s*$", " – PDF EDITOR", current, flags=re.I)
         if actual == current and "BentoPDF" in current:
-            actual = current.replace("BentoPDF", "PDF HVD")
+            actual = current.replace("BentoPDF", "PDF EDITOR")
         return match.group(1) + actual + match.group(3)
     html = re.sub(r"(<title[^>]*>)(.*?)(</title>)", title_repl, html, count=1, flags=re.S | re.I)
     parsed = re.search(r"<title>([^<]+)</title>", html)
-    actual = title or (parsed.group(1).strip() if parsed else "PDF HVD – Công cụ PDF")
+    actual = title or (parsed.group(1).strip() if parsed else "PDF EDITOR – Công cụ PDF")
     canonical = SITE_URL + "text-editor.html" if page_name == "edit-pdf-text.html" else SITE_URL + "studio/" + page_name
     for key,val in {
-        "title":actual, "author":"PDF HVD",
-        "apple-mobile-web-app-title":"PDF HVD"
+        "title":actual, "author":"PDF EDITOR",
+        "apple-mobile-web-app-title":"PDF EDITOR"
     }.items():
         html = meta_attr(html,key,val)
     for key,val in {
-        "og:title":actual, "og:site_name":"PDF HVD", "og:url":canonical
+        "og:title":actual, "og:site_name":"PDF EDITOR", "og:url":canonical
     }.items():
         html=meta_attr(html,key,val,True)
     for key,val in {"twitter:title":actual, "twitter:url":canonical}.items():
@@ -65,11 +65,11 @@ def rebrand_page(html: str, page_name: str) -> str:
     # all legal notices; only replace the product identity, not author credit.
     html = re.sub(
         r'(<span id="nav-brand"[^>]*>\s*<a href=")[^"]*(">)\s*BentoPDF(\s*</a>)',
-        lambda m: m.group(1) + SITE_URL + 'index.html' + m.group(2) + 'PDF HVD' + m.group(3),
+        lambda m: m.group(1) + SITE_URL + 'index.html' + m.group(2) + 'PDF EDITOR' + m.group(3),
         html, count=1, flags=re.S)
     html = re.sub(
         r'(<span id="footer-brand"[^>]*>)\s*BentoPDF(\s*</span>)',
-        lambda m: m.group(1) + 'PDF HVD' + m.group(2),
+        lambda m: m.group(1) + 'PDF EDITOR' + m.group(2),
         html, count=1, flags=re.S)
     for ident in ('nav-logo', 'footer-logo'):
         html = re.sub(
@@ -78,7 +78,7 @@ def rebrand_page(html: str, page_name: str) -> str:
             html, count=1, flags=re.S)
         html = re.sub(
             r'(<img\b[^>]*\bid="' + ident + r'"[^>]*\balt=")[^"]*(")',
-            lambda m: m.group(1) + 'PDF HVD' + m.group(2),
+            lambda m: m.group(1) + 'PDF EDITOR' + m.group(2),
             html, count=1, flags=re.S)
     if 'href="hvd-hub.css"' not in html:
         if "</head>" not in html: raise ValueError("No closing HEAD")

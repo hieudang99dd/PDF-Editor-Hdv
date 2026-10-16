@@ -5,7 +5,7 @@
  * Version: 1.1.0
  */
 
-const CACHE_VERSION = 'pdf-dao-chich-v13';
+const CACHE_VERSION = 'pdf-editor-v14';
 const CACHE_NAME = `${CACHE_VERSION}-static`;
 
 const trustedCdnOrigins = new Set(['https://cdn.jsdelivr.net']);
@@ -60,7 +60,7 @@ self.addEventListener('activate', (event) => {
       .then((cacheNames) => {
         return Promise.all(
           cacheNames.map((cacheName) => {
-            if ((cacheName.startsWith('bentopdf-') || cacheName.startsWith('pdf-dao-chich-')) && cacheName !== CACHE_NAME) {
+            if ((cacheName.startsWith('bentopdf-') || cacheName.startsWith('pdf-dao-chich-') || cacheName.startsWith('pdf-editor-')) && cacheName !== CACHE_NAME) {
               // console.log('[ServiceWorker] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }

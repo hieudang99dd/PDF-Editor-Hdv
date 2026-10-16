@@ -18,7 +18,7 @@
     const container=org.appNode;
     container.classList.add('hvd-text-editor-only');
     const title=container.querySelector('.po-title');
-    if(title)title.textContent='PDF Đạo Chích / Chỉnh sửa Text gốc';
+    if(title)title.textContent='PDF EDITOR / Chỉnh sửa Text gốc';
     const header=container.querySelector('.po-header-left');
     const back=container.querySelector('#po-back');
     if(back){
@@ -48,7 +48,7 @@
     fileButton.onclick=()=>$('#hdv-text-file-picker').click();
     batchButton.onclick=()=>{if(typeof org.openCITBatchText==='function')org.openCITBatchText();};
     const topTitle=document.createElement('span');
-    topTitle.className='hdv-engine-title';topTitle.textContent='PDF Đạo Chích TEXT';
+    topTitle.className='hdv-engine-title';topTitle.textContent='PDF EDITOR TEXT';
     topTitle.style.cssText='font-size:10px;color:#11c8b7;margin-left:5px';
     header?.append(topTitle);
 
