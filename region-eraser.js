@@ -19,7 +19,7 @@ const state={
  renderToken:0,renderTask:null,busy:false,result:null,downloadUrls:new Set(),
  previewUrl:null,abortController:null,
  operation:'union',galleryStart:0,galleryGeneration:0,galleryObserver:null,
- reviewPdf:null,reviewUrl:null,reviewMode:false
+ reviewPdf:null,reviewUrl:null,reviewMode:false,exported:false
 };
 function status(message,type=''){
  dom.status.textContent=message;dom.status.className='re-status'+(type?' '+type:'');
@@ -56,16 +56,33 @@ function releaseReview(){
 function invalidateResult(){
  if(!state.result&&!state.reviewPdf)return;
  const wasReview=state.reviewMode;
- releaseReview();state.result=null;dom.results.hidden=true;
+ releaseReview();state.result=null;state.exported=false;dom.results.hidden=true;
+ updateControls();
  if(wasReview&&state.pdf&&!$('re-editor-view').hidden)
   renderPage().catch(e=>status('Không tải lại được bản gốc: '+e.message,'error'));
+}
+function updateWorkflow(){
+ const hasFile=!!state.file,applied=!!state.result;
+ const stage=applied?(state.exported?'export':'review'):
+  state.busy?'apply':hasFile&&countRegions()?'apply':'edit';
+ for(const step of ['edit','apply','review','export']){
+  const el=$('re-step-'+step);
+  el.classList.toggle('active',step===stage);
+  el.classList.toggle('complete',
+   (step==='edit'&&stage!=='edit')||
+   (step==='apply'&&(stage==='review'||stage==='export'))||
+   (step==='review'&&stage==='export'));
+ }
 }
 function updateControls(){
  $('re-undo').disabled=state.busy||state.cursor<=0;
  $('re-redo').disabled=state.busy||state.cursor>=state.history.length-1;
- dom.process.disabled=state.busy||!state.file||!([...state.regions.values()].some(z=>z.some(v=>v.mode==='erase')));
- $('re-draw').disabled=state.busy||!state.pdf||state.reviewMode;
- $('re-clear-page').disabled=state.busy||!activeRegions().length;
+ dom.process.disabled=state.busy||!!state.result||!state.file||
+  !([...state.regions.values()].some(z=>z.some(v=>v.mode==='erase')));
+ $('re-download').disabled=state.busy||!state.result||!state.result.blob;
+ $('re-rework').disabled=state.busy||!state.result;
+ $('re-draw').disabled=state.busy||!state.pdf||!!state.result;
+ $('re-clear-page').disabled=state.busy||!!state.result||!activeRegions().length;
  $('re-prev').disabled=state.busy||state.pageIndex<=0;
  $('re-next').disabled=state.busy||!state.pdf||state.pageIndex>=state.pdf.numPages-1;
  $('re-page').disabled=state.busy||!state.pdf;
@@ -73,23 +90,25 @@ function updateControls(){
  $('re-zoom-out').disabled=state.busy||state.zoom<=.5;
  $('re-replace').disabled=state.busy;
  $('re-new').disabled=state.busy;
- $('re-shape').disabled=state.busy;
- $('re-role').disabled=state.busy||state.operation!=='union';
- $('re-operation').disabled=state.busy;
- $('re-object-mode').disabled=state.busy;
- $('re-allow-signed').disabled=state.busy;
- $('re-scope').disabled=state.busy;
- $('re-range-from').disabled=state.busy;
- $('re-range-to').disabled=state.busy;
+ $('re-shape').disabled=state.busy||!!state.result;
+ $('re-role').disabled=state.busy||!!state.result||state.operation!=='union';
+ $('re-operation').disabled=state.busy||!!state.result;
+ $('re-object-mode').disabled=state.busy||!!state.result;
+ $('re-allow-signed').disabled=state.busy||!!state.result;
+ $('re-scope').disabled=state.busy||!!state.result;
+ $('re-range-from').disabled=state.busy||!!state.result;
+ $('re-range-to').disabled=state.busy||!!state.result;
  $('re-gallery-back').disabled=state.busy;
  $('re-gallery-prev').disabled=state.busy||state.galleryStart===0;
  $('re-gallery-next').disabled=state.busy||!state.pdf||state.galleryStart+24>=state.pdf.numPages;
  $('re-cancel').hidden=!state.abortController;
+ updateWorkflow();
 }
 function setBusy(value){state.busy=value;updateControls();$('re-finish').disabled=value;}
 function clearResults(){
  for(const url of state.downloadUrls)URL.revokeObjectURL(url);
- state.downloadUrls.clear();releaseReview();state.result=null;dom.results.hidden=true;
+ state.downloadUrls.clear();releaseReview();state.result=null;state.exported=false;dom.results.hidden=true;
+ updateControls();
 }
 async function teardown(){
  state.renderToken++;state.galleryGeneration++;
@@ -351,10 +370,10 @@ async function renderPage(){
  drawRegions();refreshZones();
 }
 function havePending(){
- return countRegions()>0&&!state.result;
+ return countRegions()>0&&!state.exported;
 }
 async function apply(){
- if(state.busy||!state.file)return;
+ if(state.busy||!state.file||state.result)return;
  let pages;
  try{
   pages=planRegionJobs(state.regions,{
@@ -418,6 +437,7 @@ async function apply(){
   const blob=new Blob([result.bytes],{type:'application/pdf'});
   releaseReview();
   state.result={blob,report:result.report};
+  state.exported=false;
   state.reviewUrl=URL.createObjectURL(blob);
   const loading=window.pdfjsLib.getDocument({url:state.reviewUrl,
    rangeChunkSize:PREVIEW_RANGE_CHUNK_BYTES,disableAutoFetch:true});
@@ -436,10 +456,10 @@ async function apply(){
     ' đoạn vector còn lại · '+result.report.skippedNonVector+' đối tượng khác không xử lý.')+
    (result.report.signatureInvalidated?
     ' PDF nguồn có chữ ký số; chữ ký cũ trên bản sao đã chỉnh sửa không còn hiệu lực.':'')+
-   ' Tệp nguồn vẫn nguyên vẹn. Kiểm tra bản Sau xử lý trước khi tải.';
+   ' Tệp nguồn vẫn nguyên vẹn. Kiểm tra rồi quyết định Chỉnh sửa lại hoặc Xuất PDF.';
   dom.results.hidden=false;
   dom.results.scrollIntoView({behavior:'smooth',block:'nearest'});
-  status('Đã xóa vector thật và mở kết quả để kiểm tra. Chuyển Trước/Sau hoặc tải PDF.','success');
+  status('Đã áp dụng trực tiếp trên web. So sánh Bản gốc / Sau xử lý, chỉnh lại nếu cần và chỉ Xuất PDF khi đã đúng.','success');
  }catch(error){invalidateResult();status('Không thể xóa an toàn: '+(error.message||String(error)),'error');}
  finally{
   state.abortController=null;
@@ -448,12 +468,14 @@ async function apply(){
  }
 }
 function download(){
- if(!state.result||!state.file)return;
+ if(!state.result||!state.result.blob||!state.file||state.busy)return;
  const blob=state.result.blob;
  const url=URL.createObjectURL(blob);state.downloadUrls.add(url);
  const a=document.createElement('a');a.href=url;a.download=safeFileName(state.file);
  document.body.append(a);a.click();a.remove();
- status('Đã gửi yêu cầu tải PDF. Có thể tiếp tục chỉnh vùng và xuất lại.','success');
+ state.exported=true;
+ updateControls();
+ status('Đã gửi yêu cầu xuất PDF đã kiểm tra. Bạn vẫn có thể Chỉnh sửa lại để tạo phiên bản khác.','success');
  setTimeout(()=>{URL.revokeObjectURL(url);state.downloadUrls.delete(url);},120000);
 }
 function onPointerDown(e){
@@ -555,6 +577,11 @@ function wire(){
  $('re-fit').addEventListener('click',()=>{state.zoom=1;renderPage();updateControls();});
  dom.process.addEventListener('click',apply);
  $('re-download').addEventListener('click',download);
+ $('re-rework').addEventListener('click',()=>{
+  if(state.busy||!state.result)return;
+  invalidateResult();stopDrawing();refreshZones();drawRegions();updateControls();
+  status('Chỉnh sửa lại trên PDF gốc; các vùng đã vẽ vẫn được giữ. Hãy chỉnh rồi bấm Áp dụng lần nữa.','success');
+ });
  $('re-cancel').addEventListener('click',()=>state.abortController?.abort());
  window.addEventListener('beforeunload',e=>{if(havePending()){e.preventDefault();e.returnValue='';}});
 }
