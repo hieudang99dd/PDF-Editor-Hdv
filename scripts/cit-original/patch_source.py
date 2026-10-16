@@ -213,16 +213,6 @@ function syncInspector() {""",
   let r = fontInfo && p?.runs?.[fontInfo.runIndex] || p?.runs[0] || {};""",
         "original predominant font in inspector"
     )
-    source = replace_once(
-        source,
-        """    endEdit,
-    hasActiveEdit: () => Boolean(state.editing),""",
-        """    endEdit,
-    hasActiveEdit: () => Boolean(state.editing),
-    getFontInfo: hvdOriginalFontInfo,
-    ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,""",
-        "original PDF font API"
-    )
     # CIT caches web-renderable PDF font blobs by family + bold/italic.
     # When another PDF is loaded, that key may resolve to a DIFFERENT subset.
     # Clear only the per-document font cache to prevent cross-document glyphs.
@@ -298,6 +288,8 @@ if (typeof window !== 'undefined') {
   window.__HVD_CIT_TEXT_API = Object.freeze({
     endEdit,
     hasActiveEdit: () => Boolean(state.editing),
+    getFontInfo: hvdOriginalFontInfo,
+    ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,
     getAutoReflow: () => hvdAutoReflow,
     setAutoReflow: value => (hvdAutoReflow = Boolean(value)),
   });
