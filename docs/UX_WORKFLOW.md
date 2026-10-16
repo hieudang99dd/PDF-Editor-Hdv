@@ -102,3 +102,9 @@ Từng vòng phải cập nhật `IMPLEMENTATION_PROGRESS.md`. Nếu chưa có E
 - Thanh đầu: trái là tên tính năng; phải có “Làm mới”, “Danh mục công cụ”, Undo, Redo, Xuất trang chọn, Lưu tài liệu. Thanh thứ hai chỉ dành cho thao tác chọn/sắp xếp/biên tập trang.
 - Phần header thương hiệu tối dư thừa `#hvd-brandbar` trên màn hình Studio được ẩn; không xóa `NOTICE.md` hay các quyền tác giả trong nguồn. Studio vẫn giữ lệnh `#exitEditor` gốc trong thanh công cụ.
 - Kiểm thử: `tests/organizer-reset.test.cjs` (hủy/cho phép khi đang lưu), `tests/ux-browser.cjs` (PDF thật → thoát file → uploader → chọn PDF khác) và kiểm thử hồi quy các PDF bằng Node.
+
+
+### 7.1. Kiểm soát tác động của build Studio
+
+- `.github/workflows/cit-original-build.yml` chỉ tự kích hoạt khi tệp đầu vào chuyên biệt của Studio thay đổi (`scripts/cit-original/**`, kiểm thử CIT browser hoặc file lock upstream). Chỉnh sửa Organizer, trang chủ và engine browser **không** được tự biên dịch lại toàn bộ Studio và ghi đè thư mục `studio/` đang hoạt động.
+- Build Studio thủ công vẫn được hỗ trợ qua `workflow_dispatch`. Khi cần rebuild upstream, kiểm tra thay đổi giao diện đã cá nhân hóa và giấy phép trước khi ghi đè artifact.
