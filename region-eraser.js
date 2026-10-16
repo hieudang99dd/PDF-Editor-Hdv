@@ -125,6 +125,7 @@ async function reset(check=true,selectNew=false){
  state.galleryStart=0;state.operation='union';$('re-operation').value='union';
  $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
  dom.input.value='';dom.workspace.hidden=true;dom.upload.hidden=false;
+ document.body.classList.remove('re-workspace-open');
  dom.canvas.width=0;dom.canvas.height=0;dom.overlay.replaceChildren();dom.zones.replaceChildren();
  $('re-gallery-grid').replaceChildren();$('re-editor-view').hidden=true;$('re-gallery-panel').hidden=false;
  dom.filename.textContent='';status('Có thể mở PDF khác mà không cần quay về trang chủ.');
@@ -155,6 +156,7 @@ async function load(file){
   try{pdf=await loading.promise;}catch(error){await loading.destroy();throw error;}
   state.pdf=pdf;state.file=file;
   dom.upload.hidden=true;dom.workspace.hidden=false;
+  document.body.classList.add('re-workspace-open');
   dom.filename.textContent=file.name;
   dom.filesize.textContent=(file.size/1024/1024).toFixed(2)+' MB · '+pdf.numPages+' trang';
   dom.page.max=pdf.numPages;
@@ -170,6 +172,7 @@ async function load(file){
   state.file=null;
   await teardown();
   dom.workspace.hidden=true;dom.upload.hidden=false;
+  document.body.classList.remove('re-workspace-open');
  }finally{setBusy(false);}
 }
 // Memory-bounded storyboard: 24 page cards, lazy 150-pixel thumbnails,
