@@ -41,7 +41,7 @@ test('standalone UI opens Blob URLs and does not allocate full PDF on UI before 
  assert.match(s,/cappedPreviewScale\(/);
  assert.match(s,/eraseRegionsInWorker\(state\.file,pages/);
  assert.doesNotMatch(s,/await (?:state\.)?file\.arrayBuffer\(\)/);
- assert.match(client,/worker\.postMessage\(\{id:1,file:source,pages\}\)/);
+ assert.match(client,/worker\.postMessage\(\{id:1,file:source,pages,mode,allowInvalidSignatures\}\)/);
  assert.match(worker,/await file\.arrayBuffer\(\)/);
  assert.match(worker,/postMessage\(\{id,result:.*\},\[buffer\]\)/s);
  assert.match(native,/validateInputSize\(bytes\.byteLength\)/);
