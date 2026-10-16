@@ -1,6 +1,7 @@
 import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-all1';
 import {validateRegions} from './pdf-region-geometry.mjs';
 import {planRegionJobs} from './pdf-region-plan.mjs';
+import {moveRegionHandle} from './pdf-region-handles.mjs';
 import {MAX_INPUT_BYTES,LARGE_FILE_NOTICE_BYTES,PREVIEW_RANGE_CHUNK_BYTES,
   validateInputSize,cappedPreviewScale} from './pdf-region-limits.mjs?v=20261016-512mb1';
 
@@ -19,7 +20,8 @@ const state={
  renderToken:0,renderTask:null,busy:false,result:null,downloadUrls:new Set(),
  previewUrl:null,abortController:null,
  operation:'union',galleryStart:0,galleryGeneration:0,galleryObserver:null,
- reviewPdf:null,reviewUrl:null,reviewMode:false,exported:false
+ reviewPdf:null,reviewUrl:null,reviewMode:false,exported:false,
+ selectedZone:-1,editDrag:null
 };
 function status(message,type=''){
  dom.status.textContent=message;dom.status.className='re-status'+(type?' '+type:'');
@@ -123,6 +125,7 @@ async function reset(check=true,selectNew=false){
  await teardown();stopDrawing();clearResults();
  state.file=null;state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
  state.galleryStart=0;state.operation='union';$('re-operation').value='union';
+ state.selectedZone=-1;state.editDrag=null;
  $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
  dom.input.value='';dom.workspace.hidden=true;dom.upload.hidden=false;
  document.body.classList.remove('re-workspace-open');
@@ -143,6 +146,7 @@ async function load(file){
   await teardown();stopDrawing();clearResults();
   state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
   state.galleryStart=0;state.operation='union';$('re-operation').value='union';
+ state.selectedZone=-1;state.editDrag=null;
  $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
   if(!window.pdfjsLib)throw new Error('Không tải được trình xem PDF. Vui lòng tải lại trang.');
   // Let PDF.js fetch the Blob URL. Do not allocate a full-size File.arrayBuffer()
@@ -335,7 +339,8 @@ async function returnGallery(){
 async function showPage(index){
  if(!state.pdf||state.busy&&state.file===null)return;
  if(!Number.isInteger(index)||index<0||index>=state.pdf.numPages)return;
- state.pageIndex=index;stopDrawing();refreshZones();
+ state.pageIndex=index;state.editDrag=null;state.selectedZone=(state.regions.get(index)||[]).length?0:-1;
+ stopDrawing();refreshZones();
  dom.page.value=index+1;
  await renderPage();
 }
