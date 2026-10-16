@@ -257,6 +257,9 @@
     sync();
   }
 
+  // The page navigator must pass through the same commit validation as Export.
+  window.__HVD_COMMIT_BEFORE_PAGE_NAV = () => finishEditing(true);
+
   function init() {
     installLoadRecovery();
     const save = byId('save');
