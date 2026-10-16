@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Xóa vector theo vùng — PDF HVD</title>
+<meta name="description" content="Xóa thực đoạn vector PATH nằm trong một hoặc nhiều vùng chọn, giữ lại phần bên ngoài. Hoạt động độc lập với Chỉnh sửa PDF.">
+<link rel="stylesheet" href="region-eraser.css?v=20261016-1">
+</head>
+<body>
+<header class="re-topbar">
+ <a class="re-brand" href="./index.html" aria-label="Về trang chủ PDF HVD"><span class="re-mark">H</span><strong>PDF HVD</strong></a>
+ <div class="re-page-name"><span class="re-page-label">CÔNG CỤ ĐỘC LẬP</span><strong>✂ Xóa vector theo vùng</strong></div>
+ <div class="re-top-actions">
+  <button id="re-new" type="button" class="re-btn re-ghost">↻ Làm mới / Tệp mới</button>
+  <a href="./index.html" class="re-btn re-outline">← Tất cả công cụ</a>
+ </div>
+</header>
+<main id="re-app" class="re-app">
+ <section id="re-uploader" class="re-uploader">
+  <div class="re-hero-icon" aria-hidden="true">✂</div>
+  <p class="re-kicker">SMART REGION ERASER</p>
+  <h1>Xóa vector theo vùng tùy chọn</h1>
+  <p>Chọn một hoặc nhiều vùng cần xóa; giữ nguyên phần đường vector nằm bên ngoài. Hỗ trợ vùng trong cần bảo vệ, không dùng che trắng.</p>
+  <div id="re-dropzone" class="re-dropzone" role="button" tabindex="0" aria-label="Chọn tệp PDF">
+   <div class="re-drop-icon" aria-hidden="true">↑</div>
+   <strong>Kéo thả PDF vào đây</strong>
+   <span>hoặc nhấn để chọn tệp · tối đa 80 MB</span>
+   <button type="button" class="re-btn re-primary" id="re-pick">＋ Chọn PDF</button>
+  </div>
+  <input type="file" id="re-input" accept=".pdf,application/pdf" hidden>
+  <p class="re-note">Tài liệu được xử lý trong trình duyệt. Tệp gốc không bị thay đổi; khi hoàn thành sẽ xuất thành PDF mới.</p>
+ </section>
+ <section id="re-workspace" class="re-workspace" hidden>
+  <div class="re-workspace-header">
+   <div class="re-document"><span class="re-document-label">TÀI LIỆU ĐANG XỬ LÝ</span><strong id="re-filename"></strong><span id="re-filesize"></span></div>
+   <div class="re-doc-actions">
+    <button type="button" class="re-btn re-ghost" id="re-undo" disabled>↶ Hoàn tác</button>
+    <button type="button" class="re-btn re-ghost" id="re-redo" disabled>↷ Làm lại</button>
+    <button type="button" class="re-btn re-outline" id="re-replace">＋ Tệp khác</button>
+    <button type="button" class="re-btn re-primary" id="re-process" disabled>✂ Áp dụng &amp; xuất PDF</button>
+   </div>
+  </div>
+  <div class="re-columns">
+   <aside class="re-tools" aria-label="Tùy chọn vùng xóa">
+    <h2>01 · Kiểu vùng chọn</h2>
+    <label for="re-shape">Hình dạng</label>
+    <select id="re-shape"><option value="rect">Hình chữ nhật</option><option value="poly">Đa giác tự do</option></select>
+    <label for="re-role">Phép toán hình học</label>
+    <select id="re-role"><option value="erase">Xóa trong vùng</option><option value="protect">Giữ bên trong (vùng bảo vệ)</option></select>
+    <button type="button" id="re-draw" class="re-btn re-primary re-full">＋ Bắt đầu vẽ vùng</button>
+    <button type="button" id="re-finish" class="re-btn re-outline re-full" hidden>✓ Hoàn thành đa giác</button>
+    <p class="re-hint">Vẽ các vùng đỏ để xóa. Vùng xanh sẽ được loại trừ khỏi miền xóa, kể cả khi nằm giữa hai vùng.</p>
+    <div class="re-sep"></div>
+    <h2>02 · Vùng đã chọn</h2>
+    <div id="re-zones" class="re-zones"><p>Chưa có vùng nào.</p></div>
+    <button id="re-clear-page" type="button" class="re-btn re-ghost re-full">Xóa vùng của trang này</button>
+    <div class="re-sep"></div>
+    <h2>03 · Phạm vi xử lý</h2>
+    <p class="re-hint">Chỉ xóa thực PATH vector nét liền không tô kín. Văn bản, ảnh, hatch, Bézier và đường nét đứt không được giả xóa. Trang xoay hoặc path không hỗ trợ có thể khiến tác vụ bị từ chối.</p>
+    <a href="docs/REGION_ERASER.md" target="_blank" rel="noopener" class="re-doc-link">Đọc giới hạn thuật toán ↗</a>
+   </aside>
+   <section class="re-preview" aria-label="Xem trước tài liệu">
+    <div class="re-preview-toolbar">
+     <div class="re-paging"><button type="button" id="re-prev" aria-label="Trang trước">‹</button><label for="re-page">Trang</label><input id="re-page" type="number" min="1" value="1"><span id="re-total">/ 1</span><button type="button" id="re-next" aria-label="Trang sau">›</button></div>
+     <div class="re-view-actions"><button type="button" id="re-zoom-out" aria-label="Thu nhỏ">−</button><span id="re-zoom-label">100%</span><button type="button" id="re-zoom-in" aria-label="Phóng to">＋</button><button type="button" id="re-fit">Vừa trang</button></div>
+    </div>
+    <div id="re-viewport" class="re-viewport">
+     <div id="re-page-surface" class="re-page-surface">
+      <canvas id="re-canvas" aria-label="Nội dung trang PDF"></canvas>
+      <svg id="re-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="Vùng chọn xóa vector"></svg>
+     </div>
+    </div>
+    <div class="re-footer-info"><span id="re-page-info">Chọn vùng trực tiếp trên trang PDF.</span><span>PDF gốc · vùng đỏ: xóa · vùng xanh: giữ</span></div>
+   </section>
+  </div>
+  <section id="re-results" class="re-results" hidden>
+   <div><strong id="re-result-title">Đã xử lý</strong><p id="re-result-summary"></p></div>
+   <button type="button" class="re-btn re-primary" id="re-download">↓ Tải PDF kết quả</button>
+  </section>
+ </section>
+ <div id="re-status" class="re-status" role="status" aria-live="polite">Sẵn sàng chọn tài liệu.</div>
+</main>
+<script src="pdf.min.js"></script>
+<script>
+window.pdfjsLib=window.pdfjsLib||window['pdfjs-dist/build/pdf'];
+if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';
+</script>
+<script type="module" src="region-eraser.js?v=20261016-1"></script>
+</body>
+</html>
