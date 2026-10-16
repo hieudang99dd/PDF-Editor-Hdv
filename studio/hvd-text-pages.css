@@ -1,0 +1,91 @@
+/* PDF Đạo Chích — left page navigator only. Never overlay the PDF canvas. */
+#text-editor-app #main{min-width:0}
+#text-editor-app #stage{min-width:0}
+#text-editor-app #hvd-pages-rail{
+  display:flex;flex-direction:column;flex:0 0 194px;width:194px;
+  min-width:0;min-height:0;overflow:hidden;
+  background:#272a2f;border-right:1px solid #47505c;
+  color:#e7edf3;z-index:1;
+}
+#text-editor-app #hvd-pages-rail[hidden]{display:none!important}
+#text-editor-app #hvd-pages-rail .hvd-pages-head{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  flex-shrink:0;padding:11px 12px 8px;
+}
+#text-editor-app .hvd-pages-head strong{font-size:11px;letter-spacing:.085em;font-weight:750;color:#d1d8df}
+#text-editor-app .hvd-pages-close{
+  background:#3b414a;border:1px solid #58616d;border-radius:6px;color:#fff;
+  cursor:pointer;width:27px;height:27px;font-size:18px;line-height:1;
+}
+#text-editor-app .hvd-pages-jump{
+  display:grid;gap:8px;padding:2px 12px 12px;border-bottom:1px solid #444d57;
+  grid-template-columns:minmax(0,1fr) auto;align-items:end;flex-shrink:0;
+}
+#text-editor-app .hvd-pages-counter{grid-column:1 / -1;color:#82d7cf;font-size:11px}
+#text-editor-app .hvd-pages-jump label{
+  display:grid;gap:4px;font-size:11px;color:#c4cbd2;min-width:0;
+}
+#text-editor-app .hvd-pages-jump input{
+  width:100%;height:31px;min-width:0;background:#1c2026;border:1px solid #5a6470;
+  border-radius:6px;color:#fff;padding:4px 8px;font-size:12px;
+}
+#text-editor-app .hvd-pages-jump button{
+  height:31px;padding:0 10px;cursor:pointer;border-radius:6px;
+  color:#fff;background:#087f78;border:1px solid #15a79c;font-size:12px;font-weight:650;
+}
+#text-editor-app .hvd-pages-jump button:hover{background:#0a9a91}
+#text-editor-app .hvd-pages-list{
+  overflow-y:auto;overflow-x:hidden;flex:1;min-height:0;
+  padding:10px 12px 20px;scrollbar-width:thin;
+  scrollbar-color:#6b7582 transparent;overscroll-behavior:contain;
+}
+#text-editor-app .hvd-page-thumb{
+  display:flex;flex-direction:column;gap:5px;align-items:center;
+  width:100%;min-height:70px;overflow:hidden;padding:7px 8px;margin:0 0 9px;
+  border-radius:9px;background:transparent;border:2px solid transparent;
+  color:#c5cbd3;cursor:pointer;text-align:center;
+}
+#text-editor-app .hvd-page-thumb:hover{background:#3a4047;border-color:#5d6b78}
+#text-editor-app .hvd-page-thumb.hvd-current{
+  background:#163a3a;border-color:#22b1a3;color:#f4fffc;
+  box-shadow:inset 0 0 0 1px #116760;
+}
+#text-editor-app .hvd-thumb-preview{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;max-width:148px;min-height:83px;
+  background:#f2f4f6;border-radius:3px;overflow:hidden;
+  box-shadow:0 2px 7px #0007;
+}
+#text-editor-app .hvd-thumb-preview img{
+  display:block;width:auto;height:auto;max-width:100%;max-height:190px;object-fit:contain;
+}
+#text-editor-app .hvd-thumb-placeholder{
+  display:grid;place-items:center;color:#708090;background:#e0e4e8;
+  min-height:110px;width:100%;font-size:12px;
+}
+#text-editor-app .hvd-thumb-number{font-weight:650;font-size:11px}
+#text-editor-app #hvd-pages-toggle{
+  display:inline-flex;gap:4px;align-items:center;justify-content:center;
+  white-space:nowrap;font-weight:650;border:1px solid #5d6773;border-radius:6px;
+  background:#343b44;color:#e9f5f4;
+}
+#text-editor-app #hvd-pages-toggle.hvd-on{border-color:#20a69a;background:#125a55}
+#text-editor-app .hvd-page-thumb:focus-visible,
+#text-editor-app .hvd-pages-jump button:focus-visible,
+#text-editor-app .hvd-pages-jump input:focus-visible,
+#text-editor-app .hvd-pages-close:focus-visible{
+  outline:2px solid #76ead9;outline-offset:2px;
+}
+@media(max-width:1100px){
+  #text-editor-app #hvd-pages-rail{flex-basis:160px;width:160px}
+  #text-editor-app #hvd-pages-rail .hvd-pages-head{padding:9px 10px 7px}
+  #text-editor-app .hvd-pages-list{padding:9px 7px}
+}
+@media(max-width:690px){
+  #text-editor-app #hvd-pages-rail{
+    position:absolute;left:0;top:0;bottom:0;width:min(72vw,230px);
+    box-shadow:9px 0 32px #0009;z-index:15;
+  }
+  #text-editor-app #main{position:relative}
+  #text-editor-app #hvd-pages-toggle{font-size:11px;padding:6px}
+}
