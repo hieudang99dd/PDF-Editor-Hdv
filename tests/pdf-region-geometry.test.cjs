@@ -38,16 +38,21 @@ test('self crossing, missing erase and malformed points fail closed',async()=>{
  assert.throws(()=>validateRegions([{mode:'erase',points:[{x:0,y:0},{x:1,y:1},{x:0,y:1},{x:1,y:0}]}]),/giao nhau|diện tích/);
  assert.throws(()=>validateRegions([rect(-1,0,.4,.5)]),/ngoài trang/);
 });
-test('production Organizer serializes regions with Undo/Redo and performs true native erase before annotations',()=>{
- const js=fs.readFileSync(path.join(root,'organizer.js'),'utf8');
- const ui=fs.readFileSync(path.join(root,'pdf-region-ui.js'),'utf8');
+test('standalone eraser has independent route and no Organizer save/history coupling',()=>{
+ const organizer=fs.readFileSync(path.join(root,'organizer.js'),'utf8');
  const index=fs.readFileSync(path.join(root,'index.html'),'utf8');
- assert.match(js,/eraseRegions: p\.eraseRegions \? JSON\.parse\(JSON\.stringify\(p\.eraseRegions\)\) : \[\]/);
- assert.match(js,/eraseRegionsInWorker\(await finalDoc\.save\(\),regionJobs\)/);
- assert.ok(js.indexOf('eraseRegionsInWorker(')<js.indexOf('// Apply Rich Annotations'));
- assert.match(index,/pdf-region-ui\.js\?v=/);
- assert.match(ui,/id='po-tb-region'|id="po-tb-region"|launch\.id='po-tb-region'/);
- assert.match(ui,/po-region-overlay/);
- assert.doesNotMatch(ui,/drawRectangle|whiteout/);
- const vm=require('node:vm');new vm.Script(ui);
+ const html=fs.readFileSync(path.join(root,'region-eraser.html'),'utf8');
+ const ui=fs.readFileSync(path.join(root,'region-eraser.js'),'utf8');
+ const assertNo=src=>{assert.doesNotMatch(src,/eraseRegions|eraseRegionsInWorker|pdf-region-ui\.js|po-tb-region/);};
+ assertNo(organizer);
+ assert.doesNotMatch(index,/src="pdf-region-ui\.js/);
+ assert.match(index,/Xóa vector theo vùng/);
+ assert.match(index,/region-eraser-route/);
+ assert.match(index,/location\.href='\.\x2fregion-eraser\.html'/);
+ assert.match(html,/id="re-uploader"/);
+ assert.match(html,/id="re-overlay"/);
+ assert.match(html,/region-eraser\.js/);
+ assert.match(ui,/eraseRegionsInWorker\(bytes,pages\)/);
+ assert.match(ui,/validateRegions\(zones\)/);
+ assert.doesNotMatch(ui,/PDFOrganizer|initOrganizer|organizerInstance/);
 });
