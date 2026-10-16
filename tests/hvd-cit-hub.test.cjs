@@ -49,7 +49,7 @@ test('CIT Back to Tools opens HVD homepage while other native buttons work uncha
   };
   vm.createContext(context);vm.runInContext(source,context);
   assert.equal(context.document.body.dataset.hvdCitHub,'original');
-  assert.equal(span.textContent,'Trở về PDF HVD');
+  assert.equal(span.textContent,'Trở về PDF Đạo Chích');
   assert.equal(span.removed,'data-i18n');
   assert.equal(created['hvd-cit-home'].href,
     'https://hieudang99dd.github.io/PDF-Editor-Hdv/index.html');
