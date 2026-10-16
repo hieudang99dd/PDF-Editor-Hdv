@@ -4,6 +4,10 @@ on:
     branches: [master]
     paths:
       - 'tests/studio-startup-live.cjs'
+      - 'studio/hvd-text-apply.js'
+      - 'studio/hvd-text-apply.css'
+      - 'studio/sw.js'
+      - 'studio/edit-pdf-text.html'
       - '.github/workflows/studio-startup-live.yml'
   workflow_dispatch:
 permissions:
