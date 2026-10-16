@@ -13,7 +13,7 @@ test('512 MiB is accepted and 512 MiB plus one byte is refused without allocatio
  assert.equal(validateInputSize(80*1024*1024+1),80*1024*1024+1);
  assert.throws(()=>validateInputSize(MAX_INPUT_BYTES+1),/512 MiB/);
  assert.throws(()=>validateInputSize(0),/trống/);
- assert.throws(()=>validateInputSize(Number.MAX_VALUE),/512 MiB/);
+ assert.throws(()=>validateInputSize(Number.MAX_VALUE),/không hợp lệ/);
 });
 test('adaptive worker deadline grows with input and is capped; idle timeout differs',async()=>{
  const {recommendedWorkerDurationMs,WORKER_IDLE_TIMEOUT_MS,WORKER_MAX_DURATION_MS}=await limits();
