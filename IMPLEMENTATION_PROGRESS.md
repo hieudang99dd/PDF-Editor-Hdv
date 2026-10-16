@@ -383,3 +383,10 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Nghiệm thu qua `tests/studio-text-sync-browser.cjs`: mở PDF thật **4 trang**, đợi thumbnail đầu tiên thực sự là JPEG, bấm thumbnail trang 3 và xác thực PDFium/toolbar chuyển tới `3 / 4`, nhập số 1 trở về trang đầu, thử ẩn/hiện cột, tiếp tục sửa text + Áp dụng + Xuất; PyMuPDF xác nhận tất cả trang khác còn nguyên văn bản và kích thước. Static QA `tests/cit-page-sidebar.test.cjs` bảo vệ lazy rendering cho tài liệu 247 trang.
 - [CI build nguồn + Chromium + PyMuPDF](https://github.com/hieudang99dd/PDF-Editor1/actions/runs/38927270314) **PASS**, `# fail 0`; bundle đã đồng bộ lên master commit `891d5de178b9d199a2839a8fa334ed9108765239`. Mã nguồn thương hiệu, công cụ khác và giấy phép được giữ nguyên.
 - Giới hạn: thumbnails hiện là ảnh của tệp gốc tại thời điểm mở, không phải live preview của thay đổi text chưa xuất; kiểm thử thực tế trên bộ 247 trang của người dùng chưa có file mẫu, chỉ xác minh nguyên tắc lazy & giới hạn tài nguyên bằng regression. Các PDF mã hóa hoặc PDF.js không đọc được vẫn có số trang và điều hướng native.
+
+## 2026-10-16 — Đổi tên sản phẩm hiển thị thành PDF EDITOR
+
+- Theo yêu cầu, thay thương hiệu hiển thị “PDF Đạo Chích” và “PDF HVD” bằng **PDF EDITOR** ở trang chủ, trình sửa text, bộ công cụ PDF, màn hình khôi phục, SEO/tab title, manifest cài ứng dụng và thanh công cụ.
+- Đổi chữ trên biểu tượng nhãn hiệu từ “Đ” sang “P”; đổi phiên bản assets nhận diện `20261016-editor1` và Service Worker sang `pdf-editor-v14`, đồng thời xóa cache tên cũ khi kích hoạt.
+- Giữ URL đang phát hành `https://hieudang99dd.github.io/PDF-Editor1/`, không đổi tên repository, không thay đổi engine PDFium/cit-pdf, đường đi của tác vụ, `NOTICE.md` hoặc `LICENSE`.
+- Cập nhật smoke tests và CI mô phỏng sửa/xuất PDF để không hồi quy về thương hiệu trước. Các tài liệu nhật ký cũ có thể nhắc tên trước đây như ghi chép lịch sử.

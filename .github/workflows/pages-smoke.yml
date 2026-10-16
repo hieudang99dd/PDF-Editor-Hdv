@@ -1,4 +1,4 @@
-name: PDF Đạo Chích Pages smoke checks
+name: PDF EDITOR Pages smoke checks
 on:
   push:
     branches: [master]

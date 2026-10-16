@@ -25,7 +25,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout current PDF Đạo Chích
+      - name: Checkout current PDF EDITOR
         uses: actions/checkout@v4
         with:
           fetch-depth: 0

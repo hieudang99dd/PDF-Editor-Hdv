@@ -1,4 +1,4 @@
-name: PDF Đạo Chích Studio live asset probe
+name: PDF EDITOR Studio live asset probe
 on:
   push:
     branches: [master]

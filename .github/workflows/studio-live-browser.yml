@@ -1,4 +1,4 @@
-name: PDF Đạo Chích LIVE Text Editor Chromium
+name: PDF EDITOR LIVE Text Editor Chromium
 on:
   push:
     branches: [master]
@@ -73,8 +73,8 @@ jobs:
           with fitz.open(p) as doc:
               assert len(doc)==1, f'Unexpected page count: {len(doc)}'
               text='\n'.join(page.get_text() for page in doc)
-          assert 'PDF DAO CHICH EDITED' in text, 'New text missing from exported PDF: '+repr(text)
-          assert 'PDF DAO CHICH ORIGINAL' not in text, 'Old text still embedded: '+repr(text)
+          assert 'PDF EDITOR EDITED' in text, 'New text missing from exported PDF: '+repr(text)
+          assert 'PDF EDITOR ORIGINAL' not in text, 'Old text still embedded: '+repr(text)
           assert 'ANOTHER TEXT LINE' in text, 'Neighbor text was lost: '+repr(text)
           print('PASS PyMuPDF: actual edited glyphs, old glyphs absent, neighbor preserved')
           PY

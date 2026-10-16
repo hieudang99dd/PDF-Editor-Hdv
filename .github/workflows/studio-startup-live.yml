@@ -1,4 +1,4 @@
-name: PDF Đạo Chích Live Startup Diagnostic
+name: PDF EDITOR Live Startup Diagnostic
 on:
   push:
     branches: [master]
