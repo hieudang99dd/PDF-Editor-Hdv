@@ -29,6 +29,12 @@ function site(){
  });
 }
 
+async function vectorSample(){
+ const doc=await PDFLib.PDFDocument.create();const p=doc.addPage([600,400]);
+ p.drawLine({start:{x:30,y:200},end:{x:570,y:200},thickness:1,color:PDFLib.rgb(0,0,0)});
+ p.drawLine({start:{x:30,y:70},end:{x:570,y:70},thickness:1,color:PDFLib.rgb(0,0,0)});
+ return Buffer.from(await doc.save());
+}
 async function sample(label){
  const doc=await PDFLib.PDFDocument.create();
  const page=doc.addPage([595,842]);
@@ -125,6 +131,40 @@ async function sample(label){
    await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
    assert.equal(await page.locator('#po-meta-title').innerText(),'another-file');
    assert.ok(await page.locator('.po-header').isVisible());
+   // Native region deletion workflow: draw a delete zone, then create a
+   // protected inner zone, save, and prove exported output is a PDF.
+   await page.locator('#po-new-document').click();
+   await page.locator('#po-file-input').setInputFiles({
+    name:'cad-linework.pdf',mimeType:'application/pdf',buffer:await vectorSample()
+   });
+   await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
+   await page.locator('#po-tb-region').click();
+   await page.locator('#po-region-panel').waitFor({state:'visible'});
+   async function drawZone(x0,x1,role){
+     await page.locator('#po-region-role').selectOption(role);
+     await page.locator('#po-region-shape').selectOption('rect');
+     await page.locator('#po-region-arm').click();
+     const box=await page.locator('#po-region-overlay').boundingBox();
+     assert.ok(box&&box.width>100&&box.height>100,'region overlay must align with PDF preview');
+     await page.mouse.move(box.x+box.width*x0,box.y+box.height*.40);
+     await page.mouse.down();
+     await page.mouse.move(box.x+box.width*x1,box.y+box.height*.6,{steps:8});
+     await page.mouse.up();
+   }
+   await drawZone(.3,.7,'erase');
+   await drawZone(.43,.57,'protect');
+   assert.equal(await page.evaluate(()=>window.organizerInstance.pages[0].eraseRegions.length),2);
+   await page.locator('#po-save').click();
+   await page.locator('#po-save-mode').selectOption('download');
+   const nativeWait=page.waitForEvent('download',{timeout:120000});
+   await page.locator('#po-save-confirm').click();
+   const nativeFile=await nativeWait;
+   const nativePath=path.join('/tmp','hvd-region-'+process.pid+'.pdf');
+   await nativeFile.saveAs(nativePath);
+   const nativeBytes=fs.readFileSync(nativePath);fs.unlinkSync(nativePath);
+   assert.equal(nativeBytes.subarray(0,5).toString('ascii'),'%PDF-');
+   assert.equal((await PDFLib.PDFDocument.load(nativeBytes)).getPageCount(),1);
+   assert.ok(await page.locator('#po-ws').isVisible(),'native save must not exit feature');
    assert.deepEqual(failures,[],'No new browser JS errors');
    console.log('PASS: browser PDF download stays in task, organizer unload reset + cancel + reload, back-forward and mobile');
  }finally{
