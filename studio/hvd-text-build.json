@@ -4,7 +4,7 @@
   "commit": "3c9c138d980a417de7439f383f37882a1d730ab6",
   "base": "/PDF-Editor1/studio/",
   "vendor_tags": [
-    "<script type=\"module\" crossorigin src=\"/PDF-Editor1/studio/assets/edit-pdf-text-C_zmYNte.js\"></script>",
+    "<script type=\"module\" crossorigin src=\"/PDF-Editor1/studio/assets/edit-pdf-text-DzdluTrx.js\"></script>",
     "<link rel=\"modulepreload\" crossorigin href=\"/PDF-Editor1/studio/assets/lucide-CgaZ7H1x.js\">",
     "<link rel=\"modulepreload\" crossorigin href=\"/PDF-Editor1/studio/assets/main-DUjC_bSF.js\">",
     "<link rel=\"modulepreload\" crossorigin href=\"/PDF-Editor1/studio/assets/mobileMenu-7j8PZpA7.js\">",
@@ -133,14 +133,14 @@
       "size": 793
     },
     {
-      "path": "assets/app-BvJfpQev.js",
-      "sha256": "7ab9fa938e9715823f7482513dbea67163aceb5ad18b35b17427d813c133a7d5",
-      "size": 177985
+      "path": "assets/app-lCO5AlOd.js",
+      "sha256": "e1dca61d7c87e2c09cd518444d5b58706a494ecbbfa73634602cdc7852ce50a4",
+      "size": 178386
     },
     {
-      "path": "assets/app-BvJfpQev.js.br",
-      "sha256": "b212a04a540c354e648e0d7eaa9791a6505d4c93dcdc18a891f16488741501f7",
-      "size": 48360
+      "path": "assets/app-lCO5AlOd.js.br",
+      "sha256": "36333bb556b6c6d5d05b6e894fec217266aaa941f505d6a9a3ff32c965b694ff",
+      "size": 48525
     },
     {
       "path": "assets/arc-Fvm2aaBG.js",
@@ -893,14 +893,14 @@
       "size": 6636
     },
     {
-      "path": "assets/edit-pdf-text-C_zmYNte.js",
-      "sha256": "8a2e112fb5d4dc7aeeb7d478d77e21d1889702ad05116e7b90b6c2e0b28b01a4",
-      "size": 32137
+      "path": "assets/edit-pdf-text-DzdluTrx.js",
+      "sha256": "686ead7d507707113e31bb4bbb9cfe1b708ee110c9f940946d76bed2a879bd36",
+      "size": 33196
     },
     {
-      "path": "assets/edit-pdf-text-C_zmYNte.js.br",
-      "sha256": "245417dc77fcc3215047f3bfeb764e58dc3c28859949f09f5f3f3a80d92ba210",
-      "size": 9328
+      "path": "assets/edit-pdf-text-DzdluTrx.js.br",
+      "sha256": "025f23d7cbb4834f9b518a2bed28ff77b429289c71ce6673e03c9543e2fb6499",
+      "size": 9774
     },
     {
       "path": "assets/editcore-Uyyxl379.wasm",
