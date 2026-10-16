@@ -21,3 +21,13 @@ a{color:var(--orange2);text-decoration:none}a:hover{text-decoration:underline}[h
 @media(max-width:760px){.re-topbar{flex-wrap:wrap;gap:9px;align-items:center}.re-top-actions{width:100%}.re-top-actions .re-btn{flex:1}.re-page-name{flex:1}.re-columns{grid-template-columns:1fr}.re-tools{display:grid;grid-template-columns:1fr 1fr;gap:9px}.re-tools h2,.re-tools .re-sep,.re-tools .re-hint,.re-tools .re-zones,.re-tools .re-doc-link{grid-column:1/-1}.re-preview{min-height:480px}.re-viewport{min-height:320px;max-height:60vh;padding:12px}.re-workspace-header{padding:12px}.re-document{width:100%}.re-doc-actions{width:100%}.re-doc-actions .re-btn{flex:1}.re-results{flex-wrap:wrap}.re-results button{width:100%}}
 @media(max-width:430px){.re-tools{grid-template-columns:1fr}.re-paging,.re-view-actions{gap:5px}.re-preview-toolbar{justify-content:center}.re-app{padding:10px}.re-uploader{padding:27px 14px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important}}
+
+/* Large-file processing: cancellable progress independent from the PDF canvas. */
+.re-progress{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+ padding:11px 16px;margin:0 0 14px;border:1px solid var(--edge);
+ border-radius:11px;background:var(--panel2);color:var(--text)}
+.re-progress label{font-size:13px;font-weight:700;min-width:190px}
+.re-progress progress{height:13px;accent-color:var(--orange);flex:1 1 160px;min-width:120px}
+.re-progress span{font-size:12px;color:var(--muted)}
+#re-cancel{border-color:var(--red);color:#ffd2d2}
+@media(max-width:650px){.re-progress{gap:8px}.re-progress label{width:100%}}

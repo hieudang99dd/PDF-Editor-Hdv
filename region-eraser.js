@@ -1,5 +1,7 @@
-import {eraseRegionsInWorker} from './pdf-region-client.mjs';
+import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-512mb1';
 import {validateRegions} from './pdf-region-geometry.mjs';
+import {MAX_INPUT_BYTES,LARGE_FILE_NOTICE_BYTES,PREVIEW_RANGE_CHUNK_BYTES,
+  validateInputSize,cappedPreviewScale} from './pdf-region-limits.mjs?v=20261016-512mb1';
 
 const $=id=>document.getElementById(id);
 const dom={
@@ -13,7 +15,8 @@ const dom={
 const state={
  file:null,pdf:null,pageIndex:0,zoom:1,regions:new Map(),
  history:[],cursor:-1,drawing:false,start:null,vertices:[],shape:'rect',role:'erase',
- renderToken:0,renderTask:null,busy:false,result:null,downloadUrls:new Set()
+ renderToken:0,renderTask:null,busy:false,result:null,downloadUrls:new Set(),
+ previewUrl:null,abortController:null
 };
 function status(message,type=''){
  dom.status.textContent=message;dom.status.className='re-status'+(type?' '+type:'');
@@ -54,6 +57,7 @@ function updateControls(){
  $('re-new').disabled=state.busy;
  $('re-shape').disabled=state.busy;
  $('re-role').disabled=state.busy;
+ $('re-cancel').hidden=!state.abortController;
 }
 function setBusy(value){state.busy=value;updateControls();$('re-finish').disabled=value;}
 function clearResults(){
@@ -64,6 +68,7 @@ async function teardown(){
  state.renderToken++;
  if(state.renderTask){try{state.renderTask.cancel();await state.renderTask.promise;}catch(_){}state.renderTask=null;}
  if(state.pdf){try{await state.pdf.destroy();}catch(_){}state.pdf=null;}
+ if(state.previewUrl){URL.revokeObjectURL(state.previewUrl);state.previewUrl=null;}
 }
 async function reset(check=true,selectNew=false){
  if(state.busy){status('Đang xử lý. Hãy chờ trước khi thay tài liệu.','error');return;}
@@ -79,15 +84,21 @@ async function load(file){
  if(state.busy)return;
  if(!file)return;
  if(!(/\.pdf$/i.test(file.name)||file.type==='application/pdf')){status('Chỉ hỗ trợ tài liệu PDF.','error');return;}
- if(file.size===0||file.size>80*1024*1024){status('PDF không hợp lệ hoặc vượt 80 MB.','error');return;}
+ try{validateInputSize(file.size);}catch(e){status(e.message,'error');return;}
+ if(file.size>=LARGE_FILE_NOTICE_BYTES && !confirm('PDF lớn từ 256 MiB có thể tiêu thụ nhiều RAM. Tiếp tục mở tệp '+(file.size/1024/1024).toFixed(1)+' MiB?'))return;
  if(state.file&&(countRegions()>0||state.result)&&!confirm('Thay PDF hiện tại? Vùng chọn và kết quả chưa tải sẽ bị bỏ.'))return;
  setBusy(true);
  try{
   await teardown();stopDrawing();clearResults();
   state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
-  const bytes=new Uint8Array(await file.arrayBuffer());
   if(!window.pdfjsLib)throw new Error('Không tải được trình xem PDF. Vui lòng tải lại trang.');
-  const loading=window.pdfjsLib.getDocument({data:bytes});
+  // Let PDF.js fetch the Blob URL. Do not allocate a full-size File.arrayBuffer()
+  // on the main UI thread just to preview the first page.
+  state.previewUrl=URL.createObjectURL(file);
+  const loading=window.pdfjsLib.getDocument({
+    url:state.previewUrl,rangeChunkSize:PREVIEW_RANGE_CHUNK_BYTES,
+    disableAutoFetch:true
+  });
   let pdf;
   try{pdf=await loading.promise;}catch(error){await loading.destroy();throw error;}
   state.pdf=pdf;state.file=file;
@@ -189,9 +200,12 @@ async function renderPage(){
  const box=page.getViewport({scale:1});
  const available=Math.max(200,dom.viewport.clientWidth-60);
  const fit=Math.min(1.8,available/box.width);
- const scale=Math.max(.1,fit*state.zoom);
- const view=page.getViewport({scale});
  const dpr=Math.min(2,window.devicePixelRatio||1);
+ const desiredScale=Math.max(.1,fit*state.zoom);
+ // Limit PDF.js canvas to <=16 megapixels, including devicePixelRatio;
+ // very large CAD sheets must not allocate hundreds of MiB just to preview.
+ const scale=cappedPreviewScale(box.width,box.height,desiredScale,dpr);
+ const view=page.getViewport({scale});
  dom.canvas.width=Math.round(view.width*dpr);dom.canvas.height=Math.round(view.height*dpr);
  dom.canvas.style.width=view.width+'px';dom.canvas.style.height=view.height+'px';
  dom.surface.style.width=view.width+'px';dom.surface.style.height=view.height+'px';
@@ -203,7 +217,7 @@ async function renderPage(){
  }
  if(state.renderTask===render)state.renderTask=null;
  if(token!==state.renderToken)return;
- $('re-zoom-label').textContent=Math.round(state.zoom*100)+'%';
+ $('re-zoom-label').textContent=Math.round(state.zoom*100)+'%'+(scale<desiredScale-.0001?' · giới hạn RAM':'');
  drawRegions();refreshZones();
 }
 function havePending(){
@@ -218,11 +232,37 @@ async function apply(){
   if(!zones.some(z=>z.mode==='erase')){status('Trang '+(pageIndex+1)+' có vùng bảo vệ nhưng không có vùng xóa.','error');return;}
   try{validateRegions(zones);}catch(e){status('Trang '+(pageIndex+1)+': '+e.message,'error');return;}
  }
+ const controller=new AbortController();
+ state.abortController=controller;
  setBusy(true);
- status('Đang cắt vector trực tiếp bằng PDFium. Giữ nguyên công cụ cho đến khi hoàn thành.');
+ $('re-progress').hidden=false;
+ $('re-progress-bar').value=0;
+ $('re-progress-label').textContent='Chuẩn bị PDFium...';
+ $('re-progress-note').textContent='Xử lý trong Worker; file gốc giữ nguyên.';
+ status('Đang xử lý trong PDFium Worker. Có thể Hủy nếu cần.');
  try{
-  const bytes=new Uint8Array(await state.file.arrayBuffer());
-  const result=await eraseRegionsInWorker(bytes,pages);
+  // Transfer a File reference; the Worker reads it into its own memory.
+  // No File.arrayBuffer() or Uint8Array.slice() in the main UI save path.
+  const result=await eraseRegionsInWorker(state.file,pages,{
+   signal:controller.signal,
+   onProgress:info=>{
+    const total=Math.max(1,info.totalPages||pages.length);
+    const done=Math.min(total,info.completedPages||0);
+    const percentage=info.stage==='done'?100:Math.min(97,Math.round((done/total)*95));
+    $('re-progress-bar').value=percentage;
+    const labels={
+     reading:'Đang đọc tệp PDF lớn',initializing:'Đang khởi tạo PDFium',
+     opened:'Đã mở PDF', 'page-start':'Đang xử lý trang '+((info.pageIndex||0)+1),
+     objects:'Đang duyệt đối tượng · trang '+((info.pageIndex||0)+1),
+     'page-done':'Đã xử lý '+done+'/'+total+' trang',saving:'Đang xuất PDF',
+     done:'Hoàn tất'
+    };
+    $('re-progress-label').textContent=labels[info.stage]||'Đang xử lý';
+    $('re-progress-note').textContent=info.stage==='objects'?
+      (info.objectsProcessed||0)+' / '+(info.objectCount||0)+' đối tượng của trang':
+      done+' / '+total+' trang yêu cầu cắt';
+   }
+  });
   if(!result?.bytes?.length)throw new Error('Không nhận được PDF kết quả.');
   state.result=result;
   $('re-result-title').textContent='PDF đã được xử lý · vùng đã cắt thật';
@@ -231,7 +271,11 @@ async function apply(){
   dom.results.scrollIntoView({behavior:'smooth',block:'nearest'});
   status('Xử lý thành công. Bấm Tải PDF kết quả để lưu mà không rời công cụ.','success');
  }catch(error){invalidateResult();status('Không thể xóa an toàn: '+(error.message||String(error)),'error');}
- finally{setBusy(false);}
+ finally{
+  state.abortController=null;
+  $('re-progress').hidden=true;
+  setBusy(false);
+ }
 }
 function download(){
  if(!state.result||!state.file)return;
@@ -296,6 +340,7 @@ function wire(){
  $('re-fit').addEventListener('click',()=>{state.zoom=1;renderPage();updateControls();});
  dom.process.addEventListener('click',apply);
  $('re-download').addEventListener('click',download);
+ $('re-cancel').addEventListener('click',()=>state.abortController?.abort());
  window.addEventListener('beforeunload',e=>{if(havePending()){e.preventDefault();e.returnValue='';}});
 }
 wire();updateControls();

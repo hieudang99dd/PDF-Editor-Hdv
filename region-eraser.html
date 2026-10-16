@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>Xóa vector theo vùng — PDF HVD</title>
 <meta name="description" content="Xóa thực đoạn vector PATH nằm trong một hoặc nhiều vùng chọn, giữ lại phần bên ngoài. Hoạt động độc lập với Chỉnh sửa PDF.">
-<link rel="stylesheet" href="region-eraser.css?v=20261016-1">
+<link rel="stylesheet" href="region-eraser.css?v=20261016-512mb1">
 </head>
 <body>
 <header class="re-topbar">
@@ -26,11 +26,11 @@
   <div id="re-dropzone" class="re-dropzone" role="button" tabindex="0" aria-label="Chọn tệp PDF">
    <div class="re-drop-icon" aria-hidden="true">↑</div>
    <strong>Kéo thả PDF vào đây</strong>
-   <span>hoặc nhấn để chọn tệp · tối đa 80 MB</span>
+   <span>hoặc nhấn để chọn tệp · tối đa 512 MiB</span>
    <button type="button" class="re-btn re-primary" id="re-pick">＋ Chọn PDF</button>
   </div>
   <input type="file" id="re-input" accept=".pdf,application/pdf" hidden>
-  <p class="re-note">Tài liệu được xử lý trong trình duyệt. Tệp gốc không bị thay đổi; khi hoàn thành sẽ xuất thành PDF mới.</p>
+  <p class="re-note">Tài liệu được xử lý trong trình duyệt, không tải lên máy chủ. Với PDF từ 256 MiB, cần thiết bị có đủ RAM. Tệp gốc không bị thay đổi.</p>
  </section>
  <section id="re-workspace" class="re-workspace" hidden>
   <div class="re-workspace-header">
@@ -40,7 +40,13 @@
     <button type="button" class="re-btn re-ghost" id="re-redo" disabled>↷ Làm lại</button>
     <button type="button" class="re-btn re-outline" id="re-replace">＋ Tệp khác</button>
     <button type="button" class="re-btn re-primary" id="re-process" disabled>✂ Áp dụng &amp; xuất PDF</button>
+    <button type="button" class="re-btn re-outline" id="re-cancel" hidden>✕ Hủy xử lý</button>
    </div>
+  </div>
+  <div class="re-progress" id="re-progress" role="status" aria-live="polite" hidden>
+   <label for="re-progress-bar" id="re-progress-label">Chuẩn bị PDFium...</label>
+   <progress id="re-progress-bar" value="0" max="100"></progress>
+   <span id="re-progress-note">Tệp lớn có thể cần vài phút và nhiều bộ nhớ.</span>
   </div>
   <div class="re-columns">
    <aside class="re-tools" aria-label="Tùy chọn vùng xóa">
@@ -87,6 +93,6 @@
 window.pdfjsLib=window.pdfjsLib||window['pdfjs-dist/build/pdf'];
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';
 </script>
-<script type="module" src="region-eraser.js?v=20261016-1"></script>
+<script type="module" src="region-eraser.js?v=20261016-512mb1"></script>
 </body>
 </html>

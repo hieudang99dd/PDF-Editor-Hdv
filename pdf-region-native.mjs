@@ -5,9 +5,9 @@
 // geometrically intersects a deletion region but cannot safely be reconstructed).
 import {PdfEngine} from './vendor/cit-pdf/editcore/core.js';
 import {validateRegions, normalizedToUser, keepSegment} from './pdf-region-geometry.mjs';
+import {validateInputSize} from './pdf-region-limits.mjs?v=20261016-512mb1';
 const readF=(M,p,i=0)=>M.HEAPF32[(p+i*4)>>2];
 const writeF=(M,p,i,value)=>{M.HEAPF32[(p+i*4)>>2]=value};
-const LIMIT_BYTES=80*1024*1024;
 const LIM_FRAGMENTS=20000;
 const segDist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const transform=(m,p)=>({x:m[0]*p.x+m[2]*p.y+m[4],y:m[1]*p.x+m[3]*p.y+m[5]});
@@ -94,25 +94,34 @@ function signed(bytes){
  outer:for(let i=0;i<=bytes.length-marker.length;i++){if(bytes[i]!==47)continue;for(let j=1;j<marker.length;j++)if(bytes[i+j]!==marker[j])continue outer;return true;}
  return false;
 }
-export async function erasePdfRegions(source,pageRequests){
+export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}){
  const bytes=source instanceof Uint8Array?source:new Uint8Array(source);
- if(!bytes.length||bytes.length>LIMIT_BYTES)throw Error('Tệp vượt giới hạn xử lý vùng 80 MB.');
+ validateInputSize(bytes.byteLength);
  if(signed(bytes))throw Error('PDF có chữ ký số. Xóa vector sẽ làm mất hiệu lực chữ ký.');
  if(!Array.isArray(pageRequests)||pageRequests.length<1||pageRequests.length>500)
   throw Error('Danh sách trang cần xóa không hợp lệ.');
+ const emit=(stage,detail={})=>{try{onProgress({stage,...detail});}catch(_){/* Reporting cannot modify PDF processing. */}};
+ emit('initializing',{totalPages:pageRequests.length,bytes:bytes.byteLength});
  const engine=await PdfEngine.create();
  const report={changedObjects:0,newFragments:0,removedSegments:0,skippedNonVector:0,pages:[]};
  try{
-  engine.open(bytes);
+  try{engine.open(bytes);}
+  catch(error){
+   if(/memory|alloc|out of bounds|maximum memory|unreachable|abort/i.test(String(error)))
+    throw Error('Thiếu bộ nhớ để mở PDF lớn trong PDFium. Hãy đóng tab khác hoặc xử lý trên máy có nhiều RAM hơn.');
+   throw error;
+  }
+  emit('opened',{totalPages:pageRequests.length});
   if(engine.security?.encrypted)throw Error('Không xử lý vùng đối với PDF mã hóa.');
   const seen=new Set();
-  for(const req of pageRequests){
+  for(const [jobIndex,req] of pageRequests.entries()){
    const pageIndex=req.pageIndex;
    if(!Number.isInteger(pageIndex)||pageIndex<0||pageIndex>=engine.pageCount||seen.has(pageIndex))
     throw Error('Chỉ số trang/vùng xóa không hợp lệ.');
    seen.add(pageIndex);
    const raw=validateRegions(req.regions);
    engine.loadPage(pageIndex);
+   emit('page-start',{pageIndex,completedPages:jobIndex,totalPages:pageRequests.length});
    if(engine.M._FPDFPage_GetRotation(engine.page)!==0)
     throw Error('Trang '+(pageIndex+1)+' đang xoay bằng /Rotate. Hãy chuẩn hóa trang trước khi xóa vector theo vùng.');
    const regions=normalizedToUser(raw,engine),b=zoneBounds(regions);
@@ -121,7 +130,10 @@ export async function erasePdfRegions(source,pageRequests){
    try{
     // Decreasing order preserves indices outside the region. Each change removes
     // the original object before inserting fragments at its original Z index.
-    for(let i=engine.objectCount()-1;i>=0;i--){
+    const totalObjects=engine.objectCount();
+    for(let i=totalObjects-1;i>=0;i--){
+     if((totalObjects-i)%500===0)emit('objects',{pageIndex,objectsProcessed:totalObjects-i,objectCount:totalObjects,
+       completedPages:jobIndex,totalPages:pageRequests.length});
      const obj=engine.objectAt(i);
      if(!obj)continue;
      const rect=objectRect(engine,obj.handle);
@@ -164,10 +176,20 @@ export async function erasePdfRegions(source,pageRequests){
     if(!engine.generateContent())throw Error('PDFium không tạo lại được nội dung trang sau xóa.');
    }
    report.pages.push({pageIndex,changedObjects:changed,skippedNonVector:skipped});
+   emit('page-done',{pageIndex,completedPages:jobIndex+1,totalPages:pageRequests.length,
+       changedObjects:report.changedObjects,newFragments:report.newFragments});
   }
   if(!report.changedObjects)throw Error('Không có đường vector nét liền hỗ trợ giao với vùng xóa. Không tạo tệp giả.');
-  const out=engine.save({incremental:false});
+  emit('saving',{completedPages:pageRequests.length,totalPages:pageRequests.length});
+  let out;
+  try{out=engine.save({incremental:false});}
+  catch(error){
+   if(/memory|alloc|out of bounds|maximum memory|unreachable|abort/i.test(String(error)))
+    throw Error('Không đủ bộ nhớ để xuất PDF lớn. Tài liệu gốc vẫn được giữ nguyên.');
+   throw error;
+  }
   if(!out||out.length<20)throw Error('PDFium chưa lưu được kết quả.');
+  emit('done',{completedPages:pageRequests.length,totalPages:pageRequests.length});
   return {bytes:out,report};
  }finally{engine.close();}
 }
