@@ -10,6 +10,9 @@ on:
       - 'tests/text-editor-asset-paths.cjs'
       - 'studio/hvd-text-apply.js'
       - 'studio/hvd-text-apply.css'
+      - 'studio/hvd-text-pages.js'
+      - 'studio/hvd-text-pages.css'
+      - 'tests/cit-page-sidebar.test.cjs'
       - '.github/workflows/cit-original-build.yml'
   workflow_dispatch:
 permissions:
