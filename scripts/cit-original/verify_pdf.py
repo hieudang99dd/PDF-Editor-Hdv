@@ -10,7 +10,13 @@ import fitz
 
 source, target = (pathlib.Path(p) for p in sys.argv[1:3])
 with fitz.open(source) as old_doc, fitz.open(target) as new_doc:
-    assert len(new_doc) == len(old_doc) == 1, "PDF page count changed"
+    assert len(new_doc) == len(old_doc) and len(old_doc) >= 1, "PDF page count changed"
+    # Multi-page sidebar navigation must not remove or rewrite unrelated pages.
+    for page_index in range(1, len(old_doc)):
+        before, after = old_doc[page_index], new_doc[page_index]
+        assert before.get_text() == after.get_text(), f"Other page {page_index + 1} changed text"
+        assert abs(before.rect.width - after.rect.width) < 0.1
+        assert abs(before.rect.height - after.rect.height) < 0.1
     old, new = old_doc[0], new_doc[0]
     original = old.get_text()
     rewritten = new.get_text()
