@@ -103,3 +103,29 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - Timeout hoạt động: watchdog **8 phút không có tín hiệu**, timeout tổng thích ứng theo dung lượng/trang và chặn tối đa **30 phút**. Khi Worker lỗi, hủy hoặc quá thời gian, file nguồn giữ nguyên.
 - Đầu ra PDF trong bộ nhớ vẫn là một `Uint8Array` cho tới lúc tải; trình duyệt có thể tiêu thụ nhiều RAM hơn kích thước tệp nguồn vì WASM, render, buffers và kết quả.
 - QA: `tests/pdf-region-512mb.test.cjs` kiểm tra giới hạn 512 MiB không cấp phát tệp giả khổng lồ, thời gian và giới hạn canvas. `tests/pdf-region-large.test.cjs` tạo PDF thật có luồng dữ liệu >80 MiB, chạy vector surgery và xác nhận PDF có thể đọc lại. Đây chưa phải nghiệm thu 512 MiB thực tế; cần kiểm thử trên máy 8/16/32GB RAM và hồ sơ CAD A0/A1 với ảnh/XObject/hatch phức tạp trước khi công bố chứng nhận hiệu năng.
+
+
+## 11. Dàn trang, phép vùng, phạm vi trang và xem đầu ra thực (2026-10-16)
+
+### Các phép xóa
+
+- **Hợp vùng (Union):** hợp tất cả vùng đỏ để xóa cùng lúc, giữ nguyên phần nằm ngoài. Có thể thêm các vùng xanh `protect` để bảo vệ các phần nằm trong.
+- **Giữa hai đường bao (A \\ B):** vẽ đúng hai vùng đỏ: vùng ngoài trước, vùng trong sau; vùng trong bắt buộc được bao hoàn toàn, không chạm/cắt biên ngoài. Chỉ xóa dải giữa hai đường bao.
+- **Giao hai vùng (Intersection):** vẽ hai vùng đỏ có phần chồng lên nhau; chỉ phần giao có diện tích dương bị xóa. Vùng rời nhau/chỉ chạm cạnh phải báo lỗi.
+- Trong `pdf-region-geometry.mjs`, nghiệm giao cạnh vẫn chia đoạn theo t. Giữa/Giao thay điều kiện xóa trung điểm, `pdf-region-native.mjs` nhận `req.operation` và giữ các PATH ở ngoài.
+
+### Quy trình người dùng
+
+1. Mở PDF; dàn trang hiển thị các ô trang, theo nhóm 24, thumbnails PDF.js chỉ render khi ô hiển thị.
+2. Nhấp vào bất kỳ trang nào → mở cửa sổ biên tập phóng to, chọn chữ nhật/đa giác và phép xóa.
+3. Chọn **Các trang có vùng đã vẽ** hoặc **Áp dụng vùng của trang đang mở cho khoảng Từ–Đến**. Khoảng Từ–Đến tính 1-based, inclusive. Cảnh báo chỉ sao chép cùng tọa độ chuẩn hóa, không tự nhận dạng đối tượng tương ứng giữa các trang.
+4. Nhấn **Áp dụng & xuất PDF**: worker PDFium cắt đối tượng thật, trả tệp PDF mới; PDF.js mở chính PDF đó ngay trong không gian biên tập. Giao diện mặc định hiển thị **Sau xử lý**.
+5. Nút **Bản gốc / Sau xử lý** chuyển giữa hai PDF thật; overlay vùng chỉ hiển thị trên bản gốc, không giả làm kết quả. Người dùng kiểm tra rồi tải PDF bằng nút riêng.
+6. Dữ liệu đầu ra giữ ở dạng `Blob` để xem/tải; URL blob cùng PDF.js document được giải phóng khi thay vùng, làm mới hoặc thay PDF.
+
+### Giới hạn
+
+- Tối đa 24 thumbnails tồn tại đồng thời trong dàn trang; dàn trang 500–1000 trang không cố dựng mọi preview ngay.
+- Tối đa 500 trang trong một lần xử lý range; nếu nhiều hơn cần chia thành các lượt.
+- Các phép xóa vẫn chỉ hỗ trợ PATH stroke-only MoveTo/LineTo (chưa xóa chữ, ảnh, hatch, Bézier). Với một phần giao, chỉ cắt path ngoài vùng không bị xóa.
+- Kiểm tra `tests/pdf-region-boolean-gallery.test.cjs` và Chromium E2E. PDF 512 MiB vẫn có thể thiếu RAM trên máy nhỏ.
