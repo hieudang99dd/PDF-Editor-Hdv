@@ -11,6 +11,7 @@ const css = fs.readFileSync(path.join(root,'studio/hvd-text-apply.css'),'utf8');
 test('original PDF fonts are inspected from CIT/PDFium runs without hard-coded style replacement',()=>{
   for(const marker of ['hvdOriginalFontInfo', 'hvdEnsureSelectedOriginalFont',
     'getFontInfo: hvdOriginalFontInfo', 'ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont',
+    'loadSelectedSystemFont: hvdLoadSelectedSystemFont',
     '  let r = fontInfo && p?.runs?.[fontInfo.runIndex]', 'docFontsReady.get',
     'docFontsNull.has', 'run.family', 'run.size', 'run.bold', 'run.italic']) {
     assert.ok(source.includes(marker), 'Missing native PDF font binding: '+marker);
