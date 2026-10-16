@@ -24,6 +24,7 @@ Bộ công cụ PDF HVD: sửa văn bản gốc, biên tập trang, chuyển đ�
 - [Kiểm kê tính năng gốc](CIT-FEATURE-PORTING-MATRIX.md) — bảng đối chiếu lịch sử, không phải cam kết tính năng đã hoạt động.
 - [Tiến độ và thay đổi](IMPLEMENTATION_PROGRESS.md).
 - [Sổ tay cấu trúc và chính sách dọn dẹp](docs/REPOSITORY_MAP.md).
+- [Đặc tả UX: Làm mới, Tệp khác, Back/Forward, Tải xuống không thoát tác vụ](docs/UX_WORKFLOW.md).
 - [Thông tin nguồn/giấy phép](NOTICE.md).
 - [Engine Office/OCR cục bộ](backend/README.md).
 

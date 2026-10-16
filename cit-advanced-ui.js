@@ -107,7 +107,7 @@
     }else{
       const p=document.createElement('p');p.textContent=result.note||'Hoàn tất';wrap.append(p);
       const blob=new Blob([result.bytes],{type:result.mime||'application/pdf'});
-      const url=URL.createObjectURL(blob);
+      const url=window.hvdTrackDownloadUrl?.(blob)||URL.createObjectURL(blob);
       const link=document.createElement('a');link.className='btn';
       link.textContent='Tải PDF kết quả';link.download=result.filename;link.href=url;
       link.addEventListener('click',()=>setTimeout(()=>URL.revokeObjectURL(url),120000),{once:true});
@@ -121,6 +121,7 @@
     if(!out||!button||!files.length)return;
     if((action==='interleave'||action==='overlay')&&files.length!==2){toast('Chọn đúng 2 tệp PDF');return;}
     button.disabled=true;
+    window.hvdReleaseWorkspaceDownloads?.();
     out.replaceChildren();
     const status=document.createElement('p');
     status.textContent='Đang xử lý trong trình duyệt (không tải file lên máy chủ)…';

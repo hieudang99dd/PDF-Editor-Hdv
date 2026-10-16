@@ -188,3 +188,13 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Tạo `README.md` (điểm vào duy nhất cho người mới) và `docs/REPOSITORY_MAP.md` (mô hình folder/cleanup). Điều chỉnh `.gitignore`, cập nhật skill agent về kiến trúc Hybrid để tránh sửa nhầm production artifact.
 - Không sửa code thuật toán, PDFium, `organizer.js`, `text-editor.html`, frontend Vite đã build, backend hoặc `vendor/` trong lần dọn dẹp này.
 - QA: test Node toàn repo qua GitHub Actions và kiểm tra link/route/syntax; kiểm thử trên GitHub Pages và CAD A0/A1 cần thực hiện riêng. Không xem smoke test là chứng minh tính tương đương giao diện đã triển khai.
+
+
+## 2026-10-16 — UX Workflow (in-place output, refresh, Back/Forward)
+
+- Tạo đặc tả `docs/UX_WORKFLOW.md`: vòng đời tác vụ EMPTY → READY → PROCESSING → RESULT/ERROR, các hành động Reset/New File/Back/Download, kiểm soát unsaved và cách nghiệm thu browser.
+- `index.html`: workspace có nút Danh mục công cụ, Làm mới tác vụ (giữ file), Tệp khác (không thoát công cụ); header refresh không còn reload nguyên trang. Route `#hvd-tool=N` hỗ trợ Back/Forward; trong cùng phiên, giữ file khi forward lại đúng tool. Không lưu dữ liệu PDF vào browser storage.
+- `index.html`, `pdf-local-tools.js`, `cit-advanced-ui.js`: kết quả download ở nguyên tool; theo dõi và thu hồi Blob URL sau 120 giây khi không còn hiển thị, không thu hồi tức thời khiến tải file lớn lỗi. Trước khi rời khi kết quả chưa được yêu cầu tải có cảnh báo.
+- `pdfium-preflight.html`: Làm mới báo cáo vẫn giữ file, Tệp khác không điều hướng. `hvd-ui-v2.css`: nút refresh có thể sử dụng trên mobile; theme ghi preference không nhạy cảm.
+- **Không thay** các engine/JS minified `studio/`, `organizer.js`, native text worker hoặc API save. `#save` và `#exitEditor` Studio cần E2E riêng trước khi cải tổ sâu.
+- `tests/ux-session.test.cjs`: hồi quy các trạng thái, in-place downloads, refresh, history; GitHub Actions pages-smoke để nghiệm thu tĩnh. Kiểm thử Chrome/Edge + PDF kỹ thuật thực tế vẫn là hạng mục tiếp theo.

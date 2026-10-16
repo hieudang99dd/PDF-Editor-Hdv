@@ -1,0 +1,90 @@
+# PDF HVD — Đặc tả kỹ thuật cải tổ trải nghiệm người dùng (UX Workflow v1)
+
+**Ngày:** 2026-10-16  
+**Phạm vi thực thi v1:** danh mục và công cụ browser trong `index.html`; PDFium Preflight; quản lý kết quả từ browser/local engine/CIT advanced. Các hành vi native Studio và organizer phải giữ API gốc và có kế hoạch E2E trước khi can thiệp sâu.
+
+## 1. Nguyên tắc trải nghiệm bắt buộc
+
+1. **Sau khi tải xuống hoặc lưu:** không tự chuyển về trang chủ, không xóa tài liệu và không reset tùy chọn. Ở nguyên công cụ; có thể tải lại hoặc thay tham số rồi chạy lại.
+2. **Làm mới tác vụ:** giữ tệp đã chọn, xóa kết quả đang hiển thị, khôi phục form về mặc định; phải xác nhận nếu có dữ liệu/tùy chọn đang nhập. Không gọi `location.reload()`.
+3. **Tệp khác:** xóa danh sách tệp và kết quả, nhưng không thay đổi công cụ, route hoặc danh mục. Có xác nhận nếu đã nạp dữ liệu.
+4. **Danh mục công cụ:** chủ động quay về trang chủ. Nếu đã tạo kết quả mà chưa bấm tải thì cảnh báo trước khi rời.
+5. **Back/Forward trình duyệt:** công cụ browser dùng `history.pushState` + `#hvd-tool=N`, khi Back về danh mục, Forward mở lại cùng công cụ. Trong cùng phiên và với cùng công cụ, file `File` đang ở RAM có thể được giữ khi Forward. Sau F5 / đóng tab **không giữ file gốc** và cần người dùng chọn lại; tuyệt đối không ghi PDF vào `localStorage`, `sessionStorage`.
+6. **Lỗi xử lý:** thông báo ngay trong công cụ; nút thực hiện được mở lại để thử lại. Lỗi không tự quay về danh mục.
+7. **Tiến trình và trạng thái:** một tác vụ cần có trạng thái rõ ràng: chưa có file, đã chọn file, đang xử lý, đã có kết quả, lỗi. Khi đang xử lý, nút làm mới/thoát thủ công phải ngăn thao tác để tránh hủy DOM trước khi kết quả trả về.
+8. **Tệp đầu ra:** có tên thực, thuộc tính `download` và Object URL; không tạo thông báo đã lưu thành công nếu mới chỉ gửi yêu cầu tải cho trình duyệt.
+9. **Điều hướng và tiếp cận:** các nút là `button type=button` có nhãn tiếng Việt; các trạng thái sử dụng `role=status`/`aria-live=polite`, responsive đến 320px, keyboard Tab/Enter.
+10. **Nhận diện HDV:** thống nhất trên công cụ chính, Studio, Preflight; không can thiệp giấy phép và attribution.
+
+## 2. Ma trận hành vi chuẩn
+
+| Màn hình / trạng thái | Làm mới | Tệp khác | Tải / Lưu | Quay lại |
+| --- | --- | --- | --- | --- |
+| Trang chủ | Xóa bộ lọc và từ khóa, không reload | Không áp dụng | Không áp dụng | Back native của browser |
+| Công cụ browser – chưa có file | Làm mới form | Ở cùng tool | Chưa khả dụng | Danh mục |
+| Công cụ browser – đã chọn file | Giữ file, đặt lại form sau xác nhận | Xóa file sau xác nhận | Chạy thực tế mới có download | Danh mục |
+| Công cụ browser – đang chạy | Chặn, thông báo chờ | Chặn, thông báo chờ | Không bấm nhiều lần | Chặn thao tác Back thủ công |
+| Công cụ browser – kết quả sẵn | Xóa kết quả nhưng giữ file | Xóa file và kết quả | Link tải ngay, vẫn ở tool | Cảnh báo nếu chưa yêu cầu tải |
+| Preflight – có PDF | Xóa báo cáo, giữ PDF | Xóa báo cáo và đổi tệp | Xuất JSON, không thoát | Link danh mục |
+| Organizer HVD | **Giữ cơ chế gốc** `#po-tb-reset` và Undo/Redo | Mở PDF bằng UI gốc | `executeSave`/modal không tự về Home | `#po-back` có xác nhận thay đổi |
+| Studio CIT | **Giữ cơ chế native gốc** | Dùng trình nhập PDF native | `#save` không bị adapter HVD thay thế | `#exitEditor` native; `#back-to-tools` tại uploader về danh mục |
+
+**Phân biệt quan trọng:** Dữ liệu file được ghi/tải và trạng thái chỉnh sửa là hai việc khác nhau. Trình duyệt có thể chặn tải xuống hoặc đổi nơi lưu; thông báo UI chỉ xác nhận *đã yêu cầu tải*.
+
+## 3. State machine (browser tool)
+
+```text
+CATALOG
+  └── OpenTool(index) ──> EMPTY
+                          │ add(File)
+                          ▼
+                       READY ── Run ──> PROCESSING ──> RESULT
+                          ▲                 │           │
+                          │                 └── error ──> ERROR
+                          ├──────── Refresh (keep file) ◄─┘
+                          └──────── Retry / Add another
+RESULT -- Download --> RESULT   [không navigate; link có thể bấm lại]
+RESULT -- New file --> EMPTY    [cùng workspace]
+RESULT -- Back --> CATALOG     [confirm khi chưa request tải]
+```
+
+- `T[i]` vẫn là registry chính; không nhân bản thuật toán trong UI.
+- `openTool(i, restore)`: điều hướng ngoại vi (Studio/Preflight) bằng route đang có; công cụ trang chủ push history entry nếu là người dùng mở.
+- `back()/showCatalog()`: tách việc đổi màn hình với lịch sử browser để không vòng lặp.
+- `resetWorkspace(clearFiles)`: chung cho nút `#ws-refresh`, `#ws-new` và refresh header.
+- `render()`: dựng lại form; không tự đổi tool hoặc làm mất URL.
+- `hvdTrackDownloadUrl` + `hvdReleaseWorkspaceDownloads`: tập URL kết quả được thu hồi trì hoãn 120 giây để tránh hỏng download PDF lớn khi DOM bị thay đổi. URL từ `img`/thumbnail không được thu hồi sớm trước khi render xong.
+- Không dùng `window.location.replace` trong luồng tải kết quả.
+
+## 4. Phân lớp kỹ thuật và vùng tác động
+
+| Vùng | Tệp | Hành động |
+| --- | --- | --- |
+| Main shell | `index.html`, `hvd-ui-v2.css` | Thêm thanh điều hướng tác vụ, state/history, refresh, theme và nhãn trạng thái |
+| Browser/local output | `pdf-local-tools.js`, `cit-advanced-ui.js` | Trả URL tải về tại chỗ, thu hồi URL cũ theo vòng đời |
+| Chẩn đoán PDFium | `pdfium-preflight.html` | Reset báo cáo giữ file, thay file cùng trang |
+| Native editor | `organizer.js`, `text-editor-shell.js`, `studio/assets/` | Không can thiệp trong v1: đã có xử lý riêng với Unsaved/Undo/Redo |
+| Kiểm thử | `tests/ux-session.test.cjs`, `tests/home-layout.test.cjs`, `.github/workflows/pages-smoke.yml` | Cập nhật hồi quy cho các trạng thái; cần Chrome E2E cho bản phát hành |
+
+## 5. QA bắt buộc trước nghiệm thu thực địa
+
+- Desktop 1366×768, 1920×1080; mobile 320/375/768; light/dark.
+- File PDF 1 trang, 50 trang, CAD khổ A1/A0, font subset/Type3, bản scan PDF, tên có dấu tiếng Việt.
+- Chọn file → xử lý → tải → bấm tải lại → đổi tham số → chạy lại; **không điều hướng ra ngoài**.
+- Làm mới sau khi tải giữ file; tệp khác mở vùng chọn file; Back/Forward giữ đúng tool; F5 không lưu file PDF vào storage.
+- PDF bị lỗi, engine localhost ngừng chạy, thiếu OCR/LibreOffice: có thông báo trong tool, có thể thử lại.
+- Ký/sửa text có thay đổi chưa lưu: giữ nguyên xác nhận bảo vệ editor hiện tại.
+- Chrome, Edge và Firefox: kiểm tra hệ thống có gửi tệp download hay không, **không mặc nhiên tuyên bố đã lưu thành công**.
+- Kiểm tra `performance.memory`/Object URL khi xử lý hàng chục PDF và sửa liên tục.
+- Không có HTTP upload ra ngoài khi thao tác browser.
+- CI `pages-smoke.yml` PASS; xác nhận riêng trạng thái GitHub Pages và chạy browser smoke trên bản deploy.
+
+## 6. Giai đoạn tiếp theo chưa tự nhận đã hoàn tất
+
+- **Studio native toàn bộ màn hình:** đánh giá thực tế sự kiện `#save`, `#exitEditor` và lifecycle; chỉ thêm nút New/Refresh nếu có API native an toàn và kiểm chứng mất dữ liệu. Không gắn nút Reset vào một lần `window.location.reload` vì sẽ xóa dữ liệu.
+- **Hủy tiến trình/Abort:** cần bổ sung cancellation token và quản lý worker/fetch cho từng engine; không hiển thị nút Hủy giả.
+- **Undo/Redo xuyên tác vụ và phiên:** không lưu bản PDF thô vào localStorage; cần mô hình dự án riêng và lưu file có chủ đích trước khi hỗ trợ khôi phục.
+- **Tối ưu các URL nguồn và tải nhiều tệp lớn:** tách render image URL khỏi result URL, tài nguyên có thời hạn và kiểm thử browser thực.
+- **Đồng bộ mobile toolbar** ở Studio: cần test Chromium để không phá view native.
+
+Từng vòng phải cập nhật `IMPLEMENTATION_PROGRESS.md`. Nếu chưa có E2E thực tế, chỉ công bố phạm vi đã qua unit/CI, không dùng từ "triệt để" hoặc "mọi màn hình".

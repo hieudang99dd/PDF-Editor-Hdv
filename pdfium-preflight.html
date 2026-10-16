@@ -41,7 +41,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-off
 <p class="lead">Đọc cấu trúc trang và nhận diện những vùng chữ có thể khó chỉnh sửa an toàn. Công cụ chỉ phân tích tại trình duyệt, không sửa nội dung hoặc tải tài liệu lên máy chủ.</p>
 <section class="panel" aria-label="Chọn PDF">
 <div id="drop"><label class="file-select" for="file">Chọn tệp PDF</label><input id="file" type="file" accept=".pdf,application/pdf" hidden><p>Kéo thả PDF vào đây hoặc chọn từ máy tính.</p><span id="filename">Chưa chọn tệp.</span></div>
-<div class="controls"><button id="run" disabled>Kiểm tra PDF</button><button id="clear" class="secondary" type="button">Chọn lại</button></div>
+<div class="controls">
+  <button id="run" disabled>Kiểm tra PDF</button>
+  <button id="reset" class="secondary" type="button">↻ Làm mới kết quả</button>
+  <button id="clear" class="secondary" type="button">＋ Tệp khác</button>
+</div>
 <p id="status" role="status" aria-live="polite">Tối đa 80 MB; quét tối đa 50 trang đầu để hạn chế bộ nhớ.</p>
 </section>
 <section id="results" class="panel hidden" aria-label="Báo cáo kiểm tra">
@@ -81,6 +85,11 @@ function choose(candidate) {
 const input = $('file');
 input.addEventListener('change', () => choose(input.files[0]));
 $('clear').addEventListener('click', () => { input.value = ''; choose(null); });
+$('reset').addEventListener('click', () => {
+  release(); report = null; $('results').classList.add('hidden');
+  $('run').disabled = !file || file.size === 0 || file.size > MAX_BYTES;
+  status(file ? 'Đã làm mới kết quả. Tệp vẫn được giữ để kiểm tra lại.' : 'Chọn tệp PDF để bắt đầu.');
+});
 const drop = $('drop');
 drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('drag'); });
 drop.addEventListener('dragleave', () => drop.classList.remove('drag'));
@@ -116,6 +125,8 @@ function display(result) {
 $('run').addEventListener('click', async () => {
   if (!file || worker) return;
   const selected = file;
+  report = null;
+  $('results').classList.add('hidden');
   $('run').disabled = true;
   status('Đang đọc tệp…');
   try {
