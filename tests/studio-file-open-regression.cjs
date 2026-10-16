@@ -7,6 +7,9 @@ const assert = require('node:assert/strict');
 const PDF = require('../pdf-lib.min.js');
 const { chromium } = require('playwright');
 const results = path.resolve(__dirname, '../test-results/file-open-regression');
+const approvedHTML = fs.readFileSync(path.resolve(__dirname,'../studio/edit-pdf-text.html'),'utf8');
+const expectedEntry = approvedHTML.match(/<script type="module" crossorigin src="([^"]+\/assets\/edit-pdf-text-[^"]+\.js)"/)?.[1];
+if (!expectedEntry) throw new Error('Cannot locate approved built PDFium entrypoint');
 fs.mkdirSync(results, { recursive: true });
 
 async function makeFixtures() {
@@ -52,7 +55,17 @@ async function runOne(browser,fixture,mode,serviceWorkers) {
   page.on('requestfailed',r=>errs.push('FAILED '+r.url()+' '+r.failure()?.errorText));
   page.on('response',r=>{if(r.status()>=400)errs.push('HTTP '+r.status()+' '+r.url())});
   try{
-    await page.goto('https://hieudang99dd.github.io/PDF-Editor1/studio/edit-pdf-text.html?real_action='+mode+'&stamp='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
+    const currentUrl = 'https://hieudang99dd.github.io/PDF-Editor1/studio/edit-pdf-text.html?real_action='+mode+'&stamp='+Date.now();
+    let liveEntry = '';
+    for (let attempt=0;attempt<18;attempt++) {
+      await page.goto(currentUrl+'&release='+attempt,{waitUntil:'domcontentloaded',timeout:60000});
+      liveEntry = await page.locator('script[type="module"][src*="edit-pdf-text-"]').first()
+        .getAttribute('src').catch(()=>null);
+      if (liveEntry === expectedEntry) break;
+      console.log('Waiting for matching deployed PDFium asset',attempt+1,liveEntry,'want',expectedEntry);
+      await page.waitForTimeout(4000);
+    }
+    assert.equal(liveEntry,expectedEntry,'Live Pages must serve this reviewed commit before testing user actions');
     await page.locator('#drop-zone').waitFor({state:'visible',timeout:45000});
     if(mode==='chooser'){
       const chooser=page.waitForEvent('filechooser',{timeout:10000});
