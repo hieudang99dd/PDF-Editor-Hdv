@@ -190,6 +190,15 @@ function endEdit(commit) {
     runIndex: pick.idx
   };
 }
+async function hvdLoadSelectedSystemFont() {
+  const info = hvdOriginalFontInfo();
+  if (!info?.displayFamily) return null;
+  // Browser permission is required. This call originates only from the user
+  // pressing the 'load fonts from computer' button.
+  await loadSystemFonts(false);
+  await ensureLocalFontBytes(info.displayFamily);
+  return hvdOriginalFontInfo();
+}
 async function hvdEnsureSelectedOriginalFont() {
   const info = hvdOriginalFontInfo();
   const para = state.editing?.para ||
@@ -290,6 +299,7 @@ if (typeof window !== 'undefined') {
     hasActiveEdit: () => Boolean(state.editing),
     getFontInfo: hvdOriginalFontInfo,
     ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,
+    loadSelectedSystemFont: hvdLoadSelectedSystemFont,
     getAutoReflow: () => hvdAutoReflow,
     setAutoReflow: value => (hvdAutoReflow = Boolean(value)),
   });
