@@ -157,6 +157,6 @@ Ngày lập: 2026-10-15. Tham chiếu cố định: https://github.com/Cuongyd19
 
 ## Tham chiếu
 
-- [CIT-ADVANCED-INTEGRATION.md](CIT-ADVANCED-INTEGRATION.md)
-- [CIT-INTEGRATION.md](CIT-INTEGRATION.md)
+- [docs/PROCESSING_AND_QA.md](docs/PROCESSING_AND_QA.md)
+- [docs/TEXT_ENGINE.md](docs/TEXT_ENGINE.md)
 - [IMPLEMENTATION_PROGRESS.md](IMPLEMENTATION_PROGRESS.md)

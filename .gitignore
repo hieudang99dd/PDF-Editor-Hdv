@@ -3,3 +3,19 @@ test-files/
 
 # Scratch files
 tmp*.html
+
+# Temporary experiments and local build outputs
+scratch/
+debug_run*.py
+tmp*/
+*.pyc
+__pycache__/
+.pytest_cache/
+.venv/
+node_modules/
+test-results/
+cit-stage/
+cit-upstream/
+site-dist/
+.DS_Store
+Thumbs.db

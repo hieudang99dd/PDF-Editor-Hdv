@@ -1,6 +1,6 @@
 # PDF HDV Local Engine – Office, OCR và chuyển đổi PDF
 
-Engine **Office/OCR/TIFF** chạy trên máy của người dùng, không phải GitHub Pages. Riêng **Nén PDF** và **PDF → TXT** có nhánh chạy trực tiếp trong trình duyệt không yêu cầu cài backend. PDF sửa chữ gốc vẫn xử lý ngay trong trình duyệt theo CIT-INTEGRATION.md. Các công cụ chuyển đổi nặng chỉ gửi file đến **http://localhost:8000** trên máy chạy backend; không có endpoint upload tài liệu lên dịch vụ ngoài.
+Engine **Office/OCR/TIFF** chạy trên máy của người dùng, không phải GitHub Pages. Riêng **Nén PDF** và **PDF → TXT** có nhánh chạy trực tiếp trong trình duyệt không yêu cầu cài backend. PDF sửa chữ gốc vẫn xử lý ngay trong trình duyệt theo ../docs/TEXT_ENGINE.md. Các công cụ chuyển đổi nặng chỉ gửi file đến **http://localhost:8000** trên máy chạy backend; không có endpoint upload tài liệu lên dịch vụ ngoài.
 
 ## Yêu cầu
 

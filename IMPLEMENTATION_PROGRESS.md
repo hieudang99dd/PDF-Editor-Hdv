@@ -7,7 +7,7 @@ Nguồn: Cuongyd196/cit-pdf, tag 1.0.0, commit 3c9c138d980a417de7439f383f37882a1
 ### Đã có trước đợt này
 
 - Sửa lỗi lưu/tải PDF: 606e519.
-- Native text CIT: f1cc44a, c1599ec. PDFium WASM, font/baseline, table bounds, rotation, worker/undo, kiểm thử JS. Xem CIT-INTEGRATION.md.
+- Native text CIT: f1cc44a, c1599ec. PDFium WASM, font/baseline, table bounds, rotation, worker/undo, kiểm thử JS. Xem docs/TEXT_ENGINE.md.
 - Các công cụ cơ bản trong trình duyệt: ghép, tách, xoay, ảnh JPG/PNG, chữ ký, watermark, đánh số trang (tùy công cụ).
 
 ### Thực hiện trong đợt tiếp tục
@@ -50,7 +50,7 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Đã đổi diễn giải chức năng che nền, chữ ký dạng ảnh và làm phẳng form để không nhận nhầm thành redaction, chữ ký số hay xử lý mọi annotation.
 - Đã bổ sung các test thực: tests/cit-advanced.test.cjs, tests/cit-advanced-ui.test.cjs. Bao gồm trang trắng N-up, Unicode metadata, crop theo mm, annotations, overlay, rotation, signature ByteRange và tải file browser.
 - Workflow .github/workflows/pages-smoke.yml gọi tests/pages-smoke.test.cjs cùng hai test mới, tổng 31 bài Node đã đạt.
-- Ghi nhận AGPL-3.0 và tài liệu xác minh tại CIT-ADVANCED-INTEGRATION.md.
+- Ghi nhận AGPL-3.0 và tài liệu xác minh tại docs/PROCESSING_AND_QA.md.
 - Chưa triển khai hoặc chưa hoàn thiện: qpdf/ Ghostscript, PPT/Office WASM browser, OCR trình duyệt, PDF/A validator, sửa đoạn văn phức tạp, secure redaction, cryptographic signing/validation, full flatten annotation, toàn bộ các trang công cụ CIT.
 - Chỉ đóng dấu “hoàn thành” cho module có mã, đường đi UI, xuất PDF thật, kiểm thử PDF thật; không đánh đồng trang công cụ với thuật toán đã tích hợp.
 
@@ -65,7 +65,7 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Adapted `pdf-native-text.mjs` to preserve sibling style runs when a uniquely identified run within a mixed-font paragraph is replaced; retained strict native baseline and table boundaries. Rejected text mutations spanning style boundaries.
 - Implemented signed-PDF preflight guard (ByteRange) in native rewrite; Type3/fragile text remains protected and uneditable if source cannot be safely identified.
 - Added `tests/rich-native.test.cjs`, `tests/batch-text.test.cjs`, expanded `tests/native-text.test.cjs` for true WASM mixed-font and digital signatures; expanded GitHub Actions smoke suite to include all three and `tests/text-layout.test.cjs`.
-- Verified GitHub CI **84/84 passing** in workflow after changes; follow final commit check for Pages. Details in [CIT-TEXT-EDITING-UPDATE.md](CIT-TEXT-EDITING-UPDATE.md).
+- Verified GitHub CI **84/84 passing** in workflow after changes; follow final commit check for Pages. Details in [docs/TEXT_ENGINE.md](docs/TEXT_ENGINE.md).
 - Important scope: edits multiple original one-line boxes in one transaction, **not** full multiline paragraph reflow. Font Type3 converted to vector outlines, arbitrary WYSIWYG restyling of multiple runs, and full PDF/A/PDF/UA compatibility are not claimed.
 
 ## 2026-10-15 — Separate CIT Native Text workspace
@@ -77,7 +77,7 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Explicitly disabled unsafe/cosmetic controls: no fake paragraph spacing, no automatic rich paragraph reflow; Type3 and fragile text remain guarded.
 - Added [tests/text-editor-route.test.cjs](tests/text-editor-route.test.cjs) to Node CI and [tests/text-editor-live.cjs](tests/text-editor-live.cjs) in Chromium CI for real PDF replacement/export validation.
 - User operation now starts directly from separate module, without page organization. Legacy organizer retained for backward compatibility.
-- Ref specification, licensing and QA boundary: [CIT-TEXT-WORKSPACE.md](CIT-TEXT-WORKSPACE.md). Check live-browser workflow status before marking deployment fully accepted.
+- Ref specification, licensing and QA boundary: [docs/TEXT_ENGINE.md](docs/TEXT_ENGINE.md). Check live-browser workflow status before marking deployment fully accepted.
 
 ### CIT Text workspace – nghiệm thu Chromium và phát hành (2026-10-15)
 
@@ -96,7 +96,7 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - **Deployment**: [GitHub Actions Run 38744102098](https://github.com/hieudang99dd/PDF-Editor-Hdv/actions/runs/38744102098) **success**, deploy-pages báo `Reported success!`, SHA `c3cade1d0f42f637e708b982d90ac228ccb3c290`.
 - **Site**: https://hieudang99dd.github.io/PDF-Editor-Hdv/text-editor.html ; original engine https://hieudang99dd.github.io/PDF-Editor-Hdv/cit-native/edit-pdf-text.html
 - **E2E evidence**: workflow artifact `cit-original-browser-evidence` (PDF đầu vào/đầu ra + screenshot) cùng run trên.
-- **Licensing / reproducibility**: xem `CIT-ORIGINAL-FRONTEND.lock.json`, `CIT-ORIGINAL-FRONTEND.md`; AGPL-3.0.
+- **Licensing / reproducibility**: xem `CIT-ORIGINAL-FRONTEND.lock.json`, `docs/STUDIO_DEPLOYMENT.md`; AGPL-3.0.
 - **Scope**: tương đồng bằng cách build **cùng upstream frontend/engine**, không chỉ dựng giao diện tương tự. Không tuyên bố mọi PDF CAD bất kỳ đều sửa được. Đã chạy thử trong Chromium với artifact Pages; chưa kiểm tra tương tác trên CDN Github Pages trực tiếp từ môi trường này.
 
 ### 2026-10-15 — ĐÃ KHẮC PHỤC trôi phiên bản Pages legacy (kết quả cuối)
@@ -179,3 +179,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 
 - Test Chromium cũ kiểm tra `#shortcut-text` vốn đã bị bỏ khỏi header theo quyết định UI trước đó, gây báo lỗi giả ở bước quay về trang HVD.
 - Sửa `tests/cit-original-browser.cjs` để xác minh trang đích bằng `#logo` có chữ PDF HVD và tồn tại `#tools` thay vì nút header đã bị xóa. Không thay đổi thao tác PDFium, file kết quả hoặc kiểm tra nội dung PDF.
+
+## 2026-10-16 — Repository cleanup / workflow consolidation
+
+- Đã kiểm kê nguồn của frontend `studio/` được build cố định; xác định đây là bundle dùng thật, **không xóa** JS chunk/CSS/WASM/font hay các file `.br` mà chưa có đối chiếu manifest.
+- Gộp **7 file tài liệu** theo 3 workflow: `docs/TEXT_ENGINE.md`, `docs/STUDIO_DEPLOYMENT.md`, `docs/PROCESSING_AND_QA.md`; giữ nguyên các quyết định cũ với nhãn lịch sử. Cập nhật liên kết từ `NOTICE.md`, `backend/README.md`, ma trận tính năng và nhật ký tiến độ.
+- Xóa **19 script vá thử** ở `scratch/`, xóa `debug_run.py` và `debug_run2.py`, `hvd-home-v2.css` và `hvd-legal.js` vì không còn nằm trong đường tải chính. Nội dung vẫn có thể phục hồi qua lịch sử Git trước khi merge.
+- Tạo `README.md` (điểm vào duy nhất cho người mới) và `docs/REPOSITORY_MAP.md` (mô hình folder/cleanup). Điều chỉnh `.gitignore`, cập nhật skill agent về kiến trúc Hybrid để tránh sửa nhầm production artifact.
+- Không sửa code thuật toán, PDFium, `organizer.js`, `text-editor.html`, frontend Vite đã build, backend hoặc `vendor/` trong lần dọn dẹp này.
+- QA: test Node toàn repo qua GitHub Actions và kiểm tra link/route/syntax; kiểm thử trên GitHub Pages và CAD A0/A1 cần thực hiện riêng. Không xem smoke test là chứng minh tính tương đương giao diện đã triển khai.
