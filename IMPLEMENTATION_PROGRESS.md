@@ -265,3 +265,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Checkbox cho phép tạo bản sao PDF có chữ ký số, với thông báo chữ ký cũ mất hiệu lực; không mặc định bỏ chặn, không tuyên bố giữ chữ ký hợp lệ.
 - Giao diện có hai chế độ và cảnh báo tường minh về xóa nguyên đối tượng có thể mất nội dung ngoài vùng; báo cáo số page object đã gỡ và xem PDF kết quả.
 - Tests `pdf-region-all-objects.test.cjs` và Chromium E2E thêm tình huống chữ bị xóa thực, không thay đổi Organizer.
+
+
+## 2026-10-16 — Tách nút Áp dụng / Xuất PDF thành hai bước độc lập
+
+- `region-eraser.html/css`: thay nút `Áp dụng & xuất PDF` bằng `✂ Áp dụng` và `↓ Xuất PDF` trên thanh công cụ; thêm thanh bước và nút `Chỉnh sửa lại` ở vùng xem kết quả.
+- `region-eraser.js`: `Apply` chỉ thực hiện PDFium Worker và xem kết quả bằng PDF.js, không tải xuống. Export khóa khi chưa có kết quả/bị lỗi/bận; khi người dùng chỉnh lại, bỏ blob PDF cũ, giữ vùng chọn, buộc áp dụng lại; không vô tình xuất snapshot cũ.
+- Vẫn giữ nút Bản gốc/Sau xử lý, nhiều vùng, xóa mọi page object, chữ ký số có xác nhận, giới hạn 512 MiB và trải nghiệm không rời trang sau khi tải.
+- `tests/pdf-region-apply-export.test.cjs` và Chromium QA kiểm tra các trạng thái đầu/cuối, áp dụng 2 lần trước khi tải, Undo/Redo sau Chỉnh sửa lại và ngăn xuất nhầm.

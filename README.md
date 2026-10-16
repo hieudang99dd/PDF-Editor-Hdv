@@ -59,3 +59,6 @@ Mở `region-eraser.html`, chọn trang trong dàn trang để phóng to. Hỗ t
 
 
 **Xóa mọi đối tượng giao vùng:** công cụ độc lập hỗ trợ gỡ toàn bộ page object chữ/ảnh/đường tô/Form có hộp bao giao vùng. Có chế độ riêng giữ thuật toán cắt vector chính xác; với xóa nguyên object, nội dung ngoài đường bao cũng có thể mất. PDF đã ký có tùy chọn tạo bản sao sau khi chấp nhận chữ ký cũ mất hiệu lực. Đây chưa phải redaction bảo đảm loại bỏ dữ liệu bí mật; xem `docs/REGION_ERASER.md`.
+
+
+**Quy trình xác nhận trước khi xuất:** công cụ Xóa vector theo vùng có hai nút độc lập **Áp dụng** (thực thi PDFium ngay trên web, mở kết quả để xem) và **Xuất PDF** (chỉ được bật sau khi áp dụng thành công). Có nút **Chỉnh sửa lại** giữ các vùng đã chọn và cho phép áp dụng lại, không tải PDF khi mới bấm Áp dụng; xem `docs/REGION_ERASER.md`.
