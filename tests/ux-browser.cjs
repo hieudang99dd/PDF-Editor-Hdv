@@ -138,6 +138,10 @@ async function sample(label){
     name:'cad-linework.pdf',mimeType:'application/pdf',buffer:await vectorSample()
    });
    await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
+   await page.waitForFunction(()=>{
+     const img=document.querySelector('#po-preview-img'),box=document.querySelector('#po-preview-wrapper');
+     return img&&box&&img.complete&&img.naturalWidth>0&&box.getBoundingClientRect().width>100&&box.getBoundingClientRect().height>100;
+   },{timeout:30000});
    await page.locator('#po-tb-region').click();
    await page.locator('#po-region-panel').waitFor({state:'visible'});
    async function drawZone(x0,x1,role){
