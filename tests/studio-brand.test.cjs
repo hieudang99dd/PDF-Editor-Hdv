@@ -11,7 +11,7 @@ const notice = read('NOTICE.md');
 const homepage = read('index.html');
 
 test('text editor uses PDF HVD first-party navigation and accurate native text description', () => {
-  assert.match(html, /<header id="hvd-brandbar"/);
+  assert.match(html, /<div id="hvd-brandbar"/);
   assert.match(html, /<a class="hvd-logo" href="\.\.\/index\.html"/);
   assert.match(html, /href="\.\.\/text-editor\.html" aria-current="page"/);
   assert.match(html, /href="\.\.\/pdfium-preflight\.html"/);
@@ -35,8 +35,8 @@ test('legacy marketing is not rendered but native editor DOM and assets remain u
 });
 
 test('HVD legal access remains discoverable without upstream promotion in primary chrome', () => {
-  const header = html.split('<header id="hvd-brandbar"')[1].split('</header>')[0];
-  const footer = html.split('<footer id="hvd-brand-footer"')[1].split('</footer>')[0];
+  const header = html.split('<div id="hvd-brandbar"')[1].split('</div>')[0];
+  const footer = html.split('<div id="hvd-brand-footer"')[1].split('</div>')[0];
   assert.doesNotMatch(header+footer, /(?:alam00000|bentopdf|cit-pdf|digitalocean|discord|instagram|x\.com)/i);
   assert.match(footer, /href="\.\.\/NOTICE\.md"/);
   assert.match(homepage, /id="hvd-legal-source"[^>]+href="NOTICE\.md"/);
