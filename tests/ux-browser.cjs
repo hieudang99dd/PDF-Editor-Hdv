@@ -29,6 +29,12 @@ function site(){
  });
 }
 
+async function vectorSample(){
+ const doc=await PDFLib.PDFDocument.create();const p=doc.addPage([600,400]);
+ p.drawLine({start:{x:30,y:200},end:{x:570,y:200},thickness:1,color:PDFLib.rgb(0,0,0)});
+ p.drawLine({start:{x:30,y:70},end:{x:570,y:70},thickness:1,color:PDFLib.rgb(0,0,0)});
+ return Buffer.from(await doc.save());
+}
 async function sample(label){
  const doc=await PDFLib.PDFDocument.create();
  const page=doc.addPage([595,842]);
@@ -88,6 +94,7 @@ async function sample(label){
    await page.setViewportSize({width:375,height:740});
    assert.ok(await page.locator('#refresh-app').isVisible(),'refresh must remain accessible on mobile');
    assert.ok(await page.locator('#ws-new').isVisible(),'New File action must remain accessible on mobile');
+   await page.setViewportSize({width:1280,height:800});
    // Organizer: a real new-document reset must unload the PDF but preserve
    // the active feature; cancellation must leave its editor state intact.
    await page.goto(address,{waitUntil:'domcontentloaded'});
@@ -125,6 +132,59 @@ async function sample(label){
    await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
    assert.equal(await page.locator('#po-meta-title').innerText(),'another-file');
    assert.ok(await page.locator('.po-header').isVisible());
+   // Native region deletion workflow: draw a delete zone, then create a
+   // protected inner zone, save, and prove exported output is a PDF.
+   await page.locator('#po-new-document').click();
+   await page.locator('#po-file-input').setInputFiles({
+    name:'cad-linework.pdf',mimeType:'application/pdf',buffer:await vectorSample()
+   });
+   await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
+   await page.waitForFunction(()=>{
+     const img=document.querySelector('#po-preview-img'),box=document.querySelector('#po-preview-wrapper');
+     return img&&box&&img.complete&&img.naturalWidth>0&&box.getBoundingClientRect().width>100&&box.getBoundingClientRect().height>100;
+   },{timeout:30000});
+   await page.locator('#po-tb-region').click();
+   await page.locator('#po-region-panel').waitFor({state:'visible'});
+   async function drawZone(x0,x1,role){
+     await page.locator('#po-region-role').selectOption(role);
+     await page.locator('#po-region-shape').selectOption('rect');
+     await page.locator('#po-region-arm').click();
+     const box=await page.locator('#po-region-overlay').boundingBox();
+     if(!box||box.width<=60||box.height<=50){
+       const state=await page.evaluate(()=>{
+        const ids=['po-region-overlay','po-preview-wrapper','po-preview-img','po-preview-canvas'];
+        return ids.map(id=>{const e=document.getElementById(id),r=e?.getBoundingClientRect();return {id,rect:r&&{w:r.width,h:r.height,x:r.x,y:r.y},display:e&&getComputedStyle(e).display,visible:e&&getComputedStyle(e).visibility};});
+       });
+       throw Error('region overlay must align with PDF preview: '+JSON.stringify(state));
+     }
+     await page.mouse.move(box.x+box.width*x0,box.y+box.height*.40);
+     await page.mouse.down();
+     await page.mouse.move(box.x+box.width*x1,box.y+box.height*.6,{steps:8});
+     await page.mouse.up();
+   }
+   await drawZone(.3,.7,'erase');
+   await drawZone(.43,.57,'protect');
+   assert.equal(await page.evaluate(()=>window.organizerInstance.pages[0].eraseRegions.length),2);
+   await page.locator('#po-save').click();
+   await page.locator('#po-save-mode').selectOption('download');
+   const nativeWait=page.waitForEvent('download',{timeout:120000});
+   await page.locator('#po-save-confirm').click();
+   const nativeFile=await nativeWait;
+   const nativePath=path.join('/tmp','hvd-region-'+process.pid+'.pdf');
+   await nativeFile.saveAs(nativePath);
+   const nativeBytes=fs.readFileSync(nativePath);fs.unlinkSync(nativePath);
+   assert.equal(nativeBytes.subarray(0,5).toString('ascii'),'%PDF-');
+   assert.equal((await PDFLib.PDFDocument.load(nativeBytes)).getPageCount(),1);
+   const {PdfEngine}=await import('../vendor/cit-pdf/editcore/core.js');
+   const inspected=await PdfEngine.create();
+   try{
+     inspected.open(new Uint8Array(nativeBytes));inspected.loadPage(0);
+     const nativePathObjects=Array.from({length:inspected.objectCount()},(_,i)=>inspected.objectAt(i))
+       .filter(o=>o?.type===2);
+     assert.ok(nativePathObjects.length>=4,
+       'downloaded PDF must contain newly split PATH objects, not an unmodified source with a visual overlay');
+   }finally{inspected.close();}
+   assert.ok(await page.locator('#po-ws').isVisible(),'native save must not exit feature');
    assert.deepEqual(failures,[],'No new browser JS errors');
    console.log('PASS: browser PDF download stays in task, organizer unload reset + cancel + reload, back-forward and mobile');
  }finally{

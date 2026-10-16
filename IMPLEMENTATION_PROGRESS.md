@@ -210,3 +210,13 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 
 
 - Tách điều kiện tự chạy `cit-original-build.yml`: thay đổi `organizer.js` hoặc trang chủ không còn gây build lại và ghi đè `studio/`; workflow vẫn có `workflow_dispatch` và triggers theo nguồn Studio. Tăng cache version `organizer.js` trong cả trang chính lẫn trình editor dự phòng, và `hvd-brand.css` trong Studio.
+
+
+## 2026-10-16 — Native Vector Region Eraser v1
+
+- Thêm chức năng Xóa vector theo vùng tại Organizer: vẽ hình chữ nhật/đa giác, nhiều vùng xóa union và vùng giữ bên trong (difference). Bảo vệ mảng vùng qua Undo/Redo. Không dùng whiteout hoặc raster overlay làm kết quả PDF.
+- Geometry: pdf-region-geometry.mjs giao polygon với đường thẳng, tách parametric intervals, kiểm tra polygon tự cắt, giới hạn 64 vùng/trang và 256 đỉnh/vùng.
+- PDFium: pdf-region-native.mjs dùng các API PATH segment/object đang xuất trong WASM CIT, xóa PATH nguồn và thêm các đoạn giữ ngoài vùng, bảo toàn màu/width/matrix/z-index. Worker/client độc lập. Cắt sau native text rewrite, trước annotation.
+- Phạm vi v1: PATH line/polyline nét liền, không tô kín, trang /Rotate=0. Báo lỗi thay vì xóa sai cho Bézier, hatch/fill, dashed, clip, matrix suy biến; text/image/Form không bị sửa. Không phải PDF redaction.
+- CI: tests/pdf-region-geometry.test.cjs, tests/pdf-region-native.test.cjs kiểm tra PDF vector thực; UX Browser QA tương tác vẽ vùng + export, cùng Pages smoke.
+- Đặc tả kiến trúc/tọa độ/giới hạn/QA: docs/REGION_ERASER.md. Kiểm tra A0/A1, layered CAD, stroke hairline, CropBox và XObject lồng vẫn cần bộ dữ liệu nghiệm thu riêng.

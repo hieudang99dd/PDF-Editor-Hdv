@@ -25,6 +25,7 @@ Bộ công cụ PDF HVD: sửa văn bản gốc, biên tập trang, chuyển đ�
 - [Tiến độ và thay đổi](IMPLEMENTATION_PROGRESS.md).
 - [Sổ tay cấu trúc và chính sách dọn dẹp](docs/REPOSITORY_MAP.md).
 - [Đặc tả UX: Làm mới, Tệp khác, Back/Forward, Tải xuống không thoát tác vụ](docs/UX_WORKFLOW.md).
+- [Xóa vector theo vùng bằng PDFium: thuật toán, giao diện, giới hạn và kiểm thử](docs/REGION_ERASER.md).
 - [Thông tin nguồn/giấy phép](NOTICE.md).
 - [Engine Office/OCR cục bộ](backend/README.md).
 
