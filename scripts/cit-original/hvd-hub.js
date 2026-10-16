@@ -44,7 +44,7 @@
     for (const id of ['nav-logo', 'footer-logo']) {
       const node = document.getElementById(id);
       if (node && typeof HTMLImageElement !== 'undefined' && node instanceof HTMLImageElement) {
-        node.src = new URL('hvd-mark.svg', window.location.href).href;
+        node.src = new URL('hvd-mark.svg?v=20261016-dao1', window.location.href).href;
         node.alt = 'PDF Đạo Chích';
       }
     }
