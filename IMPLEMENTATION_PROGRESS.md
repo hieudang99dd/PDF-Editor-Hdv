@@ -298,3 +298,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - `region-eraser.js`: vẽ tay nắm SVG và vùng đang chọn; tự chọn vùng mới vẽ, chọn vùng qua danh sách hoặc click trực tiếp. Pointer capture để kéo có preview, commit một lần khi pointerup; Undo/Redo theo cử chỉ, Escape/pointercancel hủy thay đổi.
 - `region-eraser.css/html`: nút **✥ Sửa**, đỉnh/cạnh tương phản rõ, hướng dẫn, vùng bấm cho touch, cache-bust.
 - `tests/pdf-region-handles.test.cjs` và Chromium E2E chạy kéo đỉnh, cạnh, Undo/Redo trước khi chạy PDFium thật; giữ nguyên toàn bộ quy trình Áp dụng → Kiểm tra → Xuất PDF.
+
+
+## 2026-10-16 — Thu gọn giao diện Vẽ vùng / Chỉnh sửa và hiển thị toàn trang
+
+- Trạng thái CSS `re-editor-active` chỉ dùng khi mở trang để vẽ; rút gọn topbar, hàng tệp, workflow, nút quay lại, PDF toolbar, footer; giảm chiều rộng panel trái còn ~248px, giữ scroll độc lập.
+- Chế độ `Vừa trang` đã được sửa từ căn theo width đơn thuần sang phép fit theo cả chiều cao lẫn chiều rộng viewport thực. Thêm `Vừa rộng` cho PDF CAD và nút `Ẩn tác vụ / Hiện tác vụ` để tập trung bản vẽ.
+- `pdf-region-view.mjs` mới chứa thuật toán đo kích thước trang và tỉ lệ zoom không phụ thuộc DOM. `ResizeObserver` trong `region-eraser.js` tự căn khi đổi viewport, vẫn dùng giới hạn RAM/canvas megapixel cũ và giữ overlay SVG/tay nắm.
+- Bổ sung `tests/pdf-region-fit-layout.test.cjs`, Chromium đo các biên trang PDF và thao tác layout, cập nhật cache bust CSS/JS và cập nhật test cố định chiều cao từ phiên bản trước.
