@@ -27,6 +27,11 @@ async function fixture() {
   p.drawText('SECOND CAD LINE', { x: 80, y: 590, size: 13, font: f });
   p.drawLine({ start: { x: 65, y: 625 }, end: { x: 460, y: 625 },
     thickness: 0.5, color: PDF.rgb(0, 0, 0) });
+  for(let i=2;i<=4;i++){
+    const next=doc.addPage([600,780]);
+    next.drawText('THUMBNAIL PAGE '+i,{x:80,y:650,size:16,font:f});
+    next.drawText('OTHER PAGE CONTENT '+i,{x:80,y:590,size:12,font:f});
+  }
   const file = path.join(out, 'source.pdf');
   fs.writeFileSync(file, await doc.save());
   return file;
@@ -81,6 +86,37 @@ async function main() {
         document.querySelectorAll('#overlay .para-box:not(.block-box)').length >= 2;
     }, null, { timeout: 120000 });
     await page.screenshot({ path: path.join(out, '01-loaded.png'), fullPage: true });
+    // Test the native left page rail, independent navigation, lazy previews,
+    // and document-specific page counts without touching the right inspector.
+    await page.waitForFunction(() =>
+      document.querySelectorAll('#hvd-pages-list .hvd-page-thumb').length === 4 &&
+      typeof window.__HVD_CIT_TEXT_API?.navigateToPage === 'function' &&
+      window.__HVD_PDF_THUMBNAILS?.render
+    ,null,{timeout:15000});
+    await page.waitForFunction(() =>
+      document.querySelector('#hvd-pages-list .hvd-page-thumb:first-child img')?.src.startsWith('data:image/')
+    ,null,{timeout:25000});
+    assert.equal(await page.locator('#hvd-pages-rail').isVisible(),true);
+    await page.locator('#hvd-pages-list .hvd-page-thumb').nth(2).click();
+    await page.waitForFunction(() =>
+      window.__HVD_CIT_TEXT_API?.getPageIndex?.() === 2 &&
+      document.getElementById('pageLabel')?.textContent?.includes('3 / 4')
+    ,null,{timeout:30000});
+    await page.waitForFunction(() =>
+      [...document.querySelectorAll('#overlay .para-box')]
+        .some(el => el.textContent?.includes('THUMBNAIL PAGE 3'))
+    ,null,{timeout:15000});
+    assert.equal(await page.locator('#hvd-pages-list .hvd-current').count(),1);
+    await page.locator('#hvd-pages-jump-input').fill('1');
+    await page.locator('#hvd-pages-jump-form').evaluate(form => form.requestSubmit());
+    await page.waitForFunction(() =>
+      window.__HVD_CIT_TEXT_API?.getPageIndex?.() === 0
+    ,null,{timeout:20000});
+    await page.locator('#hvd-pages-toggle').click();
+    assert.equal(await page.locator('#hvd-pages-rail').isVisible(),false);
+    await page.locator('#hvd-pages-toggle').click();
+    assert.equal(await page.locator('#hvd-pages-rail').isVisible(),true);
+    await page.screenshot({ path:path.join(out,'01b-page-navigator.png'),fullPage:true });
     await page.locator('#overlay .para-box:not(.block-box)').first()
       .dispatchEvent('mousedown');
     const editor = page.locator('#overlay .editor [contenteditable=true]');
