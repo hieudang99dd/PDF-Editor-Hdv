@@ -96,7 +96,7 @@ async function sample(label){
    assert.ok(await page.locator('#po-new-document').isVisible());
    assert.ok(await page.locator('#po-back').isVisible());
    assert.match((await page.locator('#po-back').innerText()).trim(),/Danh mục công cụ/);
-   assert.match((await page.locator('#po-tb-reset').innerText()).trim(),/Khôi phục/);
+   assert.match((await page.locator('#po-tb-reset').innerText()).trim(),/Hoàn nguyên trang/);
    await page.locator('#po-file-input').setInputFiles({
      name:'sample-original.pdf',mimeType:'application/pdf',buffer:await sample('Document original')
    });
