@@ -1,162 +1,95 @@
-name: CIT Original Frontend Build QA
+name: CIT Source Sync — pinned PDFium text editor
 on:
-  # Only rebuild pinned upstream Studio when Studio's reproducible inputs change.
-  # Root Organizer/UI changes must NOT overwrite manually reviewed Studio assets.
   push:
     branches: [master]
     paths:
-      - 'scripts/cit-original/**'
-      - 'tests/cit-original-browser.cjs'
-      - 'CIT-ORIGINAL-FRONTEND.lock.json'
+      - 'scripts/cit-original/patch_source.py'
+      - 'scripts/cit-original/sync_text_build.py'
   workflow_dispatch:
 permissions:
   contents: write
 concurrency:
-  group: cit-original-build-${{ github.ref }}
+  group: cit-text-sync-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
-    environment:
-      name: github-pages
-      url: https://hieudang99dd.github.io/PDF-Editor-Hdv/
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
-      - name: Checkout HVD
+      - name: Checkout current PDF Đạo Chích
         uses: actions/checkout@v4
-      - name: Validate HVD brand-only transformation and copyright preservation
-        run: python3 -m unittest discover -s tests -p 'test_brand_site.py' -v
-      - name: Checkout exact CIT-PDF v1.0.0 source
+        with:
+          fetch-depth: 0
+      - name: Checkout exact cit-pdf 1.0.0 source
         shell: bash
         run: |
           set -euo pipefail
-          git clone --branch 1.0.0 --depth 1 --filter=blob:none https://github.com/Cuongyd196/cit-pdf.git cit-upstream
-          actual="$(git -C cit-upstream rev-parse HEAD)"
-          expected="3c9c138d980a417de7439f383f37882a1d730ab6"
-          echo "CIT source: $actual"
-          test "$actual" = "$expected"
+          git clone --branch 1.0.0 --depth 1 https://github.com/Cuongyd196/cit-pdf.git cit-upstream
+          test "$(git -C cit-upstream rev-parse HEAD)" = "3c9c138d980a417de7439f383f37882a1d730ab6"
+      - name: Apply reviewed source patch to native CIT only
+        run: python3 scripts/cit-original/patch_source.py cit-upstream
       - name: Node.js 22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: cit-upstream/package-lock.json
-      - name: Install exact CIT dependencies
+      - name: Install pinned CIT dependencies
         working-directory: cit-upstream
         env:
           HUSKY: '0'
         run: npm ci --no-audit --no-fund
-      - name: Compile ORIGINAL CIT frontend and WASM assets
+      - name: Type-check CIT sources
+        working-directory: cit-upstream
+        run: npx tsc --noEmit
+      - name: Build local-path PDFium frontend
         working-directory: cit-upstream
         env:
-          BASE_URL: /PDF-Editor-Hdv/studio/
+          BASE_URL: /PDF-Editor1/studio/
           VITE_USE_CDN: 'false'
           NODE_OPTIONS: --max-old-space-size=4096
+        run: npx vite build
+      - name: Verify upstream native PDFium assets and correct Pages base
+        run: python3 scripts/cit-original/verify_build.py cit-upstream/dist
+      - name: Sync only text editor dependencies; retain approved HTML and other tools
+        run: python3 scripts/cit-original/sync_text_build.py cit-upstream/dist .
+      - name: Static regression checks and syntax validation
         run: |
-          npx vite build
-          test -s dist/edit-pdf-text.html
-          test -d dist/assets
-          echo "CIT built source summary:"
-          du -sh dist
-          ls -lh dist/edit-pdf-text.html
-      - name: Validate route and built dependencies
-        shell: bash
-        run: |
-          python3 scripts/cit-original/verify_build.py cit-upstream/dist
-      - name: Assemble final HVD Pages site with original CIT frontend
-        shell: bash
-        run: |
-          python3 scripts/cit-original/publish_site.py cit-upstream/dist cit-stage
-          test -s cit-stage/text-editor.html
-          test -s cit-stage/text-editor-hdv.html
-          grep -q 'text-editor-shell.js' cit-stage/text-editor-hdv.html
-          if grep -q 'location.replace("./studio/edit-pdf-text.html"' cit-stage/text-editor-hdv.html; then
-            echo 'BUG: fallback editor was replaced with the CIT redirect'
-            exit 1
-          fi
-          test -s cit-stage/studio/edit-pdf-text.html
-          grep -q 'hvd-hub.js' cit-stage/studio/edit-pdf-text.html
-          grep -q 'hvd-hub.css' cit-stage/studio/edit-pdf-text.html
-          test -s cit-stage/studio/hvd-hub.js
-          test -s cit-stage/studio/hvd-hub.css
-          test -s cit-stage/studio/hvd-mark.svg
-          test -s cit-stage/studio/hvd-site.webmanifest
-          grep -q 'PDF HVD – Chỉnh sửa văn bản' cit-stage/studio/edit-pdf-text.html
-          if grep -q 'BentoPDF</title>' cit-stage/studio/edit-pdf-text.html; then
-            echo "Old product name remains in browser title"
-            exit 1
-          fi
-      - name: Install browser acceptance tools
+          node --check studio/hvd-text-apply.js
+          node tests/text-editor-asset-paths.cjs
+          node --test tests/*.test.cjs
+      - name: Install Chromium browser acceptance runtime
         run: |
           npm install --no-save playwright@1.57.0
           npx playwright install --with-deps chromium
-      - name: Real PDF text editing in original CIT Chromium UI
-        timeout-minutes: 6
-        run: node tests/cit-original-browser.cjs
-      - name: Cross-validate actual CIT PDF glyph changes with PyMuPDF
+      - name: Edit and export a real PDF through locally built text UI
+        run: node tests/studio-text-sync-browser.cjs
+      - name: Independently validate native PDF text replacement
         run: |
           python3 -m pip install --user --break-system-packages 'pymupdf>=1.24,<2'
           python3 scripts/cit-original/verify_pdf.py test-results/cit-original/source.pdf test-results/cit-original/cit-edited.pdf
-      - name: Upload UI screenshots and edited PDF
+      - name: Publish only if remote master is unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A -- studio/assets studio/edit-pdf-text.html studio/hvd-text-build.json
+          if git diff --cached --quiet; then
+            echo 'Native CIT editor already synchronized.'
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "build(text): publish validated CIT source edit engine"
+          git fetch origin master
+          if [[ "$(git rev-parse origin/master)" != "$(git rev-parse HEAD^)" ]]; then
+            echo "::error title=Concurrent change::master advanced during QA; rejecting stale generated assets"
+            exit 1
+          fi
+          git push origin HEAD:master
+      - name: Save browser evidence even after failure
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cit-original-browser-evidence
+          name: cit-native-text-sync-evidence
           path: test-results/cit-original/
           if-no-files-found: ignore
-      - name: Upload native frontend bundle for publication
-        uses: actions/upload-artifact@v4
-        with:
-          name: cit-original-frontend-1.0.0
-          path: cit-upstream/dist/
-          retention-days: 7
-          if-no-files-found: error
-      - name: Protect current PDF-Editor1 Pages against a legacy-base rebuild
-        shell: bash
-        run: |
-          set -euo pipefail
-          if grep -qF '/PDF-Editor-Hdv/studio/' cit-stage/studio/edit-pdf-text.html; then
-            echo "::error title=Outdated build base::Legacy /PDF-Editor-Hdv/studio/ references found. Do not overwrite the verified PDF-Editor1 editor. Migrate pinned upstream Vite BASE_URL, brand_site.py and browser QA together before the next vendor rebuild."
-            exit 1
-          fi
-      - name: Persist original CIT compiled frontend to master for legacy Pages durability
-        shell: bash
-        run: |
-          set -euo pipefail
-          # The repository is currently also published by the legacy master
-          # workflow. Persisting generated assets prevents a subsequent
-          # unrelated commit from reverting the online frontend.
-          mkdir -p studio
-          rsync -a --delete cit-stage/studio/ studio/
-          # Retire the previous exposed vendor path after successful QA.
-          rm -rf cit-native
-          test -s cit-stage/studio/hvd-hub.js
-          test -s cit-stage/text-editor-hdv.html
-          if ! grep -Eq '(studio|cit-native)/edit-pdf-text.html' text-editor.html; then
-            cp text-editor.html text-editor-hdv.html
-          fi
-          cp cit-stage/text-editor.html text-editor.html
-          touch .nojekyll
-          git add -A -- studio cit-native text-editor.html text-editor-hdv.html .nojekyll
-          if git diff --cached --quiet; then
-            echo "Original CIT bundle already matches the repository."
-          else
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git commit -m "build(cit): vendor exact original CIT-PDF 1.0.0 frontend distribution"
-            git pull --rebase origin master
-            git push origin HEAD:master
-          fi
-      - name: Confirm Pages tree contains HVD and CIT original engine
-        shell: bash
-        run: |
-          test -s cit-stage/index.html
-          test -s cit-stage/text-editor.html
-          test -s cit-stage/text-editor-hdv.html
-          test -s cit-stage/studio/edit-pdf-text.html
-          test -d cit-stage/studio/assets
-          test -e cit-stage/.nojekyll
-          du -sh cit-stage
-      # GitHub Pages already deploys the master branch when the bot commits
-      # the vetted distribution. Do not run a second concurrent Pages
-      # deployment here: it races and can overwrite a newer branch release.
