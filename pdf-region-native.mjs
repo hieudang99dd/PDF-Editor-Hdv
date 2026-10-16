@@ -123,9 +123,16 @@ export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}
    const raw=validateRegions(req.regions,operation);
    engine.loadPage(pageIndex);
    emit('page-start',{pageIndex,completedPages:jobIndex,totalPages:pageRequests.length});
-   if(engine.M._FPDFPage_GetRotation(engine.page)!==0)
-    throw Error('Trang '+(pageIndex+1)+' đang xoay bằng /Rotate. Hãy chuẩn hóa trang trước khi xóa vector theo vùng.');
-   const regions=normalizedToUser(raw,engine),b=zoneBounds(regions);
+   const nativeRotation=engine.M._FPDFPage_GetRotation(engine.page);
+   if(!Number.isInteger(nativeRotation)||nativeRotation<0||nativeRotation>3)
+    throw Error('Trang '+(pageIndex+1)+': thông tin góc xoay PDF không hợp lệ.');
+   if(nativeRotation!==0&&!req.viewport)
+    throw Error('Trang '+(pageIndex+1)+' xoay '+(nativeRotation*90)+'°. Cần ma trận PDF.js để cắt chính xác; hãy thao tác qua công cụ PDF HVD.');
+   if(req.viewport?.rotation!==undefined && req.viewport.rotation!==nativeRotation*90)
+    throw Error('Trang '+(pageIndex+1)+': góc xoay trình xem khác dữ liệu PDF gốc. Hãy mở lại tài liệu và thử lại.');
+   // The exact inverse PDF.js viewport maps the user's screen selection to
+   // PDF user coordinates independent of /Rotate/CropBox/MediaBox/UserUnit.
+   const regions=normalizedToUser(raw,engine,req.viewport),b=zoneBounds(regions);
    const M=engine.M,scratch=M._malloc(32);
    let changed=0,skipped=0,erased=0;
    try{
