@@ -27,6 +27,16 @@ const state={
 };
 function status(message,type=''){
  dom.status.textContent=message;dom.status.className='re-status'+(type?' '+type:'');
+ // A status must never float over a drawing or its editing handles.
+ // Keep the full text as a tooltip while mirroring it to existing chrome.
+ for(const id of ['re-editor-status','re-gallery-status']){
+  const node=$(id);
+  if(!node)continue;
+  node.textContent=message;
+  node.title=message;
+  node.className=(id==='re-editor-status'?'re-editor-status':'re-gallery-status')+
+   (type?' '+type:'');
+ }
 }
 function countRegions(){let n=0;for(const z of state.regions.values())n+=z.length;return n;}
 function activeRegions(){return state.regions.get(state.pageIndex)||[];}
@@ -87,6 +97,7 @@ function updateControls(){
   !([...state.regions.values()].some(z=>z.some(v=>v.mode==='erase')));
  $('re-download').disabled=state.busy||!state.result||!state.result.blob;
  $('re-rework').disabled=state.busy||!state.result;
+ $('re-rework').hidden=!state.result;
  $('re-draw').disabled=state.busy||!state.pdf||!!state.result;
  $('re-clear-page').disabled=state.busy||!!state.result||!activeRegions().length;
  $('re-prev').disabled=state.busy||state.pageIndex<=0;
@@ -557,8 +568,11 @@ async function apply(){
     ' PDF nguồn có chữ ký số; chữ ký cũ trên bản sao đã chỉnh sửa không còn hiệu lực.':'')+
    ' Tệp nguồn vẫn nguyên vẹn. Kiểm tra rồi quyết định Chỉnh sửa lại hoặc Xuất PDF.';
   dom.results.hidden=false;
-  dom.results.scrollIntoView({behavior:'smooth',block:'nearest'});
-  status('Đã áp dụng trực tiếp trên web. So sánh Bản gốc / Sau xử lý, chỉnh lại nếu cần và chỉ Xuất PDF khi đã đúng.','success');
+  // Scroll ONLY the task sidebar to its report. Never scroll the PDF viewport,
+  // move the browser document or reveal a floating card over a drawing.
+  const taskPane=dom.results.closest('.re-tools');
+  if(taskPane)taskPane.scrollTop=0;
+  status('Đã áp dụng. Xem Bản gốc / Sau xử lý, Chỉnh sửa lại nếu cần hoặc Xuất PDF.','success');
  }catch(error){invalidateResult();status('Không thể xóa an toàn: '+(error.message||String(error)),'error');}
  finally{
   state.abortController=null;

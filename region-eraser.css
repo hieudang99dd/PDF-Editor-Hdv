@@ -217,27 +217,45 @@ body.re-workspace-open .re-gallery-grid{
   overscroll-behavior:contain;
   scrollbar-gutter:stable;
 }
-/* Applying a result must not change the height of the two editing panes.
- * The compact review card floats over the preview; task/canvas remain fixed. */
-body.re-workspace-open #re-results:not([hidden]){
-  position:absolute;
-  z-index:35;
-  right:12px;
-  bottom:12px;
-  width:min(700px,calc(100% - 340px));
-  max-height:min(25dvh,150px);
-  margin:0;
-  padding:10px 13px;
-  overflow-y:auto;
-  overscroll-behavior:contain;
-  box-shadow:var(--shadow);
+/* Keep result INSIDE task-scrolling pane, never floating over the PDF.
+ * The preview keeps its height and content area after Apply. */
+body.re-workspace-open .re-tools #re-results:not([hidden]){
+  position:static;
+  display:block;
+  flex:0 0 auto;
+  width:100%;
+  max-height:none;
+  margin:0 0 7px;
+  padding:9px 10px;
+  overflow:visible;
+  box-shadow:none;
+  min-width:0;
 }
+body.re-workspace-open .re-tools #re-results strong{display:block;font-size:12px;line-height:1.4}
+body.re-workspace-open .re-tools #re-results p{overflow-wrap:anywhere;font-size:11px;line-height:1.4}
+body.re-workspace-open #re-status{display:none}
+/* Status is written into reserved navigation/footer space, not into the PDF. */
+body.re-workspace-open .re-editor-status{
+  display:block;
+  flex:1 1 165px;
+  min-width:0;
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+  font-size:10px;
+  color:#9cd8ba;
+}
+body.re-workspace-open .re-editor-status.error,
+body.re-workspace-open .re-gallery-status.error{color:#ff9494}
+body.re-workspace-open .re-editor-status.success,
+body.re-workspace-open .re-gallery-status.success{color:#9be7c5}
+body.re-workspace-open .re-gallery-status{font-size:11px;margin:3px 0;color:var(--muted)}
+body.re-workspace-open .re-footer-info>span:first-child{flex:0 1 auto;max-width:34%}
+body.re-editor-active #re-rework{white-space:nowrap}
+
 @media(max-width:980px){
   body.re-workspace-open .re-columns{
     grid-template-columns:minmax(220px,260px) minmax(0,1fr);
-  }
-  body.re-workspace-open #re-results:not([hidden]){
-    width:min(630px,calc(100% - 290px));
   }
 }
 @media(max-width:760px){
@@ -272,12 +290,6 @@ body.re-workspace-open #re-results:not([hidden]){
     min-height:0;
     max-height:none;
     padding:10px;
-  }
-  body.re-workspace-open #re-results:not([hidden]){
-    right:8px;
-    bottom:8px;
-    width:calc(100% - 16px);
-    max-height:min(24dvh,150px);
   }
 }
 @media(max-height:650px){
@@ -464,7 +476,3 @@ body.re-editor-active #re-toggle-tools[aria-pressed="true"]{
  body.re-editor-active .re-editor-header>div:nth-child(3)>span{display:none}
 }
 
-/* Reviewed PDF should also use the wider surface when task panel is hidden. */
-body.re-workspace-open.re-editor-active.re-focus-page #re-results:not([hidden]){
- width:min(760px,calc(100% - 24px));
-}

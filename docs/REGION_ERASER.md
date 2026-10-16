@@ -206,3 +206,13 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - Bản vẽ có trang lớn hơn viewport do zoom sẽ cuộn ngang/dọc đúng trục, căn giữa khi vừa trang bằng `margin:auto` thay vì mất nội dung ngoài mép trái. Overlay SVG và tay nắm đỉnh/cạnh luôn có cùng bounding box với canvas PDF.
 - Từ dàn trang vào editor tự chọn `Vừa trang`; đổi trang khác khôi phục `Vừa trang` mặc định. Khi quay lại dàn trang, thoát chế độ editor compact. Khi làm mới/tệp khác, xóa trạng thái compact/focus.
 - QA: `tests/pdf-region-fit-layout.test.cjs` kiểm tra landscape, portrait, page/width, chiều rộng/chiều cao thực; Chromium `tests/ux-browser.cjs` xác minh nhìn toàn trang, thu/phóng, ẩn/hiện tác vụ, resize browser và thao tác kéo vùng/áp dụng PDFium.
+
+
+## 18. Không che vùng chỉnh sửa PDF bằng hộp kết quả/trạng thái (2026-10-16)
+
+- Sửa lỗi giao diện khi bấm **Áp dụng**: thẻ báo cáo `#re-results` từng dùng `position:absolute` ở góc phải dưới làm che một phần trang PDF và cả chữ/ký tên; thông báo `#re-status` từng dùng `position:fixed` tại đáy cửa sổ tiếp tục che bản vẽ.
+- **Kết quả xử lý** được đặt cố định trong DOM ở đầu **panel tác vụ bên trái**, theo luồng cuộn của panel, với `position:static`; không làm thay đổi chiều cao hai panel, không tạo lớp overlay lên canvas. Panel tác vụ cuộn đến đầu báo cáo sau Áp dụng.
+- **Nút Chỉnh sửa lại** nằm trên thanh `re-editor-header` phía trên bản vẽ cùng nút Bản gốc / Sau xử lý, được bật khi có PDF kết quả và luôn truy cập được ngay cả khi người dùng bật `Ẩn tác vụ`.
+- **Trạng thái** chỉ hiện bên trong hàng footer **dưới viewport PDF** khi đang chỉnh sửa và bên trong tiêu đề dàn trang khi xem gallery; bản toast floating ẩn trong chế độ đã mở tài liệu. Trạng thái lỗi vẫn có màu cảnh báo, `role=status`, `aria-live=polite`, có tooltip để đọc đầy đủ câu bị ellipsis.
+- Trên uploader chưa mở tài liệu, status hiện thông thường, phục vụ lỗi nhập PDF. Không sửa PDFium Worker hay vùng/tọa độ PDF.
+- QA: Node `tests/pdf-region-notification-dock.test.cjs`; Chromium xác minh báo cáo nằm trong `.re-tools`, nằm **bên trái** PDF viewport, footer **bên dưới** viewport, toast cũ ẩn; nút Chỉnh sửa lại vẫn thấy được khi sidebar đang ẩn.

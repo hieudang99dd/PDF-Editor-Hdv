@@ -50,5 +50,5 @@ test('compact editor is scoped and keeps both fixed scroll panes and page drawin
  assert.match(js,/body\.classList\.add\('re-editor-active'\)/);
  assert.match(js,/dom\.viewport\.scrollTop=0/);
  assert.match(js,/drawRegions\(\);refreshZones\(\)/);
- assert.match(html,/20261016-fit2/);
+ assert.match(html,/20261016-dock1/);
 });
