@@ -4,6 +4,9 @@ on:
     branches: [master]
     paths:
       - 'index.html'
+      - 'organizer.js'
+      - 'organizer.css'
+      - 'studio/hvd-brand.css'
       - 'hvd-ui-v2.*'
       - 'pdf-local-tools.js'
       - 'cit-advanced-ui.js'
@@ -14,6 +17,9 @@ on:
     branches: [master]
     paths:
       - 'index.html'
+      - 'organizer.js'
+      - 'organizer.css'
+      - 'studio/hvd-brand.css'
       - 'hvd-ui-v2.*'
       - 'pdf-local-tools.js'
       - 'cit-advanced-ui.js'

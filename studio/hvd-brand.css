@@ -57,7 +57,9 @@ nav.hvd-original-nav,#tool-landing,footer.hvd-original-footer {display:none!impo
 }
 #hvd-brand-footer a {color:#d1dbe9;text-underline-offset:3px}
 #hvd-brand-footer a:hover {color:#fff}
-body:has(#text-editor-app:not([hidden])) #hvd-brandbar {display:none}
+/* The Studio already supplies a navigation toolbar and a back-to-upload action.
+   Do not show a second, unusable 60px-high brand navigation over the editor. */
+#hvd-brandbar {display:none!important}
 @media(max-width:680px){
   #hvd-brandbar .hvd-inner {gap:8px;min-height:54px}
   #hvd-brandbar .hvd-tagline {display:none}

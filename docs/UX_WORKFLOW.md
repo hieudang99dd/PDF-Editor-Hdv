@@ -26,7 +26,7 @@
 | Công cụ browser – đang chạy | Chặn, thông báo chờ | Chặn, thông báo chờ | Không bấm nhiều lần | Chặn thao tác Back thủ công |
 | Công cụ browser – kết quả sẵn | Xóa kết quả nhưng giữ file | Xóa file và kết quả | Link tải ngay, vẫn ở tool | Cảnh báo nếu chưa yêu cầu tải |
 | Preflight – có PDF | Xóa báo cáo, giữ PDF | Xóa báo cáo và đổi tệp | Xuất JSON, không thoát | Link danh mục |
-| Organizer HVD | **Giữ cơ chế gốc** `#po-tb-reset` và Undo/Redo | Mở PDF bằng UI gốc | `executeSave`/modal không tự về Home | `#po-back` có xác nhận thay đổi |
+| Organizer HVD | **`#po-new-document` đóng PDF và mở lại uploader** (xác nhận nếu có tệp); `#po-tb-reset` chỉ hoàn nguyên cấu trúc trang | Dùng uploader ngay trong cùng công cụ | `executeSave` không tự về trang chủ; có thể lưu tiếp | Nút `#po-back` lớn ở header, xác nhận thay đổi chưa lưu |
 | Studio CIT | **Giữ cơ chế native gốc** | Dùng trình nhập PDF native | `#save` không bị adapter HVD thay thế | `#exitEditor` native; `#back-to-tools` tại uploader về danh mục |
 
 **Phân biệt quan trọng:** Dữ liệu file được ghi/tải và trạng thái chỉnh sửa là hai việc khác nhau. Trình duyệt có thể chặn tải xuống hoặc đổi nơi lưu; thông báo UI chỉ xác nhận *đã yêu cầu tải*.
@@ -88,3 +88,23 @@ RESULT -- Back --> CATALOG     [confirm khi chưa request tải]
 - **Đồng bộ mobile toolbar** ở Studio: cần test Chromium để không phá view native.
 
 Từng vòng phải cập nhật `IMPLEMENTATION_PROGRESS.md`. Nếu chưa có E2E thực tế, chỉ công bố phạm vi đã qua unit/CI, không dùng từ "triệt để" hoặc "mọi màn hình".
+
+
+## 7. Chỉnh sửa PDF — làm mới tài liệu đúng nghĩa (2026-10-16)
+
+**Đường dẫn:** Trang chủ → Biên tập → Chỉnh sửa & chú thích → Chỉnh sửa PDF.
+
+- Từ trạng thái có tài liệu, nút **↻ Làm mới** trên thanh đầu đóng phiên xử lý và đưa về màn hình **Mở tài liệu PDF** ngay trong cùng chức năng. Việc đóng tài liệu không phụ thuộc việc đã tải file kết quả; không điều hướng lên danh mục. File PDF gốc trên máy tính không bị xóa.
+- Có tệp đang nạp: hộp thoại xác nhận rõ rằng những thay đổi chưa lưu sẽ bị bỏ. Chọn Hủy → giữ nguyên PDF và lịch sử. Khi đọc hoặc xuất PDF đang diễn ra, nút reset không xóa DOM/worker, thay bằng thông báo chờ hoàn tất.
+- Sau xác nhận: gọi `PDFOrganizer.destroy()` để dừng listener qua AbortController, giải phóng PDF.js, worker native, ảnh xem trước, Object URL, thumbnail; sau đó `window.initOrganizer([])` dựng phiên rỗng. **Không reload cả website** và không mất chức năng đang mở.
+- Nút mũi tên quay lại 32×32 px được thay bằng nút chữ **← Danh mục công cụ** lớn, vùng bấm tối thiểu 39px và nằm cạnh nhóm quản lý phiên tài liệu.
+- Nút `#po-tb-reset` được đổi nhãn **↶ Hoàn nguyên trang**. Nó phục hồi sơ đồ/trạng thái trang từ history gốc, không tương đương “Làm mới” và không có quyền tuyên bố hoàn nguyên mọi nội dung text đã sửa.
+- Thanh đầu: trái là tên tính năng; phải có “Làm mới”, “Danh mục công cụ”, Undo, Redo, Xuất trang chọn, Lưu tài liệu. Thanh thứ hai chỉ dành cho thao tác chọn/sắp xếp/biên tập trang.
+- Phần header thương hiệu tối dư thừa `#hvd-brandbar` trên màn hình Studio được ẩn; không xóa `NOTICE.md` hay các quyền tác giả trong nguồn. Studio vẫn giữ lệnh `#exitEditor` gốc trong thanh công cụ.
+- Kiểm thử: `tests/organizer-reset.test.cjs` (hủy/cho phép khi đang lưu), `tests/ux-browser.cjs` (PDF thật → thoát file → uploader → chọn PDF khác) và kiểm thử hồi quy các PDF bằng Node.
+
+
+### 7.1. Kiểm soát tác động của build Studio
+
+- `.github/workflows/cit-original-build.yml` chỉ tự kích hoạt khi tệp đầu vào chuyên biệt của Studio thay đổi (`scripts/cit-original/**`, kiểm thử CIT browser hoặc file lock upstream). Chỉnh sửa Organizer, trang chủ và engine browser **không** được tự biên dịch lại toàn bộ Studio và ghi đè thư mục `studio/` đang hoạt động.
+- Build Studio thủ công vẫn được hỗ trợ qua `workflow_dispatch`. Khi cần rebuild upstream, kiểm tra thay đổi giao diện đã cá nhân hóa và giấy phép trước khi ghi đè artifact.

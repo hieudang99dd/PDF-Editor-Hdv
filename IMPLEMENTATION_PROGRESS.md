@@ -198,3 +198,15 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - `pdfium-preflight.html`: Làm mới báo cáo vẫn giữ file, Tệp khác không điều hướng. `hvd-ui-v2.css`: nút refresh có thể sử dụng trên mobile; theme ghi preference không nhạy cảm.
 - **Không thay** các engine/JS minified `studio/`, `organizer.js`, native text worker hoặc API save. `#save` và `#exitEditor` Studio cần E2E riêng trước khi cải tổ sâu.
 - `tests/ux-session.test.cjs`: hồi quy các trạng thái, in-place downloads, refresh, history; GitHub Actions pages-smoke để nghiệm thu tĩnh. Kiểm thử Chrome/Edge + PDF kỹ thuật thực tế vẫn là hạng mục tiếp theo.
+
+## 2026-10-16 — Khắc phục Organizer không thoát tài liệu khi Làm mới
+
+- Phát hiện `#po-tb-reset` trước đây chỉ hoàn nguyên cấu trúc trang trong history, không xóa tài liệu và không trở về khu vực upload.
+- Tạo `PDFOrganizer.newDocument()`: khóa khi đang đọc/lưu, xác nhận nếu có PDF, `destroy()` instance cũ (PDF.js/worker/cache/URL/listeners), khởi tạo lại cùng tính năng bằng `window.initOrganizer([])`; không reload website và không tự về trang chủ.
+- Đưa **Làm mới** lên thanh quản lý tài liệu; đổi nhãn nút cũ thành **Hoàn nguyên trang** cho đúng phạm vi; bỏ mũi tên back icon cực nhỏ, thay bằng **Danh mục công cụ** có nhãn và kích thước rõ ràng, phân bố responsive.
+- Thiết kế lại màn hình upload, hỗ trợ Enter/Space; thu gọn header Studio thừa tại `studio/hvd-brand.css` (không đụng dữ liệu/engine).
+- `tests/organizer-reset.test.cjs` kiểm tra hủy và cho phép, trạng thái đang đọc/lưu; cập nhật Chromium E2E với PDF thật và workflow `ux-browser.yml` tự chạy khi sửa organizer; tài liệu quy trình `docs/UX_WORKFLOW.md` đã cập nhật.
+- QA cần xác nhận Node/Chromium trước khi gộp; các tài liệu CAD A0/A1 với font Type3 và thay đổi text phức tạp vẫn cần thử riêng.
+
+
+- Tách điều kiện tự chạy `cit-original-build.yml`: thay đổi `organizer.js` hoặc trang chủ không còn gây build lại và ghi đè `studio/`; workflow vẫn có `workflow_dispatch` và triggers theo nguồn Studio. Tăng cache version `organizer.js` trong cả trang chính lẫn trình editor dự phòng, và `hvd-brand.css` trong Studio.
