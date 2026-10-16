@@ -4,13 +4,13 @@
 import {erasePdfRegions} from './pdf-region-native.mjs?v=20261016-rotate2';
 import {validateInputSize} from './pdf-region-limits.mjs?v=20261016-512mb1';
 self.onmessage=async ({data})=>{
- const {id,file,bytes,pages}=data||{};
+ const {id,file,bytes,pages,mode,allowInvalidSignatures}=data||{};
  try{
   const size=file?.size??bytes?.byteLength??0;
   validateInputSize(size); // reject before allocating a large contiguous buffer
   self.postMessage({id,progress:{stage:'reading',bytes:size,totalPages:pages?.length||0}});
   const input=file ? new Uint8Array(await file.arrayBuffer()) : new Uint8Array(bytes);
-  const result=await erasePdfRegions(input,pages,{onProgress:progress=>{
+  const result=await erasePdfRegions(input,pages,{mode,allowInvalidSignatures,onProgress:progress=>{
    self.postMessage({id,progress});
   }});
   // PDFium normally returns a full Uint8Array. If it returns a view, copy only
