@@ -4,7 +4,7 @@
 // Unsupported paths remain unchanged AND are reported (fail closed when a path
 // geometrically intersects a deletion region but cannot safely be reconstructed).
 import {PdfEngine} from './vendor/cit-pdf/editcore/core.js';
-import {validateRegions, normalizedToUser, keepSegment} from './pdf-region-geometry.mjs?v=20261016-rotate2';
+import {validateRegions, normalizedToUser, keepSegment, regionIntersectsRect} from './pdf-region-geometry.mjs?v=20261016-rotate2';
 import {validateInputSize} from './pdf-region-limits.mjs?v=20261016-512mb1';
 const readF=(M,p,i=0)=>M.HEAPF32[(p+i*4)>>2];
 const writeF=(M,p,i,value)=>{M.HEAPF32[(p+i*4)>>2]=value};
@@ -94,16 +94,25 @@ function signed(bytes){
  outer:for(let i=0;i<=bytes.length-marker.length;i++){if(bytes[i]!==47)continue;for(let j=1;j<marker.length;j++)if(bytes[i+j]!==marker[j])continue outer;return true;}
  return false;
 }
-export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}){
+export async function erasePdfRegions(source,pageRequests,{
+ onProgress=()=>{},mode='precise',allowInvalidSignatures=false
+}={}){
+ if(!['precise','whole-object'].includes(mode))
+  throw Error('Chế độ xóa PDF không hợp lệ.');
  const bytes=source instanceof Uint8Array?source:new Uint8Array(source);
  validateInputSize(bytes.byteLength);
- if(signed(bytes))throw Error('PDF có chữ ký số. Xóa vector sẽ làm mất hiệu lực chữ ký.');
+ const hasSignature=signed(bytes);
+ if(hasSignature&&!allowInvalidSignatures)
+  throw Error('PDF có chữ ký số. Chọn “Tạo bản sao chấp nhận chữ ký mất hiệu lực” rồi thực hiện lại.');
  if(!Array.isArray(pageRequests)||pageRequests.length<1||pageRequests.length>500)
   throw Error('Danh sách trang cần xóa không hợp lệ.');
  const emit=(stage,detail={})=>{try{onProgress({stage,...detail});}catch(_){/* Reporting cannot modify PDF processing. */}};
  emit('initializing',{totalPages:pageRequests.length,bytes:bytes.byteLength});
  const engine=await PdfEngine.create();
- const report={changedObjects:0,newFragments:0,removedSegments:0,skippedNonVector:0,pages:[]};
+ const report={
+  changedObjects:0,newFragments:0,removedSegments:0,removedObjects:0,
+  removedByType:{},skippedNonVector:0,signatureInvalidated:hasSignature,pages:[]
+ };
  try{
   try{engine.open(bytes);}
   catch(error){
@@ -134,7 +143,7 @@ export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}
    // PDF user coordinates independent of /Rotate/CropBox/MediaBox/UserUnit.
    const regions=normalizedToUser(raw,engine,req.viewport),b=zoneBounds(regions);
    const M=engine.M,scratch=M._malloc(32);
-   let changed=0,skipped=0,erased=0;
+   let changed=0,skipped=0,erased=0,removed=0;
    try{
     // Decreasing order preserves indices outside the region. Each change removes
     // the original object before inserting fragments at its original Z index.
@@ -146,6 +155,23 @@ export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}
      if(!obj)continue;
      const rect=objectRect(engine,obj.handle);
      if(!rect||!intersectsBounds(rect,b))continue;
+     if(mode==='whole-object'){
+      // The object is removed from the content stream in its entirety.
+      // Unlike precise PATH segmentation, this can remove content OUTSIDE
+      // the region whenever a text run, image or Form crosses its edge.
+      const broad={x0:rect.x0,y0:rect.y0,x1:rect.x1,y1:rect.y1};
+      // Hairlines have degenerate bounds. Use 0.01pt radius, never
+      // approximate the visual result with a white/transparent overlay.
+      if(broad.x1-broad.x0<0.02){broad.x0-=0.01;broad.x1+=0.01;}
+      if(broad.y1-broad.y0<0.02){broad.y0-=0.01;broad.y1+=0.01;}
+      if(!regionIntersectsRect(broad,regions,operation))continue;
+      if(!M._FPDFPage_RemoveObject(engine.page,obj.handle))
+       throw Error('Không gỡ được đối tượng PDF tại trang '+(pageIndex+1)+'.');
+      M._FPDFPageObj_Destroy(obj.handle);
+      changed++;removed++;report.changedObjects++;report.removedObjects++;
+      report.removedByType[obj.type]=(report.removedByType[obj.type]||0)+1;
+      continue;
+     }
      if(obj.type!==2){skipped++;continue;} // text/image/form are excluded, not blanked
      if(clipsPresent(M,obj.handle))throw Error('Trang '+(pageIndex+1)+': vector có clipping path trong vùng. Chưa hỗ trợ xóa an toàn.');
      const style=readStyle(M,obj.handle,scratch);
@@ -183,11 +209,13 @@ export async function erasePdfRegions(source,pageRequests,{onProgress=()=>{}}={}
     engine._pageDirty=true;
     if(!engine.generateContent())throw Error('PDFium không tạo lại được nội dung trang sau xóa.');
    }
-   report.pages.push({pageIndex,changedObjects:changed,skippedNonVector:skipped});
+   report.pages.push({pageIndex,changedObjects:changed,removedObjects:removed,skippedNonVector:skipped});
    emit('page-done',{pageIndex,completedPages:jobIndex+1,totalPages:pageRequests.length,
        changedObjects:report.changedObjects,newFragments:report.newFragments});
   }
-  if(!report.changedObjects)throw Error('Không có đường vector nét liền hỗ trợ giao với vùng xóa. Không tạo tệp giả.');
+  if(!report.changedObjects)throw Error(mode==='whole-object'?
+   'Không tìm thấy đối tượng PDF giao với vùng đã chọn. Tệp gốc không thay đổi.':
+   'Không có đường vector nét liền hỗ trợ giao với vùng xóa. Không tạo tệp giả.');
   emit('saving',{completedPages:pageRequests.length,totalPages:pageRequests.length});
   let out;
   try{out=engine.save({incremental:false});}
