@@ -24,7 +24,7 @@ jobs:
           cat > /tmp/check-pages.py <<'PY'
           import hashlib, re, time, urllib.request, urllib.error, pathlib, sys
           base='https://hieudang99dd.github.io/PDF-Editor1/studio/'
-          required=['edit-pdf-text.html','hvd-brand.css',
+          required=['edit-pdf-text.html','hvd-brand.css','repair-editor.html',
                     'assets/style-B64az6_y.css',
                     'assets/edit-pdf-text-CBd7slK6.css',
                     'assets/edit-pdf-text-DRxmk-wp.js',
