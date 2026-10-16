@@ -18,7 +18,7 @@ function makePage(name, calls) {
     querySelector: () => null,
     createElement: tag => ({ tag, children: [], style: {}, append(...xs) { this.children.push(...xs); }, addEventListener() {} }),
   };
-  const ctx = { document: doc, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
+  const ctx = { document: doc, window: {}, URL: { createObjectURL: () => 'blob:test', revokeObjectURL() {} },
     FormData, Blob, File, AbortSignal, setTimeout, console,
     fetch: async (url, opts) => {
       calls.push({ url, opts });
