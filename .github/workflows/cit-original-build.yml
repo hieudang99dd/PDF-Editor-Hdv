@@ -111,6 +111,14 @@ jobs:
           path: cit-upstream/dist/
           retention-days: 7
           if-no-files-found: error
+      - name: Protect current PDF-Editor1 Pages against a legacy-base rebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -qF '/PDF-Editor-Hdv/studio/' cit-stage/studio/edit-pdf-text.html; then
+            echo "::error title=Outdated build base::Legacy /PDF-Editor-Hdv/studio/ references found. Do not overwrite the verified PDF-Editor1 editor. Migrate pinned upstream Vite BASE_URL, brand_site.py and browser QA together before the next vendor rebuild."
+            exit 1
+          fi
       - name: Persist original CIT compiled frontend to master for legacy Pages durability
         shell: bash
         run: |
