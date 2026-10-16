@@ -13,7 +13,7 @@ export function eraseRegionsInWorker(source,pages,{timeoutMs,onProgress=()=>{},s
  if(signal?.aborted)return Promise.reject(new Error('Đã hủy xử lý PDF.'));
  return new Promise((resolve,reject)=>{
   let worker;
-  try{worker=new Worker(new URL('./pdf-region-worker.mjs?v=20261016-rotate2',import.meta.url),{type:'module'});}
+  try{worker=new Worker(new URL('./pdf-region-worker.mjs?v=20261016-all1',import.meta.url),{type:'module'});}
   catch(error){reject(new Error('Không khởi động được PDFium Worker: '+error.message));return;}
   let settled=false,activityTimer;
   const done=(error,result)=>{
