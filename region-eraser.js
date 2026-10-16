@@ -44,6 +44,8 @@ function recover(index){
  if(index<0||index>=state.history.length||state.busy)return;
  state.cursor=index;
  state.regions=new Map(JSON.parse(state.history[index]));
+ state.selectedZone=Math.min(state.selectedZone,activeRegions().length-1);
+ state.editDrag=null;
  stopDrawing();invalidateResult();refreshZones();drawRegions();updateControls();
 }
 function releaseReview(){
@@ -314,6 +316,12 @@ function drawRegions(temporary=[]){
  }
  if(temporary.length>=2)dom.overlay.append(svgPoly(temporary,state.role,true));
 }
+function selectZone(index){
+ if(state.busy||state.drawing||state.result||!activeRegions()[index])return;
+ state.selectedZone=index;state.editDrag=null;
+ refreshZones();drawRegions();
+ status('Vùng '+(index+1)+': kéo chấm tròn ở đỉnh hoặc chấm giữa cạnh để chỉnh hình. Hoàn tác/Làm lại luôn sẵn sàng.','success');
+}
 function refreshZones(){
  const regions=activeRegions();
  dom.zones.replaceChildren();
@@ -538,8 +546,36 @@ function download(){
  status('Đã gửi yêu cầu xuất PDF đã kiểm tra. Bạn vẫn có thể Chỉnh sửa lại để tạo phiên bản khác.','success');
  setTimeout(()=>{URL.revokeObjectURL(url);state.downloadUrls.delete(url);},120000);
 }
+function editable(){
+ return !!state.pdf&&!state.busy&&!state.drawing&&!state.result;
+}
+function cancelEditDrag(){
+ if(!state.editDrag)return;
+ const pointerId=state.editDrag.pointerId;
+ state.editDrag=null;
+ if(dom.overlay.hasPointerCapture?.(pointerId))dom.overlay.releasePointerCapture(pointerId);
+ drawRegions();
+}
 function onPointerDown(e){
- if(!state.drawing)return;e.preventDefault();
+ if(!state.drawing){
+  if(!editable()||e.button!==0)return;
+  const handle=e.target.closest?.('[data-edit-handle]');
+  const shape=e.target.closest?.('[data-zone-index]');
+  if(handle && state.selectedZone>=0){
+   e.preventDefault();e.stopPropagation();
+   state.editDrag={
+    pointerId:e.pointerId,zoneIndex:state.selectedZone,
+    kind:handle.dataset.editHandle,index:Number(handle.dataset.handleIndex),
+    origin:pos(e),baseZones:activeRegions(),draftZones:null,
+    moved:false,invalidMessage:''
+   };
+   dom.overlay.setPointerCapture(e.pointerId);
+  }else if(shape){
+   e.preventDefault();selectZone(Number(shape.dataset.zoneIndex));
+  }
+  return;
+ }
+ e.preventDefault();
  const p=pos(e);
  if(state.shape==='rect'){state.start=p;dom.overlay.setPointerCapture(e.pointerId);return;}
  if(state.vertices.length>=256){status('Đạt giới hạn 256 đỉnh.','error');return;}
@@ -547,8 +583,45 @@ function onPointerDown(e){
  if(last&&Math.hypot(last.x-p.x,last.y-p.y)<.003)return;
  state.vertices.push(p);drawRegions(state.vertices);
 }
-function onPointerMove(e){if(state.drawing&&state.shape==='rect'&&state.start)drawRegions(boxPoints(state.start,pos(e)));}
+function onPointerMove(e){
+ const edit=state.editDrag;
+ if(edit){
+  if(e.pointerId!==edit.pointerId)return;
+  e.preventDefault();
+  const at=pos(e),delta={x:at.x-edit.origin.x,y:at.y-edit.origin.y};
+  if(Math.hypot(delta.x,delta.y)<.00001)return;
+  try{
+   const next=moveRegionHandle(edit.baseZones,edit.zoneIndex,edit.kind,edit.index,delta,state.operation);
+   edit.draftZones=next;edit.moved=true;edit.invalidMessage='';
+   drawRegions();
+  }catch(error){edit.invalidMessage=error.message;}
+  return;
+ }
+ if(state.drawing&&state.shape==='rect'&&state.start)drawRegions(boxPoints(state.start,pos(e)));
+}
 function onPointerUp(e){
+ if(state.editDrag){
+  const edit=state.editDrag;
+  if(e.pointerId!==edit.pointerId)return;
+  e.preventDefault();
+  // Resolve the final position once more even when the browser coalesces
+  // pointermove events before pointerup.
+  const at=pos(e),delta={x:at.x-edit.origin.x,y:at.y-edit.origin.y};
+  if(Math.hypot(delta.x,delta.y)>.00001){
+   try{
+    edit.draftZones=moveRegionHandle(edit.baseZones,edit.zoneIndex,edit.kind,edit.index,delta,state.operation);
+    edit.moved=true;edit.invalidMessage='';
+   }catch(error){edit.invalidMessage=error.message;}
+  }
+  const accepted=edit.draftZones&&edit.moved;
+  cancelEditDrag();
+  if(accepted){
+   state.regions.set(state.pageIndex,edit.draftZones);
+   record();refreshZones();drawRegions();
+   status('Đã cập nhật đường bao vùng '+(edit.zoneIndex+1)+'. Có thể kéo tiếp, Hoàn tác hoặc bấm Áp dụng để kiểm tra.','success');
+  }else if(edit.invalidMessage)status('Không thể kéo đường bao: '+edit.invalidMessage,'error');
+  return;
+ }
  if(!state.drawing||state.shape!=='rect'||!state.start)return;
  const a=state.start,b=pos(e);state.start=null;
  if(Math.abs(a.x-b.x)<.004||Math.abs(a.y-b.y)<.004){status('Kéo để tạo vùng rộng hơn.','error');drawRegions();return;}
@@ -623,9 +696,13 @@ function wire(){
  dom.overlay.addEventListener('pointerdown',onPointerDown);
  dom.overlay.addEventListener('pointermove',onPointerMove);
  dom.overlay.addEventListener('pointerup',onPointerUp);
- dom.overlay.addEventListener('pointercancel',()=>{if(state.drawing&&state.shape==='rect'){state.start=null;drawRegions();}});
+ dom.overlay.addEventListener('pointercancel',()=>{
+  if(state.editDrag){cancelEditDrag();return;}
+  if(state.drawing&&state.shape==='rect'){state.start=null;drawRegions();}
+ });
  dom.overlay.addEventListener('dblclick',e=>{if(state.drawing&&state.shape==='poly'){e.preventDefault();finishPolygon();}});
  window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&state.editDrag){e.preventDefault();cancelEditDrag();return;}
   if(e.key==='Escape'&&state.drawing){e.preventDefault();stopDrawing();}
   if(e.key==='Enter'&&state.drawing&&state.shape==='poly'){e.preventDefault();finishPolygon();}
  });
