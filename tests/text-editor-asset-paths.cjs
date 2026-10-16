@@ -23,6 +23,10 @@ for (const p of paths) {
   assert.ok(!read(p).includes('/PDF-Editor-Hdv/studio/'), 'Old absolute base remains in ' + p);
 }
 const html = read('studio/edit-pdf-text.html');
+for (const asset of ['hvd-text-apply.css?v=20261016-live1','hvd-text-apply.js?v=20261016-live1']) {
+  assert.ok(html.includes(asset), 'Missing direct-apply asset: ' + asset);
+}
+
 const recoveryMarkup = html.split('id="hvd-editor-recovery"')[1]?.split('</div>')[0] || '';
 assert.ok(recoveryMarkup.includes('href="./repair-editor.html"'), 'Recovery link missing from uploader');
 assert.ok(read('studio/hvd-brand.css').includes('#hvd-editor-recovery'), 'Recovery action has no scoped styling');
