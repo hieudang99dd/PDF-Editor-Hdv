@@ -61,7 +61,7 @@ function updateControls(){
  $('re-undo').disabled=state.busy||state.cursor<=0;
  $('re-redo').disabled=state.busy||state.cursor>=state.history.length-1;
  dom.process.disabled=state.busy||!state.file||!([...state.regions.values()].some(z=>z.some(v=>v.mode==='erase')));
- $('re-draw').disabled=state.busy||!state.pdf;
+ $('re-draw').disabled=state.busy||!state.pdf||state.reviewMode;
  $('re-clear-page').disabled=state.busy||!activeRegions().length;
  $('re-prev').disabled=state.busy||state.pageIndex<=0;
  $('re-next').disabled=state.busy||!state.pdf||state.pageIndex>=state.pdf.numPages-1;
@@ -144,6 +144,63 @@ async function load(file){
   dom.workspace.hidden=true;dom.upload.hidden=false;
  }finally{setBusy(false);}
 }
+// Memory-bounded storyboard: 24 page cards, lazy 150-pixel thumbnails,
+// serial renders to avoid allocating hundreds of canvas bitmaps at once.
+let thumbnailQueue=Promise.resolve();
+async function showGallery(start=0){
+ if(!state.pdf)return;
+ const generation=++state.galleryGeneration;
+ state.galleryObserver?.disconnect();state.galleryObserver=null;
+ const total=state.pdf.numPages;
+ const first=Math.max(0,Math.min(Math.floor(start/24)*24,Math.floor((total-1)/24)*24));
+ state.galleryStart=first;
+ $('re-gallery-range').textContent=(first+1)+'–'+Math.min(total,first+24)+' / '+total;
+ $('re-gallery-prev').disabled=first===0;
+ $('re-gallery-next').disabled=first+24>=total;
+ const grid=$('re-gallery-grid');grid.replaceChildren();
+ const observer=typeof IntersectionObserver==='function'?
+  new IntersectionObserver(entries=>{
+   for(const item of entries)if(item.isIntersecting){
+    observer.unobserve(item.target);
+    thumbnailQueue=thumbnailQueue.then(()=>renderThumbnail(item.target,generation)).catch(()=>{});
+   }
+  },{rootMargin:'250px'}):null;
+ state.galleryObserver=observer;
+ for(let i=first;i<Math.min(total,first+24);i++){
+  const card=document.createElement('button');
+  card.type='button';card.className='re-page-card';card.dataset.page=String(i);
+  card.setAttribute('aria-label','Phóng to trang '+(i+1)+' để thao tác xóa vùng');
+  const canvas=document.createElement('canvas');canvas.width=112;canvas.height=145;
+  const title=document.createElement('span');title.className='re-page-number';title.textContent='Trang '+(i+1);
+  const count=document.createElement('small');count.className='re-page-count';
+  const n=(state.regions.get(i)||[]).length;
+  count.textContent=n?n+' vùng đã vẽ':'Nhấp để phóng to';
+  card.append(canvas,title,count);
+  card.addEventListener('click',()=>enterPage(i));
+  grid.append(card);
+  if(observer)observer.observe(card);
+  else thumbnailQueue=thumbnailQueue.then(()=>renderThumbnail(card,generation)).catch(()=>{});
+ }
+}
+async function renderThumbnail(card,generation){
+ if(generation!==state.galleryGeneration||!state.pdf||!card.isConnected)return;
+ const index=Number(card.dataset.page),canvas=card.querySelector('canvas');
+ try{
+  const page=await state.pdf.getPage(index+1);
+  if(generation!==state.galleryGeneration)return;
+  const box=page.getViewport({scale:1});
+  const scale=Math.min(144/box.width,175/box.height,1);
+  const view=page.getViewport({scale});
+  canvas.width=Math.ceil(view.width);canvas.height=Math.ceil(view.height);
+  const task=page.render({canvasContext:canvas.getContext('2d',{alpha:false}),viewport:view});
+  await task.promise;page.cleanup?.();
+ }catch(error){
+  if(generation===state.galleryGeneration){
+   const label=card.querySelector('.re-page-count');
+   if(label)label.textContent='Không xem được hình thu nhỏ';
+  }
+ }
+}
 function pos(e){
  const r=dom.overlay.getBoundingClientRect();
  return {x:Math.max(0,Math.min(1,(e.clientX-r.left)/r.width)),y:Math.max(0,Math.min(1,(e.clientY-r.top)/r.height))};
@@ -160,7 +217,26 @@ function svgPoly(points,mode,temporary=false){
 }
 function drawRegions(temporary=[]){
  dom.overlay.replaceChildren();
- for(const r of activeRegions())dom.overlay.append(svgPoly(r.points,r.mode));
+ const zones=activeRegions(),ns='http://www.w3.org/2000/svg';
+ const polygonText=points=>points.map(p=>(p.x*1000)+','+(p.y*1000)).join(' ');
+ if(zones.length===2&&state.operation==='between'){
+  const shape=document.createElementNS(ns,'path');
+  const shapePath=pts=>'M '+pts.map(p=>(p.x*1000)+' '+(p.y*1000)).join(' L ')+' Z';
+  shape.setAttribute('d',shapePath(zones[0].points)+' '+shapePath(zones[1].points));
+  shape.setAttribute('fill-rule','evenodd');shape.setAttribute('fill','rgba(250,108,42,.31)');
+  shape.setAttribute('pointer-events','none');dom.overlay.append(shape);
+ }else if(zones.length===2&&state.operation==='intersection'){
+  const defs=document.createElementNS(ns,'defs');
+  const clip=document.createElementNS(ns,'clipPath');clip.id='re-operation-overlap';
+  const poly=document.createElementNS(ns,'polygon');
+  poly.setAttribute('points',polygonText(zones[0].points));clip.append(poly);defs.append(clip);
+  const overlap=document.createElementNS(ns,'polygon');
+  overlap.setAttribute('points',polygonText(zones[1].points));
+  overlap.setAttribute('clip-path','url(#re-operation-overlap)');
+  overlap.setAttribute('fill','rgba(255,119,28,.38)');
+  dom.overlay.append(defs,overlap);
+ }
+ for(const r of zones)dom.overlay.append(svgPoly(r.points,r.mode));
  if(temporary.length>=2)dom.overlay.append(svgPoly(temporary,state.role,true));
 }
 function refreshZones(){
@@ -190,8 +266,9 @@ function stopDrawing(){
 }
 function startDrawing(){
  if(state.busy||!state.pdf)return;
+ if(state.reviewMode){status('Chuyển về Bản gốc để chỉnh lại vùng.','error');return;}
  if(state.drawing){stopDrawing();return;}
- state.shape=dom.shape.value;state.role=dom.role.value;
+ state.shape=dom.shape.value;state.role=state.operation==='union'?dom.role.value:'erase';
  state.drawing=true;state.start=null;state.vertices=[];
  dom.overlay.classList.add('drawing');
  $('re-draw').textContent='✕ Hủy vẽ';
