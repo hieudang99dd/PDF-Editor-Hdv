@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>Xóa vector theo vùng — PDF Đạo Chích</title>
 <meta name="description" content="Xóa thực đoạn vector PATH nằm trong một hoặc nhiều vùng chọn, giữ lại phần bên ngoài. Hoạt động độc lập với Chỉnh sửa PDF.">
-<link rel="stylesheet" href="region-eraser.css?v=20261016-grips1">
+<link rel="stylesheet" href="region-eraser.css?v=20261016-fit2">
 </head>
 <body>
 <header class="re-topbar">
@@ -66,8 +66,9 @@
     <div class="re-gallery-grid" id="re-gallery-grid"></div>
    </section>
    <div id="re-editor-view" hidden>
-    <div class="re-editor-header"><button class="re-btn re-outline" id="re-gallery-back" type="button">← Quay lại dàn trang</button>
-      <div><strong id="re-editor-title">Trang 1 · Vẽ vùng xóa</strong><span>Nhấp chuột và kéo để chọn vùng. Sau khi xóa có thể xem PDF kết quả ngay tại đây.</span></div>
+    <div class="re-editor-header"><button class="re-btn re-outline" id="re-gallery-back" type="button">← Dàn trang</button>
+      <button class="re-btn re-outline re-toggle-tools" id="re-toggle-tools" type="button" aria-pressed="false" title="Ẩn panel tác vụ để xem bản vẽ rộng hơn">☷ Ẩn tác vụ</button>
+      <div><strong id="re-editor-title">Trang 1 · Vẽ vùng xóa</strong><span>Vẽ, kéo đỉnh hoặc cạnh để chỉnh vùng; Áp dụng để xem kết quả.</span></div>
       <div class="re-review-switch" id="re-review-switch" hidden>
        <button class="re-btn re-ghost" id="re-before" type="button">Bản gốc</button>
        <button class="re-btn re-primary" id="re-after" type="button">Sau xử lý</button>
@@ -127,7 +128,7 @@
    <section class="re-preview" aria-label="Xem trước tài liệu">
     <div class="re-preview-toolbar">
      <div class="re-paging"><button type="button" id="re-prev" aria-label="Trang trước">‹</button><label for="re-page">Trang</label><input id="re-page" type="number" min="1" value="1"><span id="re-total">/ 1</span><button type="button" id="re-next" aria-label="Trang sau">›</button></div>
-     <div class="re-view-actions"><button type="button" id="re-zoom-out" aria-label="Thu nhỏ">−</button><span id="re-zoom-label">100%</span><button type="button" id="re-zoom-in" aria-label="Phóng to">＋</button><button type="button" id="re-fit">Vừa trang</button></div>
+     <div class="re-view-actions"><button type="button" id="re-zoom-out" aria-label="Thu nhỏ">−</button><span id="re-zoom-label">100%</span><button type="button" id="re-zoom-in" aria-label="Phóng to">＋</button><button type="button" id="re-fit" title="Hiển thị đủ cả trang PDF trong diện tích còn lại">Vừa trang</button><button type="button" id="re-fit-width" title="Dùng toàn bộ chiều rộng khung xem; có thể cuộn dọc">Vừa rộng</button></div>
     </div>
     <div id="re-viewport" class="re-viewport">
      <div id="re-page-surface" class="re-page-surface">
@@ -151,6 +152,6 @@
 window.pdfjsLib=window.pdfjsLib||window['pdfjs-dist/build/pdf'];
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';
 </script>
-<script type="module" src="region-eraser.js?v=20261016-grips1"></script>
+<script type="module" src="region-eraser.js?v=20261016-fit2"></script>
 </body>
 </html>
