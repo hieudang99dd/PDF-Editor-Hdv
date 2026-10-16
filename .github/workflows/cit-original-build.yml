@@ -1,23 +1,13 @@
 name: CIT Original Frontend Build QA
 on:
+  # Only rebuild pinned upstream Studio when Studio's reproducible inputs change.
+  # Root Organizer/UI changes must NOT overwrite manually reviewed Studio assets.
   push:
     branches: [master]
     paths:
-      - ".github/workflows/cit-original-build.yml"
-      - "scripts/cit-original/**"
-      - "tests/cit-original-browser.cjs"
-      - 'index.html'
-      - 'text-editor.html'
-      - 'text-editor-shell.js'
-      - 'text-editor.css'
-      - 'organizer.js'
-      - 'pdf-native-*.mjs'
-      - 'pdf-text-layout.js'
-      - 'pdf-batch-text.js'
-      - 'cit-advanced-*.js'
-      - 'pdf-local-tools.js'
-      - 'vendor/**'
-      - 'fonts/**'
+      - 'scripts/cit-original/**'
+      - 'tests/cit-original-browser.cjs'
+      - 'CIT-ORIGINAL-FRONTEND.lock.json'
   workflow_dispatch:
 permissions:
   contents: write
