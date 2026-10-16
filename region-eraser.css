@@ -77,3 +77,24 @@ a{color:var(--orange2);text-decoration:none}a:hover{text-decoration:underline}[h
 .re-signature-consent span{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text)}
 .re-signature-consent small{font-size:11px;color:var(--muted);line-height:1.5}
 .re-impact-note{border-left:3px solid var(--orange);padding:6px 9px;background:#2c2830;border-radius:4px}
+
+/* Apply → Review/Rework → Export: distinct user choices, never auto-download. */
+.re-workflow{display:flex;align-items:center;flex-wrap:wrap;gap:9px;
+ margin:0 0 13px;padding:11px 15px;background:var(--panel);
+ border:1px solid var(--edge);border-radius:11px}
+.re-workflow-step{border-radius:8px;padding:7px 11px;border:1px solid var(--edge);
+ color:var(--muted);font-size:12px;font-weight:650}
+.re-workflow-step.active{border-color:var(--orange);color:var(--orange2);background:#332721}
+.re-workflow-step.complete{border-color:#286851;color:#a8e3c8;background:#17362d}
+.re-workflow-arrow{color:var(--muted);font-size:12px}
+.re-export-action{border-color:var(--green);color:#abead1}
+.re-export-action:not(:disabled){background:#145641;color:#fff;font-weight:750}
+.re-export-action:disabled{border-color:var(--edge);background:#202b3b;color:var(--muted)}
+#re-rework{font-weight:750;flex-shrink:0}
+.re-results .re-hint{max-width:720px}
+@media(max-width:760px){
+ .re-workflow{gap:6px;padding:8px}
+ .re-workflow-step{padding:6px 7px;font-size:11px}
+ .re-workflow-arrow{display:none}
+ .re-doc-actions .re-export-action{flex:1}
+}
