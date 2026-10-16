@@ -287,3 +287,36 @@ body.re-workspace-open #re-results:not([hidden]){
   body.re-workspace-open .re-editor-header{margin-bottom:5px}
   body.re-workspace-open .re-viewport{padding:9px}
 }
+
+/* Editable vector region boundaries: grips are 6–8 physical CSS px regardless
+ * of PDF size/zoom, using viewport-aware ellipse radii from the renderer. */
+#re-overlay.editing{pointer-events:auto;cursor:default}
+#re-overlay.editing polygon.re-zone-shape{
+ pointer-events:visiblePainted;cursor:pointer;
+}
+#re-overlay.editing polygon.re-zone-selected{stroke-width:3.5}
+#re-overlay .re-edit-hit-edge{
+ fill:none;stroke:transparent;stroke-width:18px;
+ vector-effect:non-scaling-stroke;pointer-events:stroke;cursor:move;
+}
+#re-overlay .re-edit-grip-edge{
+ fill:#ffe5bc;stroke:#de751f;stroke-width:1.6;
+ vector-effect:non-scaling-stroke;pointer-events:all;cursor:move;
+}
+#re-overlay .re-edit-grip-vertex{
+ fill:#ffffff;stroke:#f97316;stroke-width:2.2;
+ vector-effect:non-scaling-stroke;pointer-events:all;cursor:crosshair;
+}
+#re-overlay .re-edit-grip-vertex:hover,
+#re-overlay .re-edit-grip-edge:hover{fill:#f8a54b;stroke:#fff}
+.re-zone.re-zone-active{border-color:var(--orange);background:#392b27}
+.re-zone .re-zone-select{
+ padding:5px 8px;background:#293548;color:var(--orange2);
+ border:1px solid var(--edge);border-radius:6px;white-space:nowrap;
+}
+.re-zone .re-zone-select:hover:not(:disabled){border-color:var(--orange)}
+.re-edit-tip{border-left:3px solid var(--orange);padding-left:9px;margin-top:7px}
+@media(pointer:coarse){
+ #re-overlay .re-edit-hit-edge{stroke-width:25px}
+ .re-zone .re-zone-select{padding:8px}
+}

@@ -1,6 +1,7 @@
 import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-all1';
 import {validateRegions} from './pdf-region-geometry.mjs';
 import {planRegionJobs} from './pdf-region-plan.mjs';
+import {moveRegionHandle} from './pdf-region-handles.mjs';
 import {MAX_INPUT_BYTES,LARGE_FILE_NOTICE_BYTES,PREVIEW_RANGE_CHUNK_BYTES,
   validateInputSize,cappedPreviewScale} from './pdf-region-limits.mjs?v=20261016-512mb1';
 
@@ -19,7 +20,8 @@ const state={
  renderToken:0,renderTask:null,busy:false,result:null,downloadUrls:new Set(),
  previewUrl:null,abortController:null,
  operation:'union',galleryStart:0,galleryGeneration:0,galleryObserver:null,
- reviewPdf:null,reviewUrl:null,reviewMode:false,exported:false
+ reviewPdf:null,reviewUrl:null,reviewMode:false,exported:false,
+ selectedZone:-1,editDrag:null
 };
 function status(message,type=''){
  dom.status.textContent=message;dom.status.className='re-status'+(type?' '+type:'');
@@ -42,6 +44,8 @@ function recover(index){
  if(index<0||index>=state.history.length||state.busy)return;
  state.cursor=index;
  state.regions=new Map(JSON.parse(state.history[index]));
+ state.selectedZone=Math.min(Math.max(0,state.selectedZone),activeRegions().length-1);
+ state.editDrag=null;
  stopDrawing();invalidateResult();refreshZones();drawRegions();updateControls();
 }
 function releaseReview(){
@@ -123,6 +127,7 @@ async function reset(check=true,selectNew=false){
  await teardown();stopDrawing();clearResults();
  state.file=null;state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
  state.galleryStart=0;state.operation='union';$('re-operation').value='union';
+ state.selectedZone=-1;state.editDrag=null;
  $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
  dom.input.value='';dom.workspace.hidden=true;dom.upload.hidden=false;
  document.body.classList.remove('re-workspace-open');
@@ -143,6 +148,7 @@ async function load(file){
   await teardown();stopDrawing();clearResults();
   state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
   state.galleryStart=0;state.operation='union';$('re-operation').value='union';
+ state.selectedZone=-1;state.editDrag=null;
  $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
   if(!window.pdfjsLib)throw new Error('Không tải được trình xem PDF. Vui lòng tải lại trang.');
   // Let PDF.js fetch the Blob URL. Do not allocate a full-size File.arrayBuffer()
@@ -248,7 +254,10 @@ function svgPoly(points,mode,temporary=false){
 }
 function drawRegions(temporary=[]){
  dom.overlay.replaceChildren();
- const zones=activeRegions(),ns='http://www.w3.org/2000/svg';
+ const zones=state.editDrag?.draftZones||activeRegions(),ns='http://www.w3.org/2000/svg';
+ const canEdit=!state.drawing&&!state.busy&&!state.result&&zones.length>0;
+ dom.overlay.classList.toggle('editing',canEdit);
+ dom.overlay.classList.toggle('drawing',state.drawing);
  const polygonText=points=>points.map(p=>(p.x*1000)+','+(p.y*1000)).join(' ');
  if(zones.length===2&&state.operation==='between'){
   const shape=document.createElementNS(ns,'path');
@@ -267,8 +276,51 @@ function drawRegions(temporary=[]){
   overlap.setAttribute('fill','rgba(255,119,28,.38)');
   dom.overlay.append(defs,overlap);
  }
- for(const r of zones)dom.overlay.append(svgPoly(r.points,r.mode));
+ for(const [i,r] of zones.entries()){
+  const polygon=svgPoly(r.points,r.mode);
+  polygon.dataset.zoneIndex=String(i);
+  polygon.classList.add('re-zone-shape');
+  if(i===state.selectedZone)polygon.classList.add('re-zone-selected');
+  dom.overlay.append(polygon);
+ }
+ if(canEdit&&zones[state.selectedZone]){
+  const points=zones[state.selectedZone].points;
+  const bounds=dom.overlay.getBoundingClientRect();
+  const rx=1000*6/Math.max(1,bounds.width),ry=1000*6/Math.max(1,bounds.height);
+  const group=document.createElementNS(ns,'g');
+  group.setAttribute('aria-label','Tay nắm chỉnh sửa đường bao');
+  for(let i=0;i<points.length;i++){
+   const a=points[i],b=points[(i+1)%points.length];
+   const edge=document.createElementNS(ns,'line');
+   edge.setAttribute('x1',a.x*1000);edge.setAttribute('y1',a.y*1000);
+   edge.setAttribute('x2',b.x*1000);edge.setAttribute('y2',b.y*1000);
+   edge.classList.add('re-edit-hit-edge');
+   edge.dataset.editHandle='edge';edge.dataset.handleIndex=String(i);
+   group.append(edge);
+   const middle=document.createElementNS(ns,'ellipse');
+   middle.setAttribute('cx',(a.x+b.x)*500);middle.setAttribute('cy',(a.y+b.y)*500);
+   middle.setAttribute('rx',rx);middle.setAttribute('ry',ry);
+   middle.classList.add('re-edit-grip-edge');
+   middle.dataset.editHandle='edge';middle.dataset.handleIndex=String(i);
+   group.append(middle);
+  }
+  for(let i=0;i<points.length;i++){
+   const point=points[i],vertex=document.createElementNS(ns,'ellipse');
+   vertex.setAttribute('cx',point.x*1000);vertex.setAttribute('cy',point.y*1000);
+   vertex.setAttribute('rx',rx*1.2);vertex.setAttribute('ry',ry*1.2);
+   vertex.classList.add('re-edit-grip-vertex');
+   vertex.dataset.editHandle='vertex';vertex.dataset.handleIndex=String(i);
+   group.append(vertex);
+  }
+  dom.overlay.append(group);
+ }
  if(temporary.length>=2)dom.overlay.append(svgPoly(temporary,state.role,true));
+}
+function selectZone(index){
+ if(state.busy||state.drawing||state.result||!activeRegions()[index])return;
+ state.selectedZone=index;state.editDrag=null;
+ refreshZones();drawRegions();
+ status('Vùng '+(index+1)+': kéo chấm tròn ở đỉnh hoặc chấm giữa cạnh để chỉnh hình. Hoàn tác/Làm lại luôn sẵn sàng.','success');
 }
 function refreshZones(){
  const regions=activeRegions();
@@ -281,15 +333,24 @@ function refreshZones(){
   remove.disabled=state.busy||!!state.result;remove.addEventListener('click',()=>{
    const copy=activeRegions().slice();copy.splice(i,1);
    if(copy.length)state.regions.set(state.pageIndex,copy);else state.regions.delete(state.pageIndex);
+   state.selectedZone=copy.length?Math.min(state.selectedZone,copy.length-1):-1;
    record();refreshZones();drawRegions();
   });
-  row.append(span,remove);dom.zones.append(row);
+  const select=document.createElement('button');
+  select.type='button';select.className='re-zone-select';
+  select.textContent='✥ Sửa';select.title='Chọn vùng '+(i+1)+' để kéo đỉnh hoặc cạnh';
+  select.disabled=state.busy||!!state.result;
+  select.setAttribute('aria-label','Chỉnh sửa đường bao vùng '+(i+1));
+  select.addEventListener('click',()=>selectZone(i));
+  if(i===state.selectedZone)row.classList.add('re-zone-active');
+  row.append(span,select,remove);dom.zones.append(row);
  });
  $('re-page-info').textContent='Trang '+(state.pageIndex+1)+' · '+regions.length+' vùng đã chọn · '+countRegions()+' vùng trên toàn PDF';
  updateControls();
 }
 function stopDrawing(){
  state.drawing=false;state.start=null;state.vertices=[];
+ state.editDrag=null;
  dom.overlay.classList.remove('drawing');
  $('re-draw').textContent='＋ Bắt đầu vẽ vùng';
  $('re-finish').hidden=true;
@@ -300,10 +361,12 @@ function startDrawing(){
  if(state.reviewMode){status('Chuyển về Bản gốc để chỉnh lại vùng.','error');return;}
  if(state.drawing){stopDrawing();return;}
  state.shape=dom.shape.value;state.role=state.operation==='union'?dom.role.value:'erase';
+ state.selectedZone=-1;state.editDrag=null;
  state.drawing=true;state.start=null;state.vertices=[];
  dom.overlay.classList.add('drawing');
  $('re-draw').textContent='✕ Hủy vẽ';
  $('re-finish').hidden=state.shape!=='poly';
+ drawRegions();
  status(state.shape==='rect'?'Kéo chuột trên trang để khoanh hình chữ nhật.':'Nhấp từng đỉnh, sau đó Enter hoặc Hoàn thành đa giác.');
 }
 function addRegion(points){
@@ -317,6 +380,7 @@ function addRegion(points){
   validateRegions(regionsForCheck,state.operation!=='union'&&regions.length===2?state.operation:'union');
  }catch(e){status(e.message,'error');return;}
  state.regions.set(state.pageIndex,regions);
+ state.selectedZone=regions.length-1;
  record();stopDrawing();refreshZones();
  status('Đã thêm vùng. Có thể tiếp tục vẽ vùng khác trước khi xuất PDF.','success');
 }
@@ -335,7 +399,8 @@ async function returnGallery(){
 async function showPage(index){
  if(!state.pdf||state.busy&&state.file===null)return;
  if(!Number.isInteger(index)||index<0||index>=state.pdf.numPages)return;
- state.pageIndex=index;stopDrawing();refreshZones();
+ state.pageIndex=index;state.editDrag=null;state.selectedZone=(state.regions.get(index)||[]).length?0:-1;
+ stopDrawing();refreshZones();
  dom.page.value=index+1;
  await renderPage();
 }
@@ -481,8 +546,36 @@ function download(){
  status('Đã gửi yêu cầu xuất PDF đã kiểm tra. Bạn vẫn có thể Chỉnh sửa lại để tạo phiên bản khác.','success');
  setTimeout(()=>{URL.revokeObjectURL(url);state.downloadUrls.delete(url);},120000);
 }
+function editable(){
+ return !!state.pdf&&!state.busy&&!state.drawing&&!state.result;
+}
+function cancelEditDrag(){
+ if(!state.editDrag)return;
+ const pointerId=state.editDrag.pointerId;
+ state.editDrag=null;
+ if(dom.overlay.hasPointerCapture?.(pointerId))dom.overlay.releasePointerCapture(pointerId);
+ drawRegions();
+}
 function onPointerDown(e){
- if(!state.drawing)return;e.preventDefault();
+ if(!state.drawing){
+  if(!editable()||e.button!==0)return;
+  const handle=e.target.closest?.('[data-edit-handle]');
+  const shape=e.target.closest?.('[data-zone-index]');
+  if(handle && state.selectedZone>=0){
+   e.preventDefault();e.stopPropagation();
+   state.editDrag={
+    pointerId:e.pointerId,zoneIndex:state.selectedZone,
+    kind:handle.dataset.editHandle,index:Number(handle.dataset.handleIndex),
+    origin:pos(e),baseZones:activeRegions(),draftZones:null,
+    moved:false,invalidMessage:''
+   };
+   dom.overlay.setPointerCapture(e.pointerId);
+  }else if(shape){
+   e.preventDefault();selectZone(Number(shape.dataset.zoneIndex));
+  }
+  return;
+ }
+ e.preventDefault();
  const p=pos(e);
  if(state.shape==='rect'){state.start=p;dom.overlay.setPointerCapture(e.pointerId);return;}
  if(state.vertices.length>=256){status('Đạt giới hạn 256 đỉnh.','error');return;}
@@ -490,8 +583,45 @@ function onPointerDown(e){
  if(last&&Math.hypot(last.x-p.x,last.y-p.y)<.003)return;
  state.vertices.push(p);drawRegions(state.vertices);
 }
-function onPointerMove(e){if(state.drawing&&state.shape==='rect'&&state.start)drawRegions(boxPoints(state.start,pos(e)));}
+function onPointerMove(e){
+ const edit=state.editDrag;
+ if(edit){
+  if(e.pointerId!==edit.pointerId)return;
+  e.preventDefault();
+  const at=pos(e),delta={x:at.x-edit.origin.x,y:at.y-edit.origin.y};
+  if(Math.hypot(delta.x,delta.y)<.00001)return;
+  try{
+   const next=moveRegionHandle(edit.baseZones,edit.zoneIndex,edit.kind,edit.index,delta,state.operation);
+   edit.draftZones=next;edit.moved=true;edit.invalidMessage='';
+   drawRegions();
+  }catch(error){edit.invalidMessage=error.message;}
+  return;
+ }
+ if(state.drawing&&state.shape==='rect'&&state.start)drawRegions(boxPoints(state.start,pos(e)));
+}
 function onPointerUp(e){
+ if(state.editDrag){
+  const edit=state.editDrag;
+  if(e.pointerId!==edit.pointerId)return;
+  e.preventDefault();
+  // Resolve the final position once more even when the browser coalesces
+  // pointermove events before pointerup.
+  const at=pos(e),delta={x:at.x-edit.origin.x,y:at.y-edit.origin.y};
+  if(Math.hypot(delta.x,delta.y)>.00001){
+   try{
+    edit.draftZones=moveRegionHandle(edit.baseZones,edit.zoneIndex,edit.kind,edit.index,delta,state.operation);
+    edit.moved=true;edit.invalidMessage='';
+   }catch(error){edit.invalidMessage=error.message;}
+  }
+  const accepted=edit.draftZones&&edit.moved;
+  cancelEditDrag();
+  if(accepted){
+   state.regions.set(state.pageIndex,edit.draftZones);
+   record();refreshZones();drawRegions();
+   status('Đã cập nhật đường bao vùng '+(edit.zoneIndex+1)+'. Có thể kéo tiếp, Hoàn tác hoặc bấm Áp dụng để kiểm tra.','success');
+  }else if(edit.invalidMessage)status('Không thể kéo đường bao: '+edit.invalidMessage,'error');
+  return;
+ }
  if(!state.drawing||state.shape!=='rect'||!state.start)return;
  const a=state.start,b=pos(e);state.start=null;
  if(Math.abs(a.x-b.x)<.004||Math.abs(a.y-b.y)<.004){status('Kéo để tạo vùng rộng hơn.','error');drawRegions();return;}
@@ -566,9 +696,13 @@ function wire(){
  dom.overlay.addEventListener('pointerdown',onPointerDown);
  dom.overlay.addEventListener('pointermove',onPointerMove);
  dom.overlay.addEventListener('pointerup',onPointerUp);
- dom.overlay.addEventListener('pointercancel',()=>{if(state.drawing&&state.shape==='rect'){state.start=null;drawRegions();}});
+ dom.overlay.addEventListener('pointercancel',()=>{
+  if(state.editDrag){cancelEditDrag();return;}
+  if(state.drawing&&state.shape==='rect'){state.start=null;drawRegions();}
+ });
  dom.overlay.addEventListener('dblclick',e=>{if(state.drawing&&state.shape==='poly'){e.preventDefault();finishPolygon();}});
  window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&state.editDrag){e.preventDefault();cancelEditDrag();return;}
   if(e.key==='Escape'&&state.drawing){e.preventDefault();stopDrawing();}
   if(e.key==='Enter'&&state.drawing&&state.shape==='poly'){e.preventDefault();finishPolygon();}
  });

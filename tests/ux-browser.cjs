@@ -235,7 +235,42 @@ async function sample(label){
    assert.equal(await page.locator('.re-zone').count(),0,'standalone Undo must restore zone edits');
    await page.locator('#re-redo').click();
    assert.equal(await page.locator('.re-zone').count(),1,'standalone Redo must reapply zone edits');
+   // Automatically expose draggable vertex/edge handles after drawing.
+   assert.equal(await page.locator('.re-edit-grip-vertex').count(),4);
+   assert.equal(await page.locator('.re-edit-grip-edge').count(),4);
+   const initial=await page.locator('.re-zone-selected').getAttribute('points');
+   const vertex=await page.locator('.re-edit-grip-vertex').first().boundingBox();
+   assert.ok(vertex && vertex.width>5,'vertex handles must be visible and clickable');
+   await page.mouse.move(vertex.x+vertex.width/2,vertex.y+vertex.height/2);
+   await page.mouse.down();
+   await page.mouse.move(vertex.x+vertex.width/2-16,vertex.y+vertex.height/2-9,{steps:9});
+   await page.mouse.up();
+   const moved=await page.locator('.re-zone-selected').getAttribute('points');
+   assert.notEqual(moved,initial,'dragging a vertex must change actual region geometry');
+   await page.locator('#re-undo').click();
+   assert.equal(await page.locator('.re-zone-selected').getAttribute('points'),initial,
+     'one Undo reverts the whole drag, not its individual pointermove frames');
+   await page.locator('#re-redo').click();
+   assert.equal(await page.locator('.re-zone-selected').getAttribute('points'),moved);
+   // Drag the entire top edge (two corners should move together).
+   const edge=await page.locator('.re-edit-grip-edge').first().boundingBox();
+   assert.ok(edge && edge.width>4,'edge midpoint handle must exist');
+   const beforeEdge=await page.locator('.re-zone-selected').getAttribute('points');
+   await page.mouse.move(edge.x+edge.width/2,edge.y+edge.height/2);
+   await page.mouse.down();
+   await page.mouse.move(edge.x+edge.width/2,edge.y+edge.height/2-9,{steps:6});
+   await page.mouse.up();
+   assert.notEqual(await page.locator('.re-zone-selected').getAttribute('points'),beforeEdge,
+     'dragging a segment must change region boundary');
+   await page.locator('#re-undo').click();
+   assert.equal(await page.locator('.re-zone-selected').getAttribute('points'),beforeEdge);
+   await page.locator('#re-redo').click();
    await drawZone(.43,.57,'erase',.44,.56);
+   // Selecting another zone by its task-list row repositions the grips.
+   await page.getByRole('button',{name:'Chỉnh sửa đường bao vùng 1'}).click();
+   assert.equal(await page.locator('.re-zone-selected').count(),1);
+   await page.getByRole('button',{name:'Chỉnh sửa đường bao vùng 2'}).click();
+   assert.equal(await page.locator('.re-edit-grip-vertex').count(),4);
    assert.equal(await page.locator('.re-zone').count(),2);
    await page.locator('#re-scope').selectOption('range');
    await page.locator('#re-range-from').fill('1');

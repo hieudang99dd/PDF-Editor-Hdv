@@ -185,3 +185,13 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - Kết quả sau **Áp dụng** mở dạng review card `position:absolute` trong workspace, không làm hai panel co ngắn lại; ô này cuộn riêng khi dài.
 - Ở màn hình hẹp dưới 760 px, hai panel xếp theo chiều dọc trong cùng khung cao cố định: khu tác vụ chiếm khoảng 36%, PDF lấy phần còn lại; cả hai giữ vùng cuộn riêng.
 - QA: `tests/pdf-region-fixed-layout.test.cjs` kiểm tra CSS/scoping/overflow; `tests/ux-browser.cjs` đo vị trí & chiều cao panel thật, cuộn tác vụ và PDF mà body không dịch, áp dụng PDF rồi xác nhận không bị thay đổi chiều cao.
+
+
+## 16. Chỉnh sửa đường bao sau khi vẽ bằng kéo đỉnh/cạnh (2026-10-16)
+
+- Sau khi hoàn thành chữ nhật hoặc đa giác, vùng vừa vẽ **được chọn tự động** và hiện các tay nắm đỉnh (tròn trắng) cùng tay nắm giữa cạnh (cam nhạt) trên overlay SVG. Có thể chọn vùng khác bằng cách nhấp vùng trên PDF hoặc bấm **✥ Sửa** tại danh sách.
+- Kéo **đỉnh** chỉ thay đổi một tọa độ; kéo **cạnh** di chuyển cả hai điểm cuối theo cùng vector. Tay nắm được dựng theo kích thước pixel màn hình, vẫn dễ chọn trên bản vẽ zoom/A0/A1, có hit area cho thao tác chạm.
+- `pdf-region-handles.mjs` tính toàn bộ phép kéo trên một bản sao polygon bất biến, giới hạn delta theo biên trang chuẩn hóa 0–1. Kiểm tra `validateRegions` theo phép Hợp/Giữa/Giao sau mỗi thay đổi. Từ chối vùng tự cắt, diện tích bằng 0, cạnh quá ngắn, hoặc vùng trong chạm/cắt vùng ngoài; không đưa hình học hỏng vào PDFium.
+- **Trong lúc kéo** chỉ hiển thị đường bao dự thảo trên SVG. **Khi thả chuột** mới cập nhật `state.regions` và thêm một snapshot vào lịch sử Undo/Redo; một cử chỉ kéo chỉ tương ứng một lần Hoàn tác. Escape, pointercancel hoặc điều hướng giữa trang sẽ hủy kéo đang thực hiện.
+- Khi đã **Áp dụng**, tay nắm chỉnh sửa bị khóa nhằm tránh kết quả PDF không tương ứng. Bấm **Chỉnh sửa lại** trước khi sửa đường bao và áp dụng lại.
+- Test: `tests/pdf-region-handles.test.cjs` kiểm tra chỉnh đỉnh/cạnh, immutable, giới hạn trang, topo union/between/intersection; Chromium E2E kéo thật trên PDF và xác minh Undo/Redo, rồi áp dụng PDFium.

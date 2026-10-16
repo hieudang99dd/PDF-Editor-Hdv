@@ -290,3 +290,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - `re-tools` cuộn tùy chọn riêng, `re-viewport` cuộn bản vẽ riêng, `re-gallery-grid` cuộn thumbnail riêng. Không để cuộn toàn bộ trang khi thao tác; ở mobile panel xếp dọc với mỗi vùng cuộn độc lập.
 - Bảng kiểm tra kết quả sau Áp dụng nổi trong workspace, không co height của panel; JS thêm/xóa trạng thái `re-workspace-open` khi mở, làm mới, hoặc gặp lỗi.
 - Cache-bust HTML CSS/JS và bổ sung Node/CSS + Chromium E2E assertions về kích thước, vị trí, khả năng cuộn riêng và chiều cao không đổi.
+
+
+## 2026-10-16 — Chỉnh sửa trực tiếp đường bao chọn vùng bằng kéo đỉnh/cạnh
+
+- `pdf-region-handles.mjs`: phép kéo đỉnh/cạnh không làm biến đổi dữ liệu cũ, kiểm tra hình học, hạn chế vượt biên và ràng buộc vùng lồng/giao.
+- `region-eraser.js`: vẽ tay nắm SVG và vùng đang chọn; tự chọn vùng mới vẽ, chọn vùng qua danh sách hoặc click trực tiếp. Pointer capture để kéo có preview, commit một lần khi pointerup; Undo/Redo theo cử chỉ, Escape/pointercancel hủy thay đổi.
+- `region-eraser.css/html`: nút **✥ Sửa**, đỉnh/cạnh tương phản rõ, hướng dẫn, vùng bấm cho touch, cache-bust.
+- `tests/pdf-region-handles.test.cjs` và Chromium E2E chạy kéo đỉnh, cạnh, Undo/Redo trước khi chạy PDFium thật; giữ nguyên toàn bộ quy trình Áp dụng → Kiểm tra → Xuất PDF.
