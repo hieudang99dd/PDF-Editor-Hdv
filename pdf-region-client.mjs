@@ -1,4 +1,4 @@
-// Dedicated PDF HVD region-eraser worker. Call only from a PDF save operation.
+// Dedicated PDF HVD region-eraser worker. Used by the independent region-eraser.html app; no Organizer dependency.
 export function eraseRegionsInWorker(bytes,pages,{timeoutMs=180000}={}){
  return new Promise((resolve,reject)=>{
   const worker=new Worker(new URL('./pdf-region-worker.mjs',import.meta.url),{type:'module'});

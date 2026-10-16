@@ -1817,8 +1817,7 @@ class PDFOrganizer {
             width: p.width,
             height: p.height,
             textEdits: p.textEdits ? JSON.parse(JSON.stringify(p.textEdits)) : [],
-            annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : [],
-            eraseRegions: p.eraseRegions ? JSON.parse(JSON.stringify(p.eraseRegions)) : []
+            annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : []
         }));
         const state = JSON.stringify(snapshot);
         if (this.historyIndex >= 0 && this.history[this.historyIndex] === state) return;
@@ -1856,8 +1855,7 @@ class PDFOrganizer {
                 selected: selectedIds.has(p.id),
                 dataUrl: p.textEdits?.length ? null : (this.thumbCache.get(cacheKey) || null),
                 textEdits: p.textEdits ? JSON.parse(JSON.stringify(p.textEdits)) : [],
-                annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : [],
-                eraseRegions: p.eraseRegions ? JSON.parse(JSON.stringify(p.eraseRegions)) : []
+                annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : []
             };
         });
         this.renderGrid();
@@ -3098,37 +3096,6 @@ class PDFOrganizer {
                 const client=await this.getNativeTextClient();
                 const rewritten=await client.rewrite(await finalDoc.save(),nativePages);
                 finalDoc=await PDFDocument.load(rewritten.bytes,{updateMetadata:false});
-            }
-            // True vector erasure: operate on PDFium PATH objects after text rewrite
-            // and before decorative annotations. Never use white rectangles here.
-            const regionJobs=targetPages.map((p,pageIndex)=>({
-                pageIndex,regions:p.eraseRegions||[]
-            })).filter(job=>job.regions.length);
-            if(regionJobs.length){
-                // Inspect ORIGINAL source documents before pdf-lib rewrites page trees:
-                // never erase from signed PDFs even if intermediary serialization
-                // has already removed the original /ByteRange marker.
-                const signedMark=new TextEncoder().encode('/ByteRange');
-                const checked=new Set();
-                for(const request of regionJobs){
-                    const fileIndex=targetPages[request.pageIndex]?.fileIndex;
-                    if(!Number.isInteger(fileIndex)||checked.has(fileIndex))continue;
-                    checked.add(fileIndex);
-                    const original=new Uint8Array(await this.files[fileIndex].arrayBuffer());
-                    searchSignature:for(let k=0;k<=original.length-signedMark.length;k++){
-                        if(original[k]!==signedMark[0])continue;
-                        for(let j=1;j<signedMark.length;j++){
-                            if(original[k+j]!==signedMark[j])continue searchSignature;
-                        }
-                        throw new Error('Tài liệu gốc chứa chữ ký số (/ByteRange); không thể xóa vector trên PDF đã ký.');
-                    }
-                }
-                const {eraseRegionsInWorker}=await import('./pdf-region-client.mjs');
-                const result=await eraseRegionsInWorker(await finalDoc.save(),regionJobs);
-                finalDoc=await PDFDocument.load(result.bytes,{updateMetadata:false});
-                if(typeof toast==='function'){
-                    toast('Đã cắt thật '+result.report.changedObjects+' path vector; bỏ qua '+result.report.skippedNonVector+' đối tượng không phải vector.');
-                }
             }
             const finalPages = finalDoc.getPages();
 

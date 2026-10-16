@@ -220,3 +220,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Phạm vi v1: PATH line/polyline nét liền, không tô kín, trang /Rotate=0. Báo lỗi thay vì xóa sai cho Bézier, hatch/fill, dashed, clip, matrix suy biến; text/image/Form không bị sửa. Không phải PDF redaction.
 - CI: tests/pdf-region-geometry.test.cjs, tests/pdf-region-native.test.cjs kiểm tra PDF vector thực; UX Browser QA tương tác vẽ vùng + export, cùng Pages smoke.
 - Đặc tả kiến trúc/tọa độ/giới hạn/QA: docs/REGION_ERASER.md. Kiểm tra A0/A1, layered CAD, stroke hairline, CropBox và XObject lồng vẫn cần bộ dữ liệu nghiệm thu riêng.
+
+
+## 2026-10-16 — Tách Native Region Eraser thành công cụ độc lập
+
+- Tạo trang độc lập `region-eraser.html`, style `region-eraser.css`, controller `region-eraser.js`: tải/chọn PDF, xem trước theo trang bằng PDF.js, chọn vùng chữ nhật hoặc đa giác, nhiều vùng xóa/protect, Undo/Redo, chọn tệp mới, Làm mới và xuất PDF không điều hướng.
+- Chuyển công cụ trên trang chủ sang route `region-eraser-route` trỏ trực tiếp tới trang mới, có thẻ riêng trong danh mục Chỉnh sửa.
+- Gỡ plugin UI `pdf-region-ui.js`, styles `po-region-*`, mọi trường `eraseRegions` và xử lý `eraseRegionsInWorker` khỏi `organizer.js`; Organizer giữ nguyên chức năng sửa text, trang và chú thích.
+- Bảo toàn thuật toán lõi `pdf-region-geometry.mjs`, `pdf-region-native.mjs`, `pdf-region-worker.mjs`; adapter riêng không dùng PDFLib, để xuất từ PDF nguồn, tránh làm ảnh hưởng tới nội dung chỉnh sửa khác.
+- Cập nhật test Node kiểm tra sự độc lập và bài Chromium cho luồng route độc lập → vẽ vùng → xem kết quả → tải PDF thực → làm mới.

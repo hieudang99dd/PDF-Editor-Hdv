@@ -31,9 +31,9 @@ test('Text editing remains a separate native tool routed to its existing page',(
  assert.match(h.html(),/class="catalog-status">Trình duyệt<\/span>/);
  assert.equal((h.html().match(/Sửa Text PDF gốc/g)||[]).length,1);
 });
-test('15 catalog definitions, original registry immutable, unsupported tools hidden',()=>{
+test('16 catalog definitions, original registry immutable, unsupported tools hidden',()=>{
  const source=ui.match(/const cards=\[([\s\S]*?)\];/)[1];
- assert.equal((source.match(/^\s*\['/gm)||[]).length,15);
+ assert.equal((source.match(/^\s*\['/gm)||[]).length,16);
  const data=[['Giảm dung lượng PDF','Nén','Nén','⇲','compress','.pdf'],['PDF OCR','OCR','Chuyển đổi','OCR','lang','.pdf'],['PDF sang PDF/A','Không có engine','Chuyển đổi','A','none','.pdf'],['Chỉnh sửa văn bản PDF','Text','Chỉnh sửa','T','cit-text-route','.pdf'],['Ghép PDF','Ghép','Sắp xếp','⊕','merge','.pdf'],['Ghép PDF xen kẽ','Xen kẽ','Sắp xếp','⇄','merge','.pdf'],['Chia sẻ PDF','Chưa có server','Chỉnh sửa','↗','qr','.pdf'],['Xóa trang PDF','Xóa','Sắp xếp','×','range','.pdf'],['Trích xuất trang','Trích','Sắp xếp','⇥','range','.pdf']];
  const h=mock(data);
  assert.deepEqual(data,h.saved);
@@ -63,7 +63,7 @@ test('CIT route and editor engine stay unmodified',()=>{
  assert.match(cit,/for\(const t of tools\)if\(!existing\.has\(t\[0\]\)\)T\.push\(t\)/);
  assert.match(cit,/home\(\);\s*\}\)\(\);/);
  assert.doesNotMatch(ui,/T\.push\(|T\[[^\]]+\]\s*=/);
- assert.match(html,/hvd-ui-v2\.js\?v=20261016-texttile2/);
+ assert.match(html,/hvd-ui-v2\.js\?v=20261016-region1/);
  assert.match(html,/hvd-ui-v2\.css\?v=20261016-ux3/);
 });
 test('catalog icon and featured text tile use explicit centered, responsive layout',()=>{
