@@ -342,20 +342,42 @@ async function sample(label){
    const afterApplyLayout=await page.evaluate(()=>{
      const a=document.querySelector('.re-tools').getBoundingClientRect();
      const b=document.querySelector('.re-preview').getBoundingClientRect();
-     const popup=document.getElementById('re-results');
-     return {a:a.height,b:b.height,position:getComputedStyle(popup).position,
+     const report=document.getElementById('re-results');
+     const vp=document.getElementById('re-viewport').getBoundingClientRect();
+     const box=report.getBoundingClientRect();
+     const footer=document.querySelector('.re-footer-info').getBoundingClientRect();
+     const inline=document.getElementById('re-editor-status');
+     const toast=document.getElementById('re-status');
+     return {a:a.height,b:b.height,position:getComputedStyle(report).position,
+       reportInSidebar:document.querySelector('.re-tools').contains(report),
+       reportRight:box.right,viewportLeft:vp.left,footerTop:footer.top,
+       viewportBottom:vp.bottom,inlineVisible:inline.getBoundingClientRect().width>0,
+       floatingToastHidden:getComputedStyle(toast).display==='none',
        documentScroll:document.documentElement.scrollHeight-innerHeight};
    });
    assert.ok(Math.abs(afterApplyLayout.a-lockedLayout.toolsHeight)<=2,
       'review result must not change the panel height');
    assert.ok(Math.abs(afterApplyLayout.b-lockedLayout.previewHeight)<=2);
-   assert.equal(afterApplyLayout.position,'absolute','review result is inside fixed workspace');
+   assert.equal(afterApplyLayout.position,'static','result report must not float above PDF');
+   assert.equal(afterApplyLayout.reportInSidebar,true,'result report must belong to task panel');
+   assert.ok(afterApplyLayout.reportRight<=afterApplyLayout.viewportLeft+2,
+      'result report must not overlap PDF drawing');
+   assert.ok(afterApplyLayout.footerTop>=afterApplyLayout.viewportBottom-2,
+      'status bar stays below PDF viewport');
+   assert.equal(afterApplyLayout.inlineVisible,true);
+   assert.equal(afterApplyLayout.floatingToastHidden,true,'old toast should be hidden in editor');
+   assert.match(await page.locator('#re-editor-status').innerText(),/Đã áp dụng/);
    assert.ok(afterApplyLayout.documentScroll<=3);
    assert.match(await page.locator('#re-result-summary').innerText(),/PATH/);
    assert.equal(await page.locator('#re-download').isEnabled(),true,'Export unlocks only after PDFium Apply succeeds');
    assert.equal(await page.locator('#re-process').isDisabled(),true,'cannot apply an already reviewed snapshot');
    assert.equal(await page.locator('#re-draw').isDisabled(),true,'must explicitly Rework before changing zones');
    assert.ok(await page.locator('#re-rework').isVisible(),'Rework action should be available after applying');
+   await page.locator('#re-toggle-tools').click();
+   assert.ok(await page.locator('.re-tools').isHidden());
+   assert.ok(await page.locator('#re-rework').isVisible(),
+     'Rework button stays accessible above the PDF in focus mode');
+   await page.locator('#re-toggle-tools').click();
    assert.match(await page.locator('#re-step-review').getAttribute('class'),/active/);
    assert.ok(await page.locator('#re-review-switch').isVisible(),'real output review should be shown immediately');
    assert.ok(await page.locator('#re-overlay').isHidden(),'region overlay must not impersonate the processed PDF');
