@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>Xóa vector theo vùng — PDF Đạo Chích</title>
 <meta name="description" content="Xóa thực đoạn vector PATH nằm trong một hoặc nhiều vùng chọn, giữ lại phần bên ngoài. Hoạt động độc lập với Chỉnh sửa PDF.">
-<link rel="stylesheet" href="region-eraser.css?v=20261016-scroll1">
+<link rel="stylesheet" href="region-eraser.css?v=20261016-grips1">
 </head>
 <body>
 <header class="re-topbar">
@@ -92,6 +92,7 @@
     <p class="re-hint">Vùng màu đỏ: đường bao để tính toán. Với phép Hợp vùng, vùng xanh bảo vệ nội dung; với Giữa/Giao chỉ vẽ đúng 2 đường bao đỏ.</p>
     <div class="re-sep"></div>
     <h2>02 · Vùng đã chọn</h2>
+    <p class="re-hint re-edit-tip">Sau khi vẽ, kéo <strong>điểm tròn ở đỉnh</strong> để chỉnh từng góc; kéo <strong>điểm giữa cạnh</strong> để dịch cả cạnh. Nhấp vùng hoặc nút <strong>Sửa</strong> để chọn vùng khác. Hỗ trợ Hoàn tác/Làm lại.</p>
     <div id="re-zones" class="re-zones"><p>Chưa có vùng nào.</p></div>
     <button id="re-clear-page" type="button" class="re-btn re-ghost re-full">Xóa vùng của trang này</button>
     <div class="re-sep"></div>
@@ -150,6 +151,6 @@
 window.pdfjsLib=window.pdfjsLib||window['pdfjs-dist/build/pdf'];
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';
 </script>
-<script type="module" src="region-eraser.js?v=20261016-scroll1"></script>
+<script type="module" src="region-eraser.js?v=20261016-grips1"></script>
 </body>
 </html>
