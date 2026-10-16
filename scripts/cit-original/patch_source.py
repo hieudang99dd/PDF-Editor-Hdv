@@ -223,6 +223,23 @@ function syncInspector() {""",
     ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,""",
         "original PDF font API"
     )
+    # CIT caches web-renderable PDF font blobs by family + bold/italic.
+    # When another PDF is loaded, that key may resolve to a DIFFERENT subset.
+    # Clear only the per-document font cache to prevent cross-document glyphs.
+    source = replace_once(
+        source,
+        """async function openFile(file, sourceUrl = null, knownBytes) {
+  endEdit(false);""",
+        """async function openFile(file, sourceUrl = null, knownBytes) {
+  endEdit(false);
+  // Original embedded font bytes belong to this document, not the next PDF.
+  clearTimeout(fontPrewarmTimer);
+  docFonts.clear();
+  docFontsReady.clear();
+  docFontsNull.clear();
+  _fontADCache.clear();""",
+        "reset previous document font subset cache"
+    )
     source = replace_once(
         source, "function cascadeParagraphGrowth(updated, prevBottom) {",
         """let hvdAutoReflow = false;
