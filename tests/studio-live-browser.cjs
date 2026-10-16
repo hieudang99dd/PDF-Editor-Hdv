@@ -23,12 +23,14 @@ async function fixture(){
 async function main(){
  const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']});
  const errors=[];
+ let diagPage=null;
  try{
   const context=await browser.newContext({viewport:{width:1440,height:900},acceptDownloads:true,serviceWorkers:'allow'});
-  const page=await context.newPage();
+  const page=await context.newPage(); diagPage=page;
   page.on('pageerror',e=>errors.push('pageerror '+e.message));
   page.on('console',m=>{if(m.type()==='error')errors.push('console '+m.text());});
-  page.on('response',r=>{if(r.status()>=400&&/\.(?:css|js|wasm)(?:\?|$)/.test(r.url()))errors.push('HTTP '+r.status()+' '+r.url());});
+  page.on('response',r=>{if(r.status()>=400)errors.push('HTTP '+r.status()+' '+r.url());});
+  page.on('requestfailed',r=>errors.push('REQUEST FAILED '+r.url()+' '+(r.failure()?.errorText||'')));
   console.log('Opening LIVE',url);
   const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000});
   assert.equal(response.status(),200,'LIVE page must be accessible');
@@ -68,7 +70,7 @@ async function main(){
    const app=document.getElementById('text-editor-app');
    const wrap=document.getElementById('pageWrap');
    return app&&!app.hidden&&wrap&&!wrap.hidden&&document.querySelectorAll('#overlay .para-box:not(.block-box)').length>=2;
-  },null,{timeout:100000});
+  },null,{timeout:28000});
   await page.screenshot({path:path.join(out,'02-live-editor.png'),fullPage:true});
   assert.ok(await page.locator('#inspector').isVisible(),'Text properties panel must appear');
   console.log('LIVE EDITOR loaded, text paragraphs=',await page.locator('#overlay .para-box:not(.block-box)').count());
@@ -94,7 +96,22 @@ async function main(){
   console.log('PASS LIVE STUDIO CSS, navigation, upload, native edit, PDF export');
  }catch(e){
   console.error('FAILED live browser run',e.stack||String(e));
-  console.log('OTHER browser errors',JSON.stringify(errors.slice(0,40)));
+  console.log('OTHER browser errors',JSON.stringify(errors.slice(0,100)));
+  if(diagPage){
+   try{
+    const state=await diagPage.evaluate(()=>({
+     url:location.href, appHidden:document.querySelector('#text-editor-app')?.hidden,
+     uploadHidden:document.querySelector('#uploader')?.hidden,
+     pdfHidden:document.querySelector('#pageWrap')?.hidden,
+     paragraphs:document.querySelectorAll('#overlay .para-box:not(.block-box)').length,
+     overlay:(document.querySelector('#loading')||document.querySelector('#alert'))?.innerText?.slice(0,500),
+     bodyText:document.body.innerText.slice(0,1300),
+     serviceWorker:navigator.serviceWorker?.controller?.scriptURL||null
+    }));
+    console.log('FAILURE DOM STATE',JSON.stringify(state));
+    await diagPage.screenshot({path:path.join(out,'99-failed-loading.png'),fullPage:true});
+   }catch(debugError){console.log('DOM DEBUG FAILED',debugError.message);}
+  }
   throw e;
  }finally{await browser.close();}
 }
