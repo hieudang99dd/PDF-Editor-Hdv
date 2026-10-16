@@ -23,6 +23,12 @@ for (const p of paths) {
   assert.ok(!read(p).includes('/PDF-Editor-Hdv/studio/'), 'Old absolute base remains in ' + p);
 }
 const html = read('studio/edit-pdf-text.html');
+assert.match(html, /id="hvd-editor-recovery"[\\s\\S]*href="\\.\\/repair-editor\\.html"/, 'Recovery link missing from uploader');
+assert.ok(read('studio/hvd-brand.css').includes('#hvd-editor-recovery'), 'Recovery action has no scoped styling');
+for (const id of ['text-editor-app','overlay','inspector','fFamily','fSize','fLine','fPara','save','undo','redo']) {
+  assert.ok(html.includes('id="'+id+'"'), 'Approved original editor control missing: '+id);
+}
+
 assert.ok(html.includes('<html lang="vi">'), 'Expected Vietnamese uploader');
 for (const attr of ['src="./assets/edit-pdf-text-DRxmk-wp.js"', 'href="./assets/style-B64az6_y.css"', 'href="./assets/edit-pdf-text-CBd7slK6.css"'])
   assert.ok(html.includes(attr), 'Missing relative asset reference: ' + attr);
