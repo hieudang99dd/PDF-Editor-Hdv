@@ -4,7 +4,9 @@
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1524;--card:#172337;--ink:#eef4fb;--mute:#a6b5c7;--line:#334358;--acc:#18b5a6;--accs:#163c3b;--navy:#080e19}}
 body{font-size:15px;line-height:1.55}
 header{padding:11px max(24px,calc((100vw - 1370px)/2));gap:22px;min-height:64px;box-shadow:0 2px 12px #07152716}
-header .logo{font-size:20px;letter-spacing:-.5px;white-space:nowrap}
+header .logo{font-size:20px;letter-spacing:-.5px;white-space:nowrap;display:inline-flex;align-items:center;gap:9px;min-width:0}
+header .logo .dao-mark{display:grid;place-items:center;flex:none;width:32px;height:32px;background:#0b9488;color:white;border-radius:8px;font-weight:800;font-size:22px;letter-spacing:0;line-height:1}
+header .logo>span:last-child{overflow:hidden;text-overflow:ellipsis}
 header nav{gap:2px}header nav button{font-size:13px;font-weight:550;padding:9px 11px}
 header .btn{white-space:nowrap;font-size:13px}
 #refresh-app{background:#283951!important}
@@ -163,3 +165,6 @@ header .hvd-info-toggle:focus-visible{
   header #refresh-app{display:inline-flex!important;align-items:center;justify-content:center;padding:7px 9px;font-size:11px;line-height:1.25}
   header #theme{padding:6px 8px}
 }
+
+/* PDF Đạo Chích: longer Vietnamese brand must remain readable on mobile. */
+@media(max-width:550px){header .logo{font-size:15px;gap:6px;max-width:calc(100vw - 120px)}header .logo .dao-mark{width:29px;height:29px;font-size:20px}}
