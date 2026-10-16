@@ -331,9 +331,20 @@
       fontsButton.className = 'hvd-original-font-local';
       fontsButton.textContent = 'Nạp font từ máy (cần cấp quyền)';
       fontsButton.addEventListener('click', () => {
-        const originalButton = byId('sysFonts');
-        if (originalButton) originalButton.click();
-        else announce('Trình duyệt không hỗ trợ truy cập font hệ thống.', true);
+        const api = window.__HVD_CIT_TEXT_API;
+        if (typeof api?.loadSelectedSystemFont === 'function') {
+          // Call inside the user gesture so Chromium may request local-font permission.
+          Promise.resolve(api.loadSelectedSystemFont())
+            .then(() => scheduleSync())
+            .catch(error => {
+              console.warn('[PDF Dao Chich] local font access:', error);
+              announce('Không thể nạp font hệ thống: ' + (error?.message || String(error)), true);
+            });
+        } else {
+          const originalButton = byId('sysFonts');
+          if (originalButton) originalButton.click();
+          else announce('Trình duyệt không hỗ trợ truy cập font hệ thống.', true);
+        }
       });
       fontPanel.append(title, name, detail, state, hint, fontsButton);
       inspector.prepend(fontPanel);
