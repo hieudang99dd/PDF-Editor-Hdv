@@ -28,7 +28,7 @@ test('standalone tools and SVG icon use PDF EDITOR emblem and name',()=>{
  const region=read('region-eraser.html'),preflight=read('pdfium-preflight.html');
  const svg=read('studio/hvd-mark.svg'),studio=read('studio/edit-pdf-text.html');
  assert.match(region,/class="re-mark">P<\/span><strong>PDF EDITOR<\/strong>/);
- assert.match(preflight,/class="brand-mark" aria-hidden="true">Đ/);
+ assert.match(preflight,/class="brand-mark" aria-hidden="true">P/);
  assert.match(svg,/>Đ<\/text>/);
  assert.match(svg,/aria-label="PDF EDITOR"/);
  assert.match(studio,/hvd-mark\.svg\?v=20261016-editor1/);
