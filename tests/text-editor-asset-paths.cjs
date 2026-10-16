@@ -46,5 +46,5 @@ if (fs.existsSync(manifest)) {
 const metadata = JSON.parse(read('studio/hvd-site.webmanifest'));
 assert.equal(metadata.start_url, '../text-editor.html');
 assert.equal(metadata.scope, '../');
-assert.ok(read('studio/sw.js').includes('pdf-dao-chich-v13'));
+assert.ok(read('studio/sw.js').includes('pdf-editor-v14'));
 console.log('PASS: branded CIT/PDFium text editor routes and Vite assets are resolvable');

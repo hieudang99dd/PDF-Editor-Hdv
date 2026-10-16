@@ -1,4 +1,4 @@
-/* PDF HVD professional workspace v2: presentation only */
+/* PDF EDITOR professional workspace v2: presentation only */
 :root{--bg:#f3f5f9;--card:#fff;--ink:#15243a;--mute:#5d6d82;--line:#dce3ec;--acc:#0b9488;--accs:#e4f7f3;--navy:#101b30;--ok:#138464}
 :root[data-theme="dark"]{--bg:#0d1524;--card:#172337;--ink:#eef4fb;--mute:#a6b5c7;--line:#334358;--acc:#18b5a6;--accs:#163c3b;--navy:#080e19}
 @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1524;--card:#172337;--ink:#eef4fb;--mute:#a6b5c7;--line:#334358;--acc:#18b5a6;--accs:#163c3b;--navy:#080e19}}
@@ -166,5 +166,5 @@ header .hvd-info-toggle:focus-visible{
   header #theme{padding:6px 8px}
 }
 
-/* PDF Đạo Chích: longer Vietnamese brand must remain readable on mobile. */
+/* PDF EDITOR: product label must remain readable on mobile. */
 @media(max-width:550px){header .logo{font-size:15px;gap:6px;max-width:calc(100vw - 120px)}header .logo .dao-mark{width:29px;height:29px;font-size:20px}}

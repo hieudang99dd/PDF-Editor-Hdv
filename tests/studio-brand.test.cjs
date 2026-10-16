@@ -10,15 +10,15 @@ const css = read('studio/hvd-brand.css');
 const notice = read('NOTICE.md');
 const homepage = read('index.html');
 
-test('text editor uses PDF Đạo Chích first-party navigation and accurate native text description', () => {
+test('text editor uses PDF EDITOR first-party navigation and accurate native text description', () => {
   assert.match(html, /<div id="hvd-brandbar"/);
   assert.match(html, /<a class="hvd-logo" href="\.\.\/index\.html"/);
   assert.match(html, /href="\.\.\/text-editor\.html" aria-current="page"/);
   assert.match(html, /href="\.\.\/pdfium-preflight\.html"/);
   assert.match(html, /Chỉnh sửa văn bản PDF/);
   assert.doesNotMatch(html, /<meta[^>]+content="Click any paragraph and edit it in place with live reflow/i);
-  assert.match(html, /"name": "PDF Đạo Chích – Chỉnh sửa văn bản PDF"/);
-  assert.match(html, /hvd-brand\.css\?v=20261016-dao1/);
+  assert.match(html, /"name": "PDF EDITOR – Chỉnh sửa văn bản PDF"/);
+  assert.match(html, /hvd-brand\.css\?v=20261016-editor1/);
 });
 
 test('legacy marketing is not rendered but native editor DOM and assets remain untouched', () => {
@@ -47,9 +47,9 @@ test('HVD legal access remains discoverable without upstream promotion in primar
 });
 
 test('nav destinations resolve within published GitHub Pages base', () => {
-  const base='https://hieudang99dd.github.io/PDF-Editor-Hdv/studio/edit-pdf-text.html';
+  const base='https://hieudang99dd.github.io/PDF-Editor1/studio/edit-pdf-text.html';
   for (const item of ['index.html','text-editor.html','pdfium-preflight.html','NOTICE.md']) {
     assert.equal(new URL('../'+item,base).href,
-      'https://hieudang99dd.github.io/PDF-Editor-Hdv/'+item);
+      'https://hieudang99dd.github.io/PDF-Editor1/'+item);
   }
 });

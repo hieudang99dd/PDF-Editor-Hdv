@@ -14,7 +14,7 @@ async function fixture(){
  const doc=await PDF.PDFDocument.create();
  const p=doc.addPage([600,780]);
  const f=await doc.embedFont(PDF.StandardFonts.Helvetica);
- p.drawText('PDF DAO CHICH ORIGINAL',{x:75,y:650,size:14,font:f});
+ p.drawText('PDF EDITOR ORIGINAL',{x:75,y:650,size:14,font:f});
  p.drawText('ANOTHER TEXT LINE',{x:75,y:600,size:14,font:f});
  const name=path.join(out,'fixture.pdf');
  fs.writeFileSync(name,await doc.save());
@@ -80,7 +80,7 @@ async function main(){
   await editor.waitFor({timeout:30000});
   await editor.click();
   await page.keyboard.press('ControlOrMeta+A');
-  await page.keyboard.insertText('PDF DAO CHICH EDITED');
+  await page.keyboard.insertText('PDF EDITOR EDITED');
   await page.waitForTimeout(450);
   const apply=page.locator('#hvd-apply-now');
   await apply.waitFor({state:'visible',timeout:12000});

@@ -31,7 +31,7 @@ test('CIT Back to Tools opens HVD homepage while other native buttons work uncha
   const context={
     window:{
       location:{
-        href:'https://hieudang99dd.github.io/PDF-Editor-Hdv/studio/edit-pdf-text.html',
+        href:'https://hieudang99dd.github.io/PDF-Editor1/studio/edit-pdf-text.html',
         assign(url){redirected=url;}
       },
       dispatchEvent(){events++;}
@@ -49,12 +49,12 @@ test('CIT Back to Tools opens HVD homepage while other native buttons work uncha
   };
   vm.createContext(context);vm.runInContext(source,context);
   assert.equal(context.document.body.dataset.hvdCitHub,'original');
-  assert.equal(span.textContent,'Trở về PDF Đạo Chích');
+  assert.equal(span.textContent,'Trở về PDF EDITOR');
   assert.equal(span.removed,'data-i18n');
   assert.equal(created['hvd-cit-home'].href,
-    'https://hieudang99dd.github.io/PDF-Editor-Hdv/index.html');
+    'https://hieudang99dd.github.io/PDF-Editor1/index.html');
   assert.equal(created['hvd-cit-uploader-home'].href,
-    'https://hieudang99dd.github.io/PDF-Editor-Hdv/index.html');
+    'https://hieudang99dd.github.io/PDF-Editor1/index.html');
   assert.equal(events,1);
   let blocked=false;
   listeners.click({
@@ -71,5 +71,5 @@ test('CIT Back to Tools opens HVD homepage while other native buttons work uncha
   });
   assert.equal(blocked,true);
   assert.equal(redirected,
-    'https://hieudang99dd.github.io/PDF-Editor-Hdv/index.html');
+    'https://hieudang99dd.github.io/PDF-Editor1/index.html');
 });

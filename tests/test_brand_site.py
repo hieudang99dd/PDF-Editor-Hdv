@@ -1,4 +1,4 @@
-"""PDF HVD branding must be presentation-only; retain upstream legal notices."""
+"""PDF EDITOR branding must be presentation-only; retain upstream legal notices."""
 import importlib.util
 import pathlib
 import sys
@@ -21,7 +21,7 @@ SAMPLE = """<!doctype html><html lang="en"><head>
 <meta name="twitter:url" content="https://www.bentopdf.com/edit-pdf-text" />
 <meta name="twitter:site" content="@BentoPDF" />
 <link rel="canonical" href="https://www.bentopdf.com/edit-pdf-text" />
-<link rel="manifest" href="/PDF-Editor-Hdv/cit-native/site.webmanifest" />
+<link rel="manifest" href="/PDF-Editor1/cit-native/site.webmanifest" />
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link rel="apple-touch-icon" href="/original-icon.png" />
 <title>Edit PDF Text | BentoPDF</title></head><body>
@@ -36,9 +36,9 @@ SAMPLE = """<!doctype html><html lang="en"><head>
 class TestPDFHVDBranding(unittest.TestCase):
     def test_titles_seo_and_icon(self):
         rendered = brand.rebrand_page(SAMPLE, "edit-pdf-text.html")
-        self.assertIn("<title>PDF HVD – Chỉnh sửa văn bản</title>", rendered)
-        self.assertIn('name="author" content="PDF HVD"', rendered)
-        self.assertIn('property="og:site_name" content="PDF HVD"', rendered)
+        self.assertIn("<title>PDF EDITOR – Chỉnh sửa văn bản</title>", rendered)
+        self.assertIn('name="author" content="PDF EDITOR"', rendered)
+        self.assertIn('property="og:site_name" content="PDF EDITOR"', rendered)
         self.assertIn('href="hvd-hub.css"', rendered)
         self.assertIn('src="hvd-hub.js"', rendered)
         self.assertIn("hvd-mark.svg", rendered)
@@ -48,8 +48,8 @@ class TestPDFHVDBranding(unittest.TestCase):
 
     def test_brand_migrated_without_changing_legally_required_credit(self):
         rendered = brand.rebrand_page(SAMPLE, "edit-pdf-text.html")
-        self.assertIn('href="https://hieudang99dd.github.io/PDF-Editor-Hdv/index.html">PDF HVD', rendered)
-        self.assertIn('<span id="footer-brand">PDF HVD</span>', rendered)
+        self.assertIn('href="https://hieudang99dd.github.io/PDF-Editor1/index.html">PDF EDITOR', rendered)
+        self.assertIn('<span id="footer-brand">PDF EDITOR</span>', rendered)
         self.assertIn('&copy; 2026 BentoPDF. All rights reserved.', rendered)
         self.assertIn('id="fSize"', rendered)
         self.assertIn('id="fLine"', rendered)
