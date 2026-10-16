@@ -6,7 +6,7 @@ Ngày: 16/10/2026. Phạm vi: trang `region-eraser.html` độc lập, không t�
 
 Xóa chính xác phần đường vector giao vùng chọn. Phần nằm ngoài phải tiếp tục tồn tại dưới dạng PATH vector trong cấu trúc PDF; KHÔNG tô nền trắng, KHÔNG raster hóa trang, KHÔNG xóa toàn bộ object nếu chỉ một đoạn giao vùng.
 
-Phiên bản v1 xử lý PATH stroke-only với MoveTo và LineTo (đường thẳng/polyline, không tô kín, không nét đứt, không clip path), trang có /Rotate=0. Các đối tượng text, image, annotation, Form XObject giữ nguyên và được báo trong thống kê; PATH Bézier, hatch/fill, nét đứt và clipping giao vùng dẫn đến lỗi an toàn, không tạo kết quả giả. Không dùng tính năng này để xóa dữ liệu mật (redaction).
+Phiên bản v1 xử lý PATH stroke-only với MoveTo và LineTo (đường thẳng/polyline, không tô kín, không nét đứt, không clip path), trang có /Rotate=0/90/180/270 (tự nhận từ PDF.js). Các đối tượng text, image, annotation, Form XObject giữ nguyên và được báo trong thống kê; PATH Bézier, hatch/fill, nét đứt và clipping giao vùng dẫn đến lỗi an toàn, không tạo kết quả giả. Không dùng tính năng này để xóa dữ liệu mật (redaction).
 
 ## 2. Định nghĩa miền
 
@@ -29,7 +29,7 @@ Chuyển điểm màn hình (u,v) sang model-space X=u·pageWidth, Y=(1-v)·page
 x' = a·x + c·y + e
 y' = b·x + d·y + f
 
-Thực hiện cắt bằng giao điểm trong page-user-space. Nội suy cùng tham số t ngược vào tọa độ PATH local-space để tạo các object mới và gán lại ma trận nguồn. Từ chối ma trận suy biến và /Rotate khác 0 trong v1.
+Thực hiện cắt bằng giao điểm trong page-user-space. Nội suy cùng tham số t ngược vào tọa độ PATH local-space để tạo các object mới và gán lại ma trận nguồn. Từ chối ma trận hiển thị suy biến; trang /Rotate 0°/90°/180°/270° được xử lý từ ma trận ngược PDF.js PageViewport.
 
 Lưu ý: thuật toán cắt trên tâm đường. Biên stroke thực tế có thể còn nhô vào vùng khoảng nửa bề rộng nét. Chưa phải phép boolean chính xác cho toàn bộ diện tích stroke với join/cap/phối màu phức tạp.
 
@@ -129,3 +129,13 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - Tối đa 500 trang trong một lần xử lý range; nếu nhiều hơn cần chia thành các lượt.
 - Các phép xóa vẫn chỉ hỗ trợ PATH stroke-only MoveTo/LineTo (chưa xóa chữ, ảnh, hatch, Bézier). Với một phần giao, chỉ cắt path ngoài vùng không bị xóa.
 - Kiểm tra `tests/pdf-region-boolean-gallery.test.cjs` và Chromium E2E. PDF 512 MiB vẫn có thể thiếu RAM trên máy nhỏ.
+
+
+## 12. Sửa lỗi trang xoay /Rotate và trang CropBox lệch (2026-10-16)
+
+- Vấn đề: phiên bản trước từ chối mọi trang `FPDFPage_GetRotation != 0` với lỗi phải chuẩn hóa PDF; người dùng không thể chọn vùng trên các hồ sơ xoay 90/180/270 độ (kể cả trang 28 trong tài liệu thử).
+- Giải pháp: UI dùng **ma trận affine PDF.js PageViewport** `[a,b,c,d,e,f]` của đúng từng trang nguồn, ở scale 1, width/height của trang đã dựng. Với điểm chuẩn hóa `(u,v)`, tọa độ PDF user-space được xác định bằng `inverse([a,b,c,d,e,f])·[u*width,v*height,1]`. Điều này đồng thời xử lý page rotation kế thừa, crop origin khác (0,0), CropBox/MediaBox khác nhau và UserUnit nếu PDF.js cung cấp.
+- Worker nhận `req.viewport` theo từng trang và đối chiếu góc xoay PDFium/PDF.js trước khi xóa, từ chối nếu hai nguồn không khớp thay vì xóa lệch. Chỉ cho phép phép biến đổi có ma trận hữu hạn, khả nghịch. Code cũ nếu không truyền viewport chỉ được phép xử lý trang không xoay.
+- Áp dụng cho **Các trang đã vẽ vùng** và **Khoảng trang**: mỗi trang đều có viewport riêng; vùng chuẩn hóa tái sử dụng theo khung nhìn của từng trang. Trang xoay lẫn lộn không bắt người dùng xoay/chuẩn hóa PDF bằng công cụ khác.
+- QA: `tests/pdf-region-rotation.test.cjs` kiểm thử ma trận cho 0°,90°,180°,270° cùng CropBox có tọa độ gốc lệch, xuất PDFium và xác nhận các PATH ngoài vùng còn nguyên. Chromium kiểm thử tác vụ 2 trang trong cùng khoảng với trang thứ hai xoay 90°.
+- Ranh giới: phần mềm vẫn chỉ cắt PATH vector stroke-only chứa MoveTo/LineTo, không tự xóa text, ảnh, hatch, curve hoặc clipping path chưa được hỗ trợ; các trường hợp đó sẽ báo lỗi riêng thay vì trả PDF sai.
