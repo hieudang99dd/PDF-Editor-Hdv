@@ -1,0 +1,30 @@
+name: PDF HVD Large-File Region QA
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - 'pdf-region-*.mjs'
+      - 'region-eraser.js'
+      - 'tests/pdf-region-large.test.cjs'
+      - '.github/workflows/region-large.yml'
+  push:
+    branches: [master]
+    paths:
+      - 'pdf-region-*.mjs'
+      - 'region-eraser.js'
+      - 'tests/pdf-region-large.test.cjs'
+      - '.github/workflows/region-large.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  large-file-native:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate an actual >80 MiB PDF with native vector removal
+        run: node --max-old-space-size=4096 --test tests/pdf-region-large.test.cjs
