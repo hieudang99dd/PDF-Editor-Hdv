@@ -463,3 +463,8 @@ body.re-editor-active #re-toggle-tools[aria-pressed="true"]{
  body.re-workspace-open.re-editor-active .re-workflow{min-height:23px;padding:1px 6px}
  body.re-editor-active .re-editor-header>div:nth-child(3)>span{display:none}
 }
+
+/* Reviewed PDF should also use the wider surface when task panel is hidden. */
+body.re-workspace-open.re-editor-active.re-focus-page #re-results:not([hidden]){
+ width:min(760px,calc(100% - 24px));
+}
