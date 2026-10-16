@@ -4,6 +4,7 @@ on:
     branches: [master]
     paths:
       - 'tests/studio-startup-live.cjs'
+      - 'tests/studio-file-open-regression.cjs'
       - 'studio/hvd-text-apply.js'
       - 'studio/hvd-text-apply.css'
       - 'studio/sw.js'
@@ -27,10 +28,14 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Inspect production startup with and without Service Worker
         run: node tests/studio-startup-live.cjs
+      - name: Exercise visible file chooser and drag-and-drop on live Pages
+        run: node tests/studio-file-open-regression.cjs
       - name: Upload real browser screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: startup-diagnostics
-          path: test-results/studio-startup/
+          path: |
+            test-results/studio-startup/
+            test-results/file-open-regression/
           if-no-files-found: ignore
