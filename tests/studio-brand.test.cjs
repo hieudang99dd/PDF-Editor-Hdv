@@ -30,7 +30,7 @@ test('legacy marketing is not rendered but native editor DOM and assets remain u
   assert.match(html, /hvd-original-footer/);
   assert.match(css, /nav\.hvd-original-nav,#tool-landing,footer\.hvd-original-footer\s*\{display:none!important\}/);
   assert.doesNotMatch(css, /#text-editor-app\s*\{\s*display:none/);
-  assert.match(html, /edit-pdf-text-DRxmk-wp\.js/);
+  assert.match(html, /assets\\/edit-pdf-text-[A-Za-z0-9_-]+\\.js/);
   assert.match(html, /hvd-hub\.js/);
 });
 
