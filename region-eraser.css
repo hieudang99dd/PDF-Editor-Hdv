@@ -416,6 +416,7 @@ body.re-workspace-open.re-editor-active .re-viewport{
 }
 body.re-editor-active .re-page-surface{
   margin-left:auto;margin-right:auto;
+  margin-top:auto;margin-bottom:auto;
 }
 body.re-editor-active .re-footer-info{
   padding:3px 9px;gap:5px;min-height:22px;font-size:10px;flex-wrap:nowrap;
