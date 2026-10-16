@@ -314,3 +314,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Chuyển nút `Chỉnh sửa lại` ra thanh điều hướng phía trên trang PDF, truy cập được ngay cả khi panel tác vụ ẩn.
 - Thay toast fixed bằng trạng thái inline trong footer ngoài khung PDF và trong tiêu đề dàn trang, bảo toàn màu lỗi và accessibility; toast vẫn dùng cho uploader chưa mở PDF.
 - Sửa CSS layout/mobile, cache-bust assets và thêm Node + Chromium checks đảm bảo vùng PDF không bị che.
+
+## 2026-10-16 — Khôi phục giao diện sửa Text, bảo vệ frontend đã chốt
+
+- Giữ route `text-editor.html` dẫn tới frontend CIT gốc trong `studio/edit-pdf-text.html`; không thay thành organizer hoặc trình soạn Text khác.
+- Bổ sung lối **Khôi phục giao diện chỉnh sửa Text** tại vùng mở tệp, dẫn tới `studio/repair-editor.html` để người dùng xử lý Service Worker/cache lỗi sau khi đổi tên repository.
+- CSS bổ sung chỉ áp dụng cho liên kết khôi phục ở màn hình upload; không tác động `#overlay`, `#inspector`, nút sửa/lưu hay thuật toán PDFium/CIT.
+- Nâng bài kiểm tra asset-paths bảo vệ bố cục editor gốc, panel font/cỡ chữ/giãn dòng, Undo/Redo, Export và liên kết khôi phục.
+- Kết quả E2E có trước: Chromium/PyMuPDF xác nhận sửa và xuất PDF mẫu Latin hai dòng; PDF có bảng CAD/font subset vẫn cần kiểm tra bằng mẫu thực tế.
