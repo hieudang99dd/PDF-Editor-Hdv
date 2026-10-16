@@ -141,7 +141,62 @@
     }
   }
 
+  // Loading must never present an endless, inescapable spinner.
+  // This does not cancel any native PDFium/WASM work; a page reload does.
+  function installLoadRecovery() {
+    const modal = byId('loader-modal');
+    if (!modal || byId('hvd-load-recovery')) return;
+    const panel = modal.querySelector('.rounded-lg') || modal.firstElementChild;
+    if (!panel) return;
+    const recovery = document.createElement('div');
+    recovery.id = 'hvd-load-recovery';
+    recovery.setAttribute('role', 'status');
+    recovery.setAttribute('aria-live', 'polite');
+    recovery.hidden = true;
+    const title = document.createElement('strong');
+    title.textContent = 'PDF đang mở lâu hơn dự kiến';
+    const message = document.createElement('p');
+    message.textContent = 'Bạn có thể đợi thêm hoặc khởi động lại trình chỉnh sửa. Tệp gốc trên máy không bị thay đổi.';
+    const actions = document.createElement('div');
+    actions.className = 'hvd-load-actions';
+    const reload = document.createElement('button');
+    reload.type = 'button';
+    reload.textContent = 'Tải lại trình chỉnh sửa';
+    reload.addEventListener('click', () => window.location.reload());
+    const repair = document.createElement('a');
+    repair.href = './repair-editor.html';
+    repair.textContent = 'Khôi phục cache';
+    actions.append(reload, repair);
+    recovery.append(title, message, actions);
+    panel.appendChild(recovery);
+
+    let timer = null;
+    let active = false;
+    const visible = () => !modal.classList.contains('hidden') &&
+      getComputedStyle(modal).display !== 'none';
+    function sync() {
+      const showing = visible();
+      if (showing === active) return;
+      active = showing;
+      clearTimeout(timer);
+      if (!showing) {
+        recovery.hidden = true;
+        return;
+      }
+      timer = setTimeout(() => {
+        if (visible()) {
+          recovery.hidden = false;
+          console.warn('[PDF Dao Chich] PDF editor has not finished loading after 25s');
+        }
+      }, 25000);
+    }
+    new MutationObserver(sync).observe(modal, {attributes:true,
+      attributeFilter:['class','style','hidden']});
+    sync();
+  }
+
   function init() {
+    installLoadRecovery();
     const save = byId('save');
     const overlay = byId('overlay');
     if (!save || !overlay || byId('hvd-apply-now')) return;
