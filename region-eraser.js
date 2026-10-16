@@ -47,7 +47,7 @@ function recover(index){
 function releaseReview(){
  state.reviewMode=false;
  $('re-review-switch').hidden=true;
- dom.overlay.hidden=false;
+ dom.overlay.removeAttribute('hidden');dom.overlay.style.display='';
  const pdf=state.reviewPdf,url=state.reviewUrl;
  state.reviewPdf=null;state.reviewUrl=null;
  if(pdf)Promise.resolve(pdf.destroy()).catch(()=>{}).finally(()=>{if(url)URL.revokeObjectURL(url)});
@@ -339,7 +339,8 @@ async function renderPage(){
  if(state.renderTask===render)state.renderTask=null;
  if(token!==state.renderToken)return;
  $('re-zoom-label').textContent=Math.round(state.zoom*100)+'%'+(scale<desiredScale-.0001?' · giới hạn RAM':'');
- dom.overlay.hidden=state.reviewMode;
+ dom.overlay.toggleAttribute('hidden',state.reviewMode);
+ dom.overlay.style.display=state.reviewMode?'none':'';
  drawRegions();refreshZones();
 }
 function havePending(){
