@@ -4,7 +4,7 @@
 // Unsupported paths remain unchanged AND are reported (fail closed when a path
 // geometrically intersects a deletion region but cannot safely be reconstructed).
 import {PdfEngine} from './vendor/cit-pdf/editcore/core.js';
-import {validateRegions, normalizedToUser, keepSegment, regionIntersectsRect} from './pdf-region-geometry.mjs?v=20261016-rotate2';
+import {validateRegions, normalizedToUser, keepSegment, regionIntersectsRect} from './pdf-region-geometry.mjs?v=20261016-all1';
 import {validateInputSize} from './pdf-region-limits.mjs?v=20261016-512mb1';
 const readF=(M,p,i=0)=>M.HEAPF32[(p+i*4)>>2];
 const writeF=(M,p,i,value)=>{M.HEAPF32[(p+i*4)>>2]=value};
