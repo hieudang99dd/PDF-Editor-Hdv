@@ -157,3 +157,9 @@ header .hvd-info-toggle:focus-visible{
 .catalog-empty{padding:16px;color:var(--mute)}
 @media(max-width:850px){.catalog-action-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){.catalog-action-list{grid-template-columns:1fr}}
+
+/* UX controls must stay reachable on small screens; do not hide global refresh. */
+@media(max-width:550px){
+  header #refresh-app{display:inline-flex!important;align-items:center;justify-content:center;padding:7px 9px;font-size:11px;line-height:1.25}
+  header #theme{padding:6px 8px}
+}
