@@ -306,3 +306,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Chế độ `Vừa trang` đã được sửa từ căn theo width đơn thuần sang phép fit theo cả chiều cao lẫn chiều rộng viewport thực. Thêm `Vừa rộng` cho PDF CAD và nút `Ẩn tác vụ / Hiện tác vụ` để tập trung bản vẽ.
 - `pdf-region-view.mjs` mới chứa thuật toán đo kích thước trang và tỉ lệ zoom không phụ thuộc DOM. `ResizeObserver` trong `region-eraser.js` tự căn khi đổi viewport, vẫn dùng giới hạn RAM/canvas megapixel cũ và giữ overlay SVG/tay nắm.
 - Bổ sung `tests/pdf-region-fit-layout.test.cjs`, Chromium đo các biên trang PDF và thao tác layout, cập nhật cache bust CSS/JS và cập nhật test cố định chiều cao từ phiên bản trước.
+
+
+## 2026-10-16 — Sửa lỗi hộp thông báo che PDF sau khi Áp dụng
+
+- Chuyển bảng Kết quả xử lý từ overlay tuyệt đối trên góc PDF sang đầu panel tác vụ cuộn độc lập bên trái, đồng thời bỏ `scrollIntoView` gây cuộn ngoài ý muốn.
+- Chuyển nút `Chỉnh sửa lại` ra thanh điều hướng phía trên trang PDF, truy cập được ngay cả khi panel tác vụ ẩn.
+- Thay toast fixed bằng trạng thái inline trong footer ngoài khung PDF và trong tiêu đề dàn trang, bảo toàn màu lỗi và accessibility; toast vẫn dùng cho uploader chưa mở PDF.
+- Sửa CSS layout/mobile, cache-bust assets và thêm Node + Chromium checks đảm bảo vùng PDF không bị che.
