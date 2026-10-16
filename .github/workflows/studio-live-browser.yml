@@ -1,0 +1,35 @@
+name: PDF Đạo Chích LIVE Text Editor Chromium
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/studio-live-browser.yml'
+      - 'tests/studio-live-browser.cjs'
+      - 'studio/edit-pdf-text.html'
+      - 'studio/hvd-brand.css'
+      - 'studio/sw.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        run: |
+          npm install --no-save playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Exercise actual Pages text editor and export
+        run: node tests/studio-live-browser.cjs
+      - name: Upload visual evidence and exported PDF
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdf-dao-chich-live-editor-evidence
+          path: test-results/studio-live/
+          if-no-files-found: ignore
