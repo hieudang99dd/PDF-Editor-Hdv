@@ -248,12 +248,14 @@
     header.append(name, close);
     const goto = document.createElement('form');
     goto.className = 'hvd-pages-jump';
+    goto.id = 'hvd-pages-jump-form';
     label = document.createElement('span');
     label.className = 'hvd-pages-counter';
     label.textContent = 'Chưa mở PDF';
     const field = document.createElement('label');
     field.textContent = 'Tới trang';
     jump = document.createElement('input');
+    jump.id = 'hvd-pages-jump-input';
     jump.type = 'number';
     jump.min = '1';
     jump.step = '1';
