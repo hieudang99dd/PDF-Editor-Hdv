@@ -1,0 +1,32 @@
+name: PDF Đạo Chích Live Startup Diagnostic
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'tests/studio-startup-live.cjs'
+      - '.github/workflows/studio-startup-live.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chromium-startup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install browser
+        run: |
+          npm install --no-save playwright@1.57.0
+          npx playwright install --with-deps chromium
+      - name: Inspect production startup with and without Service Worker
+        run: node tests/studio-startup-live.cjs
+      - name: Upload real browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-diagnostics
+          path: test-results/studio-startup/
+          if-no-files-found: ignore
