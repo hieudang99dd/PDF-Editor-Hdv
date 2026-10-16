@@ -46,3 +46,7 @@ Bài test browser end-to-end và build frontend CIT yêu cầu dependencies đư
 - Dọn bản vá thử nghiệm khỏi nhánh phát hành; sử dụng `tests/` và workflow CI để tái hiện lỗi.
 - Không xóa các tệp `LICENSE`, `NOTICE.md`, thư mục `vendor/`, font, `studio/assets/` hoặc cấu hình deploy chỉ dựa trên tên file.
 - Nếu cần quay lại trước đợt dọn dẹp, sử dụng lịch sử Git của repository.
+
+### Giới hạn tệp lớn của Xóa vector theo vùng
+
+Công cụ độc lập tại `region-eraser.html` nhận PDF tối đa **512 MiB**, cảnh báo bộ nhớ từ 256 MiB, xử lý trong Worker và giới hạn canvas xem trước 16 triệu pixel. Máy tính/trình duyệt vẫn có thể thiếu RAM với PDF phức tạp; xem `docs/REGION_ERASER.md`.
