@@ -1,6 +1,6 @@
-# PDF HVD — PDF Editor
+# PDF Đạo Chích — PDF Editor
 
-Bộ công cụ PDF HVD: sửa văn bản gốc, biên tập trang, chuyển đổi, kiểm tra chất lượng PDF và một số tác vụ Office/OCR qua engine PC tùy chọn. Trang chính triển khai bằng GitHub Pages, dữ liệu PDF trên các công cụ browser không tự tải lên dịch vụ cloud.
+Bộ công cụ PDF Đạo Chích: sửa văn bản gốc, biên tập trang, chuyển đổi, kiểm tra chất lượng PDF và một số tác vụ Office/OCR qua engine PC tùy chọn. Trang chính triển khai bằng GitHub Pages, dữ liệu PDF trên các công cụ browser không tự tải lên dịch vụ cloud.
 
 **Truy cập:** https://hieudang99dd.github.io/PDF-Editor-Hdv/
 
@@ -10,7 +10,7 @@ Bộ công cụ PDF HVD: sửa văn bản gốc, biên tập trang, chuyển đ�
 | --- | --- | --- |
 | Trang chủ/các công cụ browser | `index.html` | `hvd-ui-v2.js/css`, `pdf-local-tools.js`, `cit-advanced-core.js`, `cit-advanced-ui.js` |
 | Chỉnh sửa text chuyên sâu | `text-editor.html` → `studio/edit-pdf-text.html` | Frontend Vite đã biên dịch, PDFium WASM và worker upstream |
-| Trình sửa PDF HVD dự phòng | `text-editor-hdv.html` | `organizer.js/css`, `text-editor-shell.js/css`, `pdf-native-*.mjs`, `pdf-text-layout.js` |
+| Trình sửa PDF Đạo Chích dự phòng | `text-editor-hdv.html` | `organizer.js/css`, `text-editor-shell.js/css`, `pdf-native-*.mjs`, `pdf-text-layout.js` |
 | Xóa vector theo vùng độc lập | `region-eraser.html` | `region-eraser.js/css`, `pdf-region-geometry.mjs`, `pdf-region-client/worker/native.mjs` |
 | Kiểm tra chất lượng PDF | `pdfium-preflight.html` | `pdfium-preflight-core.mjs`, `pdfium-preflight-worker.mjs` |
 | Xử lý Office/OCR bằng PC | `backend/` | FastAPI localhost; chỉ cần chạy cho các thao tác có ghi chú cần PC |
