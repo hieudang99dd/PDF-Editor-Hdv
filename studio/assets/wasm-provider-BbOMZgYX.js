@@ -37,4 +37,4 @@ var e=`bentopdf:wasm-providers`,t={pymupdf:`https://cdn.jsdelivr.net/npm/@bentop
         Configure
       </button>
     </div>
-  `,i.appendChild(a),document.body.appendChild(i);let o=a.querySelector(`#wasm-modal-cancel`),s=a.querySelector(`#wasm-modal-configure`),l=()=>{i.remove()};o?.addEventListener(`click`,l),i.addEventListener(`click`,e=>{e.target===i&&l()}),s?.addEventListener(`click`,()=>{l(),t?t():window.location.href=`/PDF-Editor-Hdv/studio/wasm-settings.html`})}export{l as n,c as t};
+  `,i.appendChild(a),document.body.appendChild(i);let o=a.querySelector(`#wasm-modal-cancel`),s=a.querySelector(`#wasm-modal-configure`),l=()=>{i.remove()};o?.addEventListener(`click`,l),i.addEventListener(`click`,e=>{e.target===i&&l()}),s?.addEventListener(`click`,()=>{l(),t?t():window.location.href=`./wasm-settings.html`})}export{l as n,c as t};
