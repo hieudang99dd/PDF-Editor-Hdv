@@ -138,6 +138,7 @@ async function reset(check=true,selectNew=false){
  $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
  dom.input.value='';dom.workspace.hidden=true;dom.upload.hidden=false;
  document.body.classList.remove('re-workspace-open','re-editor-active','re-focus-page');
+ $('re-toggle-tools').textContent='☷ Ẩn tác vụ';
  dom.canvas.width=0;dom.canvas.height=0;dom.overlay.replaceChildren();dom.zones.replaceChildren();
  $('re-gallery-grid').replaceChildren();$('re-editor-view').hidden=true;$('re-gallery-panel').hidden=false;
  dom.filename.textContent='';status('Có thể mở PDF khác mà không cần quay về trang chủ.');
@@ -741,7 +742,24 @@ function wire(){
  dom.page.addEventListener('change',()=>{let n=Number(dom.page.value);if(Number.isInteger(n))showPage(n-1);dom.page.value=state.pageIndex+1;});
  $('re-zoom-out').addEventListener('click',()=>{state.zoom=Math.max(.5,state.zoom-.25);renderPage();updateControls();});
  $('re-zoom-in').addEventListener('click',()=>{state.zoom=Math.min(2.5,state.zoom+.25);renderPage();updateControls();});
- $('re-fit').addEventListener('click',()=>{state.zoom=1;renderPage();updateControls();});
+ $('re-fit').addEventListener('click',()=>{
+  state.fitMode='page';state.zoom=1;
+  dom.viewport.scrollTop=0;dom.viewport.scrollLeft=0;
+  renderPage();updateControls();
+ });
+ $('re-fit-width').addEventListener('click',()=>{
+  state.fitMode='width';state.zoom=1;
+  dom.viewport.scrollTop=0;dom.viewport.scrollLeft=0;
+  renderPage();updateControls();
+ });
+ $('re-toggle-tools').addEventListener('click',()=>{
+  const focused=document.body.classList.toggle('re-focus-page');
+  $('re-toggle-tools').textContent=focused?'☷ Hiện tác vụ':'☷ Ẩn tác vụ';
+  $('re-toggle-tools').title=focused?
+   'Hiện lại bảng chỉnh sửa vùng':'Ẩn bảng tác vụ để xem bản vẽ rộng hơn';
+  state.fitMode='page';state.zoom=1;
+  scheduleViewportRender();updateControls();
+ });
  dom.process.addEventListener('click',apply);
  $('re-download').addEventListener('click',download);
  $('re-rework').addEventListener('click',()=>{
@@ -751,5 +769,14 @@ function wire(){
  });
  $('re-cancel').addEventListener('click',()=>state.abortController?.abort());
  window.addEventListener('beforeunload',e=>{if(havePending()){e.preventDefault();e.returnValue='';}});
+ if(typeof ResizeObserver==='function'){
+  const observer=new ResizeObserver(()=>{
+   if(!state.pdf||!document.body.classList.contains('re-editor-active')||
+      !dom.viewport.clientWidth||!dom.viewport.clientHeight)return;
+   const size=dom.viewport.clientWidth+'x'+dom.viewport.clientHeight;
+   if(state.viewportSize!==size)scheduleViewportRender();
+  });
+  observer.observe(dom.viewport);
+ }else window.addEventListener('resize',scheduleViewportRender);
 }
 wire();updateControls();
