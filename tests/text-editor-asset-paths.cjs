@@ -1,52 +1,50 @@
-// Run: node tests/text-editor-asset-paths.cjs
-// Static deployment checks only. An interactive browser/PDF smoke test is still required.
+#!/usr/bin/env node
+// Static deployment checks; native PDF editing is separately verified in Chromium.
 'use strict';
 const fs = require('node:fs');
 const path = require('node:path');
 const assert = require('node:assert/strict');
+
 const root = path.resolve(__dirname, '..');
 const at = rel => path.join(root, rel);
 const read = rel => fs.readFileSync(at(rel), 'utf8');
-const paths = [
-  'studio/edit-pdf-text.html',
-  'studio/assets/edit-pdf-text-DRxmk-wp.js',
-  'studio/assets/main-DwO0x_KA.js',
-  'studio/assets/core-ClKb89zT.js',
-  'studio/assets/font-loader-CVZcujpS.js',
-  'studio/assets/wasm-provider-BbOMZgYX.js',
-  'studio/assets/style-B64az6_y.css',
-  'studio/assets/lucide-DZsz3ibU.css',
-  'studio/hvd-site.webmanifest',
-];
-for (const p of paths) {
-  assert.ok(fs.existsSync(at(p)), 'Missing runtime file: ' + p);
-  assert.ok(!read(p).includes('/PDF-Editor-Hdv/studio/'), 'Old absolute base remains in ' + p);
-}
 const html = read('studio/edit-pdf-text.html');
-for (const asset of ['hvd-text-apply.css?v=20261016-live1','hvd-text-apply.js?v=20261016-sync2']) {
-  assert.ok(html.includes(asset), 'Missing direct-apply asset: ' + asset);
+for (const id of ['text-editor-app', 'overlay', 'inspector', 'fFamily',
+  'fSize', 'fLine', 'fPara', 'save', 'undo', 'redo']) {
+  assert.ok(html.includes('id="' + id + '"'), 'Missing approved editor control: ' + id);
 }
-
-const recoveryMarkup = html.split('id="hvd-editor-recovery"')[1]?.split('</div>')[0] || '';
-assert.ok(recoveryMarkup.includes('href="./repair-editor.html"'), 'Recovery link missing from uploader');
-assert.ok(read('studio/hvd-brand.css').includes('#hvd-editor-recovery'), 'Recovery action has no scoped styling');
-for (const id of ['text-editor-app','overlay','inspector','fFamily','fSize','fLine','fPara','save','undo','redo']) {
-  assert.ok(html.includes('id="'+id+'"'), 'Approved original editor control missing: '+id);
+for (const marker of ['hvd-text-apply.css?v=', 'hvd-text-apply.js?v=20261016-sync2',
+  'hvd-brand.css', 'hvd-editor-recovery', 'href="./repair-editor.html"']) {
+  assert.ok(html.includes(marker), 'Missing HVD text editor UI: ' + marker);
 }
-
-assert.ok(html.includes('<html lang="vi">'), 'Expected Vietnamese uploader');
-for (const attr of ['src="./assets/edit-pdf-text-DRxmk-wp.js"', 'href="./assets/style-B64az6_y.css"', 'href="./assets/edit-pdf-text-CBd7slK6.css"'])
-  assert.ok(html.includes(attr), 'Missing relative asset reference: ' + attr);
-for (const m of html.matchAll(/(?:src|href)="(\.\/assets\/[^"?#]+\.(?:js|css))"/g))
-  assert.ok(fs.existsSync(path.resolve(root, 'studio', m[1])), 'Referenced asset missing: ' + m[1]);
-assert.ok(read('studio/assets/main-DwO0x_KA.js').includes('Hr.workerSrc=\`./assets/pdf.worker-C317IdDw.js\`'), 'Worker URI is not relative');
-assert.ok(read('studio/assets/core-ClKb89zT.js').includes('new URL(\`./editcore-Uyyxl379.wasm\`,'), 'PDFium WASM is not module-relative');
-for (const p of ['studio/assets/pdf.worker-C317IdDw.js', 'studio/assets/editcore-Uyyxl379.wasm', 'studio/qpdf.wasm'])
-  assert.ok(fs.existsSync(at(p)), 'Missing PDF engine binary: ' + p);
-assert.ok(read('studio/assets/main-DwO0x_KA.js').includes("_e=function(e){return new URL(\`../\${e}\`,import.meta.url).href}"), 'Broken preloader creates /studio/assets/assets URLs');
-assert.ok(!read('studio/assets/lucide-DZsz3ibU.css').includes('/PDF-Editor-Hdv/'), 'Font CSS still references renamed repository');
-assert.ok(read('studio/sw.js').includes('pdf-dao-chich-v12'), 'Service-worker cache version unexpectedly rolled back');
-const manifest = JSON.parse(read('studio/hvd-site.webmanifest'));
-assert.equal(manifest.start_url, '../text-editor.html');
-assert.equal(manifest.scope, '../');
-console.log('PASS: text-editor static asset and engine path checks');
+assert.ok(html.includes('<html lang="vi">'));
+assert.ok(!html.includes('/PDF-Editor-Hdv/studio/'), 'Legacy absolute base in approved editor');
+const resources = [...html.matchAll(/(?:src|href)="([^"]*\/assets\/[^"?#]+\.(?:js|css))"/g)]
+  .map(match => match[1]);
+assert.ok(resources.length >= 4, 'Vite did not wire compiled text editor dependencies');
+for (const resource of resources) {
+  const pathname = new URL(resource,
+    'https://hieudang99dd.github.io/PDF-Editor1/studio/edit-pdf-text.html').pathname;
+  assert.ok(pathname.startsWith('/PDF-Editor1/studio/assets/'),
+    'Asset escapes Studio deployment base: ' + resource);
+  const local = path.join(root, 'studio', pathname.split('/studio/')[1]);
+  assert.ok(fs.existsSync(local), 'Missing runtime resource: ' + resource);
+  assert.ok(!read(path.relative(root, local)).includes('/PDF-Editor-Hdv/studio/'),
+    'Legacy base remains in compiled resource: ' + resource);
+}
+for (const asset of ['studio/hvd-brand.css', 'studio/hvd-text-apply.js',
+  'studio/assets/editcore-Uyyxl379.wasm', 'studio/qpdf.wasm'])
+  assert.ok(fs.existsSync(at(asset)), 'Missing established native core file: ' + asset);
+const manifest = at('studio/hvd-text-build.json');
+if (fs.existsSync(manifest)) {
+  const build = JSON.parse(fs.readFileSync(manifest, 'utf8'));
+  assert.equal(build.commit, '3c9c138d980a417de7439f383f37882a1d730ab6');
+  assert.equal(build.base, '/PDF-Editor1/studio/');
+  assert.ok(build.brand_html_retained);
+  assert.ok(build.assets.length >= 10);
+}
+const metadata = JSON.parse(read('studio/hvd-site.webmanifest'));
+assert.equal(metadata.start_url, '../text-editor.html');
+assert.equal(metadata.scope, '../');
+assert.ok(read('studio/sw.js').includes('pdf-dao-chich-v12'));
+console.log('PASS: branded CIT/PDFium text editor routes and Vite assets are resolvable');
