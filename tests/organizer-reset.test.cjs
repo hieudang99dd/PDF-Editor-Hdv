@@ -60,3 +60,11 @@ test('Original export, undo/redo and cleanup remain present',()=>{
   assert.match(studio,/#hvd-brandbar \{display:none!important\}/,
     'Redundant Studio top bar must not obscure the editor workspace');
 });
+
+test('Studio build is isolated from ordinary organizer and homepage updates',()=>{
+  const workflow=fs.readFileSync(path.join(root,'.github/workflows/cit-original-build.yml'),'utf8');
+  const trigger=workflow.split('workflow_dispatch:')[0];
+  assert.ok(trigger.includes('scripts/cit-original/**'),'Pinned upstream rebuild inputs must remain tracked');
+  assert.doesNotMatch(trigger,/['"]organizer\.js['"]|['"]index\.html['"]/,
+    'Studio build must not overwrite reviewed UI after unrelated Organizer releases');
+});
