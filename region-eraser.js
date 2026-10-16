@@ -325,15 +325,24 @@ function refreshZones(){
   remove.disabled=state.busy||!!state.result;remove.addEventListener('click',()=>{
    const copy=activeRegions().slice();copy.splice(i,1);
    if(copy.length)state.regions.set(state.pageIndex,copy);else state.regions.delete(state.pageIndex);
+   state.selectedZone=copy.length?Math.min(state.selectedZone,copy.length-1):-1;
    record();refreshZones();drawRegions();
   });
-  row.append(span,remove);dom.zones.append(row);
+  const select=document.createElement('button');
+  select.type='button';select.className='re-zone-select';
+  select.textContent='✥ Sửa';select.title='Chọn vùng '+(i+1)+' để kéo đỉnh hoặc cạnh';
+  select.disabled=state.busy||!!state.result;
+  select.setAttribute('aria-label','Chỉnh sửa đường bao vùng '+(i+1));
+  select.addEventListener('click',()=>selectZone(i));
+  if(i===state.selectedZone)row.classList.add('re-zone-active');
+  row.append(span,select,remove);dom.zones.append(row);
  });
  $('re-page-info').textContent='Trang '+(state.pageIndex+1)+' · '+regions.length+' vùng đã chọn · '+countRegions()+' vùng trên toàn PDF';
  updateControls();
 }
 function stopDrawing(){
  state.drawing=false;state.start=null;state.vertices=[];
+ state.editDrag=null;
  dom.overlay.classList.remove('drawing');
  $('re-draw').textContent='＋ Bắt đầu vẽ vùng';
  $('re-finish').hidden=true;
@@ -344,10 +353,12 @@ function startDrawing(){
  if(state.reviewMode){status('Chuyển về Bản gốc để chỉnh lại vùng.','error');return;}
  if(state.drawing){stopDrawing();return;}
  state.shape=dom.shape.value;state.role=state.operation==='union'?dom.role.value:'erase';
+ state.selectedZone=-1;state.editDrag=null;
  state.drawing=true;state.start=null;state.vertices=[];
  dom.overlay.classList.add('drawing');
  $('re-draw').textContent='✕ Hủy vẽ';
  $('re-finish').hidden=state.shape!=='poly';
+ drawRegions();
  status(state.shape==='rect'?'Kéo chuột trên trang để khoanh hình chữ nhật.':'Nhấp từng đỉnh, sau đó Enter hoặc Hoàn thành đa giác.');
 }
 function addRegion(points){
@@ -361,6 +372,7 @@ function addRegion(points){
   validateRegions(regionsForCheck,state.operation!=='union'&&regions.length===2?state.operation:'union');
  }catch(e){status(e.message,'error');return;}
  state.regions.set(state.pageIndex,regions);
+ state.selectedZone=regions.length-1;
  record();stopDrawing();refreshZones();
  status('Đã thêm vùng. Có thể tiếp tục vẽ vùng khác trước khi xuất PDF.','success');
 }
