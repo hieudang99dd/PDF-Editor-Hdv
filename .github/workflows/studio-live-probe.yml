@@ -1,0 +1,67 @@
+name: PDF Đạo Chích Studio live asset probe
+on:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/studio-live-probe.yml'
+      - 'studio/edit-pdf-text.html'
+      - 'studio/hvd-brand.css'
+      - 'studio/sw.js'
+      - 'studio/assets/**'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare live GitHub Pages HTML and actual asset HTTP responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/check-pages.py <<'PY'
+          import hashlib, re, time, urllib.request, urllib.error, pathlib, sys
+          base='https://hieudang99dd.github.io/PDF-Editor1/studio/'
+          required=['edit-pdf-text.html','hvd-brand.css',
+                    'assets/style-B64az6_y.css',
+                    'assets/edit-pdf-text-CBd7slK6.css',
+                    'assets/edit-pdf-text-DRxmk-wp.js',
+                    'assets/main-DwO0x_KA.js',
+                    'assets/pdf.worker-C317IdDw.js']
+          def get(u):
+              req=urllib.request.Request(u,headers={'User-Agent':'PDF-Dao-Chich-Deploy-Check/1.0','Cache-Control':'no-cache'})
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as r:
+                      return r.status,r.headers.get('content-type'),r.read(),r.url
+              except urllib.error.HTTPError as e:
+                  return e.code,e.headers.get('content-type'),e.read(),u
+          for attempt in range(1,9):
+              print('ATTEMPT',attempt,flush=True)
+              hstatus,htype,hbody,hurl=get(base+'edit-pdf-text.html?probe='+str(attempt))
+              live=hbody.decode('utf-8','replace')
+              disk=pathlib.Path('studio/edit-pdf-text.html').read_text()
+              live_clean=re.sub(r'\?probe=\d+','',live)
+              print('HTML',hstatus,htype,len(hbody),'equal-local',live_clean==disk,'sha-live',hashlib.sha256(hbody).hexdigest()[:12], 'sha-local',hashlib.sha256(disk.encode()).hexdigest()[:12],flush=True)
+              csslinks=re.findall(r'<link[^>]+href="([^"]+\.css[^"]*)"',live)
+              jslinks=re.findall(r'<script[^>]+src="([^"]+\.js[^"]*)"',live)
+              print('CSS LINKS',csslinks[:10],flush=True)
+              print('SCRIPT LINKS',jslinks[:10],flush=True)
+              print('STALE OLD BASE', '/PDF-Editor-Hdv/studio/' in live,flush=True)
+              ok=hstatus==200 and all(a in live for a in ['./assets/style-B64az6_y.css','./assets/edit-pdf-text-CBd7slK6.css'])
+              res=[]
+              for asset in required[1:]:
+                  code,typ,body,real=get(base+asset+'?probe='+str(attempt))
+                  res.append((asset,code,typ,len(body),body[:70].decode('ascii','replace')))
+                  if code!=200 or (asset.endswith('.css') and 'css' not in (typ or '')) or (asset.endswith('.js') and 'javascript' not in (typ or '')):ok=False
+              for a in res:print('ASSET',a,flush=True)
+              if ok:
+                  print('PASS live HTTP resources and CSS links',flush=True)
+                  break
+              if attempt<8: time.sleep(12)
+          else:
+              print('FAIL live asset probe',flush=True)
+              sys.exit(1)
+          PY
+          python3 /tmp/check-pages.py
