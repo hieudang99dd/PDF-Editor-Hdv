@@ -220,6 +220,18 @@ def main(upstream_root: pathlib.Path) -> None:
         raise SystemExit(f"Unsafe modified upstream app.js: {blob}")
     source = target.read_text(encoding="utf-8")
     target.write_text(patch_app(source), encoding="utf-8")
+    # CIT 1.0.0 itself has a TypeScript structural cast error: the JS
+    # getDocDescription().fields inference is {} rather than Record<string,string>.
+    # This is an explicit module-boundary assertion, not an algorithm rewrite.
+    entry = upstream_root / "src/js/logic/edit-pdf-text-page.ts"
+    entry_source = entry.read_text(encoding="utf-8")
+    entry_source = replace_once(
+        entry_source,
+        "appModule = (await import('../editcore/app.js')) as EditorAppModule;",
+        "appModule = (await import('../editcore/app.js')) as unknown as EditorAppModule;",
+        "TypeScript native module boundary cast"
+    )
+    entry.write_text(entry_source, encoding="utf-8")
     print("PASS: pinned CIT native commit result, opt-in reflow and guarded save")
 
 
