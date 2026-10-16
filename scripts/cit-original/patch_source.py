@@ -231,6 +231,29 @@ def main(upstream_root: pathlib.Path) -> None:
         "appModule = (await import('../editcore/app.js')) as unknown as EditorAppModule;",
         "TypeScript native module boundary cast"
     )
+    entry_source = replace_once(
+        entry_source,
+        """      appModule.setOnSaved((kb) => {
+        showAlert(
+          t('common.success'),
+          t('tools:editPdfText.saved', { size: kb }),
+          'success',
+          () => {
+            closeEditor();
+          }
+        );
+      });""",
+        """      appModule.setOnSaved((kb) => {
+        const status = document.getElementById('hvd-apply-state');
+        if (status) {
+          status.hidden = false;
+          status.dataset.error = 'false';
+          status.textContent = 'Đã xuất PDF (' + kb + ' KB). Có thể tiếp tục chỉnh sửa.';
+        }
+        // Export does not dismiss or close the active PDF workspace.
+      });""",
+        "export retains open document and avoids blocking dialog"
+    )
     entry.write_text(entry_source, encoding="utf-8")
     print("PASS: pinned CIT native commit result, opt-in reflow and guarded save")
 
