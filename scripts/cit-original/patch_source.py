@@ -132,6 +132,97 @@ function endEdit(commit) {
         "\n" + wrapper + "function updateHoverCursor(e) {",
         "session result wrapper insertion"
     )
+    # Native inspection is read-only. It must never turn the PDF's source font
+    # into a guessed browser fallback when the user merely selects a paragraph.
+    source = replace_once(
+        source,
+        "function syncInspector() {",
+        """function hvdOriginalFontInfo() {
+  const para = state.editing?.para ||
+    (state.selection?.kind === 'para' ? state.selection.para : null);
+  if (!para?.runs?.length) return null;
+  const candidates = para.runs.map((run, idx) => ({ run, idx }))
+    .filter(({ run }) => !run.atomic && typeof run.text === 'string' && run.text.trim());
+  const selected = candidates.sort((a, b) =>
+    [...b.run.text.trim()].length - [...a.run.text.trim()].length)[0] ||
+    { run: para.runs[0], idx: 0 };
+  let pick = selected;
+  const edit = state.editing?.editable;
+  if (edit) {
+    const sel = window.getSelection();
+    let target = null;
+    if (sel?.rangeCount) {
+      let node = sel.getRangeAt(0).startContainer;
+      if (node.nodeType !== 1) node = node.parentElement;
+      target = node?.closest?.('span[data-src]');
+    }
+    if (target && edit.contains(target)) {
+      const idx = parseInt(target.dataset.src, 10);
+      if (Number.isInteger(idx) && idx >= 0 && idx < para.runs.length)
+        pick = { run: para.runs[idx], idx };
+    }
+  }
+  const run = pick.run;
+  const family = (run.family || 'Không xác định').trim();
+  const font = docFontsReady.get(docFontKey(run));
+  const need = docFontsNull.has(docFontKey(run));
+  const embedded = Boolean(font);
+  const local = [...PdfEngine.localFonts.keys()].some(k => {
+    const name = k.split('|')[0].replace(/^[A-Z]{6}\\+/, '');
+    return name.toLowerCase() === family.replace(/^[A-Z]{6}\\+/, '').toLowerCase();
+  });
+  const families = [...new Set(para.runs.filter(r => !r.atomic && r.text?.trim())
+    .map(r => r.family || 'Không xác định'))];
+  return {
+    rawFamily: family,
+    displayFamily: family.replace(/^[A-Z]{6}\\+/, ''),
+    size: Number(run.size || 0),
+    bold: Boolean(run.bold),
+    italic: Boolean(run.italic),
+    rgba: (run.rgba || 0) >>> 0,
+    hScale: Number(run.hScale ?? 1),
+    characterCount: [...(run.text || '')].length,
+    mixed: families.length > 1,
+    families,
+    source: embedded ? 'embedded' : local ? 'local' : need ? 'unavailable' : 'loading',
+    subset: /^[A-Z]{6}\\+/.test(family),
+    paraId: para.id,
+    runIndex: pick.idx
+  };
+}
+async function hvdEnsureSelectedOriginalFont() {
+  const info = hvdOriginalFontInfo();
+  const para = state.editing?.para ||
+    (state.selection?.kind === 'para' ? state.selection.para : null);
+  if (!info || !para) return null;
+  if (info.source !== 'loading') return info;
+  try {
+    await ensureRunFont(para, info.runIndex, para.runs[info.runIndex]);
+  } catch (e) { console.warn('[PDF Dao Chich] original PDF font:', e); }
+  return hvdOriginalFontInfo();
+}
+function syncInspector() {""",
+        "original-font inspection and lazy loading"
+    )
+    source = replace_once(
+        source,
+        "  let r = p?.runs[0] || {};",
+        """  // One PDF paragraph may contain a decorative initial or several fonts.
+  // Show the predominant original text style until the caret picks an exact run.
+  const fontInfo = hvdOriginalFontInfo();
+  let r = fontInfo && p?.runs?.[fontInfo.runIndex] || p?.runs[0] || {};""",
+        "original predominant font in inspector"
+    )
+    source = replace_once(
+        source,
+        """    endEdit,
+    hasActiveEdit: () => Boolean(state.editing),""",
+        """    endEdit,
+    hasActiveEdit: () => Boolean(state.editing),
+    getFontInfo: hvdOriginalFontInfo,
+    ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,""",
+        "original PDF font API"
+    )
     source = replace_once(
         source, "function cascadeParagraphGrowth(updated, prevBottom) {",
         """let hvdAutoReflow = false;
