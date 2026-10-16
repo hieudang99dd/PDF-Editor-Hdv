@@ -2,6 +2,7 @@
 const { chromium } = require('playwright');
 const fs = require('node:fs');
 const path = require('node:path');
+const PDF = require('../pdf-lib.min.js');
 const out = path.resolve(__dirname, '../test-results/studio-startup');
 fs.mkdirSync(out,{recursive:true});
 const base='https://hieudang99dd.github.io/PDF-Editor1/studio/edit-pdf-text.html';
@@ -32,6 +33,34 @@ async function main() {
      console.log('RESULT',name,'HTTP',response.status(),JSON.stringify(state));
      console.log('ERRORS',name,JSON.stringify(errors.slice(0,45)));
      await page.screenshot({path:path.join(out,name+'.png'),fullPage:true});
+     const doc = await PDF.PDFDocument.create();
+     const pg = doc.addPage([600,780]);
+     const font = await doc.embedFont(PDF.StandardFonts.Helvetica);
+     pg.drawText('PDF EDIT TEST SOURCE',{x:75,y:650,size:13,font});
+     pg.drawText('NEIGHBOR TEXT LINE',{x:75,y:590,size:13,font});
+     const pdfPath=path.join(out,'startup-fixture.pdf');
+     fs.writeFileSync(pdfPath,await doc.save());
+     await page.locator('#file-input').setInputFiles(pdfPath);
+     let opened=false;
+     try {
+       await page.waitForFunction(()=>{
+         const app=document.getElementById('text-editor-app');
+         const wrap=document.getElementById('pageWrap');
+         return app && !app.hidden && wrap && !wrap.hidden &&
+           document.querySelectorAll('#overlay .para-box:not(.block-box)').length>=2;
+       },null,{timeout:45000});
+       opened=true;
+     }catch(e){console.log('DOCUMENT_OPEN_TIMEOUT',name,e.message);}
+     const after=await page.evaluate(()=>{
+       const s=id=>{const e=document.getElementById(id);if(!e)return null;const c=getComputedStyle(e);return {display:c.display,hidden:e.hidden,text:e.innerText?.slice(0,170)}};
+       return {loader:s('loader-modal'),uploader:s('uploader'),pageWrap:s('pageWrap'),
+         app:s('text-editor-app'), paragraphs:document.querySelectorAll('#overlay .para-box:not(.block-box)').length,
+         engine:!!window.__HVD_CIT_TEXT_API,ready:document.readyState};
+     });
+     console.log('AFTER_FILE',name,'opened',opened,JSON.stringify(after));
+     console.log('AFTER_FILE_ERRORS',name,JSON.stringify(errors.slice(-45)));
+     await page.screenshot({path:path.join(out,name+'-after-file.png'),fullPage:true});
+     if(!opened)throw new Error(name+': PDF upload stuck in loader');
      if (response.status()!==200 || errors.some(x=>/module|.js|.wasm|Unexpected token|Failed to fetch dynamically/i.test(x))) throw new Error(name+': critical startup errors');
      if(state.loader?.display!=='none')throw new Error(name+': loader still visible after startup');
      if(state.uploader?.display==='none')throw new Error(name+': uploader hidden');
