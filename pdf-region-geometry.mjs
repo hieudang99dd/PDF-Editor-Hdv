@@ -152,7 +152,11 @@ export function keepSegment(a,b,zones,operation='union'){
  for(let i=0;i<distinct.length-1;i++){
   const t0=distinct[i],t1=distinct[i+1];
   if(t1-t0<EPS || eraseAt(lerp(a,b,(t0+t1)/2),zones,operation))continue;
-  kept.push({a:lerp(a,b,t0),b:lerp(a,b,t1)});
+  const first=lerp(a,b,t0),last=lerp(a,b,t1);
+  const prev=kept[kept.length-1];
+  if(prev&&Math.hypot(prev.b.x-first.x,prev.b.y-first.y)<=EPS*10)
+   prev.b=last; // Preserve continuous PATH segments across irrelevant region boundaries.
+  else kept.push({a:first,b:last});
  }
  return kept;
 }
