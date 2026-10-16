@@ -44,7 +44,7 @@ function recover(index){
  if(index<0||index>=state.history.length||state.busy)return;
  state.cursor=index;
  state.regions=new Map(JSON.parse(state.history[index]));
- state.selectedZone=Math.min(state.selectedZone,activeRegions().length-1);
+ state.selectedZone=Math.min(Math.max(0,state.selectedZone),activeRegions().length-1);
  state.editDrag=null;
  stopDrawing();invalidateResult();refreshZones();drawRegions();updateControls();
 }
