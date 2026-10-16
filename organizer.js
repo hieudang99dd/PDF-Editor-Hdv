@@ -59,7 +59,7 @@ class PDFOrganizer {
             const link = document.createElement('link');
             link.id = 'po-style';
             link.rel = 'stylesheet';
-            link.href = 'organizer.css?v=39';
+            link.href = 'organizer.css?v=20261016-workspace2';
             document.head.appendChild(link);
         }
         
@@ -67,10 +67,15 @@ class PDFOrganizer {
         <div class="po-container">
             <header class="po-header">
                 <div class="po-header-left">
-                    <button class="po-icon-btn" id="po-back" title="Quay lại">←</button>
-                    <div class="po-title">Chỉnh sửa PDF</div>
+                    <div class="po-heading">
+                        <div class="po-title">Chỉnh sửa PDF</div>
+                        <span class="po-heading-sub">Biên tập tài liệu ngay trên trình duyệt</span>
+                    </div>
                 </div>
                 <div class="po-header-right">
+                    <button type="button" class="po-header-action po-action-reset" id="po-new-document" title="Đóng tệp đang nạp và trở lại giao diện chọn PDF">↻ Làm mới</button>
+                    <button type="button" class="po-header-action po-action-home" id="po-back" title="Trở về danh mục công cụ PDF HVD">← Danh mục công cụ</button>
+                    <span class="po-header-sep" aria-hidden="true"></span>
                     <button class="po-icon-btn" id="po-undo" title="Hoàn tác (Ctrl+Z)" disabled>↶</button>
                     <button class="po-icon-btn" id="po-redo" title="Làm lại (Ctrl+Y)" disabled>↷</button>
                     <button class="po-primary-btn" id="po-export-sel" style="display:none; margin-right:8px; background:var(--po-primary-light); color:var(--po-primary); border:1px solid var(--po-primary);">Xuất trang chọn</button>
@@ -97,7 +102,7 @@ class PDFOrganizer {
                     <button class="po-tool-btn" id="po-tb-rev-order" style="padding: 4px 6px;" title="Đảo ngược thứ tự">⇅</button>
                 </div>
                 <div class="po-tool-group">
-                    <button class="po-tool-btn" id="po-tb-reset">🔄 Làm mới</button>
+                    <button class="po-tool-btn" id="po-tb-reset" title="Khôi phục thứ tự trang ban đầu của tệp hiện có, không đóng tài liệu">↶ Khôi phục bản gốc</button>
                 </div>
                 <div class="po-tool-group">
                     <button class="po-tool-btn" id="po-tb-edit-text" style="background:var(--po-primary-light); color:var(--po-primary); font-weight:600;" title="Chỉnh sửa trực tiếp nội dung văn bản trong PDF"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:4px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>Chỉnh sửa nội dung</button>
@@ -227,10 +232,10 @@ class PDFOrganizer {
                 </div>
             </div>
             
-            <div id="po-initial-upload" class="po-upload-area">
-                <div class="po-upload-icon">📄</div>
-                <h3 class="po-upload-text">Tải lên tệp PDF</h3>
-                <p class="po-upload-sub">Kéo thả hoặc nhấp để chọn tệp</p>
+            <div id="po-initial-upload" class="po-upload-area" role="button" tabindex="0" aria-label="Chọn tệp PDF để chỉnh sửa">
+                <div class="po-upload-icon">＋</div>
+                <h3 class="po-upload-text">Mở tài liệu PDF</h3>
+                <p class="po-upload-sub">Chọn tệp từ máy tính hoặc kéo thả vào đây để bắt đầu.</p>
             </div>
             
             <input type="file" id="po-file-input" accept=".pdf" multiple hidden>
@@ -517,24 +522,33 @@ class PDFOrganizer {
         }, { signal: this.abort.signal });
 
         document.getElementById('po-back').onclick = async () => {
-            if(!await this.finishTextEdit()) return;
+            if (this.isSaving || this.isChoosingDirectory || document.getElementById('po-loading')?.style.display === 'flex') {
+                toast('Đang xử lý hoặc lưu tài liệu. Vui lòng chờ hoàn tất.'); return;
+            }
+            if (!await this.finishTextEdit()) return;
             if (this.historyIndex !== this.savedHistoryIndex && this.historyIndex !== -1) {
-                if (!confirm('Bạn có thay đổi chưa lưu. Chắc chắn muốn thoát?')) return;
+                if (!confirm('Tài liệu có thay đổi chưa lưu. Bạn muốn trở về danh mục công cụ?')) return;
             }
             this.destroy();
             if (typeof back === 'function') {
-                document.querySelector('header').style.display = 'flex';
+                const hostHeader=document.querySelector('body > header');
+                if(hostHeader)hostHeader.style.display='flex';
                 back();
             } else {
                 document.getElementById('home').style.display = 'block';
-                document.querySelector('header').style.display = 'flex';
+                const hostHeader=document.querySelector('body > header');
+                if(hostHeader)hostHeader.style.display='flex';
                 document.getElementById('ws').style.display = 'none';
             }
         };
+        document.getElementById('po-new-document').onclick = () => this.newDocument();
 
         const initUpload = document.getElementById('po-initial-upload');
         const fileIn = document.getElementById('po-file-input');
         initUpload.onclick = () => fileIn.click();
+        initUpload.onkeydown = event => {
+            if(event.key==='Enter'||event.key===' '){event.preventDefault();fileIn.click();}
+        };
         initUpload.ondragover = e => { e.preventDefault(); initUpload.style.borderColor = 'var(--po-primary)'; };
         initUpload.ondragleave = () => initUpload.style.borderColor = '';
         initUpload.ondrop = e => { e.preventDefault(); this.handleFiles(e.dataTransfer.files, 0); };
@@ -2652,6 +2666,22 @@ class PDFOrganizer {
         } catch (sErr) {
             console.warn('Lỗi khởi tạo Sortable:', sErr);
         }
+    }
+
+    // A real reset to the empty uploader, not a page-order rollback.
+    // Destroying the instance closes PDF.js documents, native workers, previews,
+    // and all in-memory history. The current feature remains open.
+    async newDocument() {
+        if (this.isSaving || this.isChoosingDirectory || document.getElementById('po-loading')?.style.display === 'flex') {
+            toast('Đang đọc, xử lý hoặc lưu PDF. Hãy đợi hoàn tất rồi làm mới.'); return false;
+        }
+        const hasDocument = this.files.length > 0 || this.pages.length > 0;
+        if (hasDocument && !confirm('Làm mới công cụ và đóng tệp PDF hiện tại? Mọi chỉnh sửa chưa lưu sẽ bị bỏ.')) {
+            return false;
+        }
+        this.destroy();
+        window.initOrganizer([]);
+        return true;
     }
 
     showLoading(msg) {
