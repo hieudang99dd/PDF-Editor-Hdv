@@ -87,8 +87,45 @@ async function sample(label){
    await page.setViewportSize({width:375,height:740});
    assert.ok(await page.locator('#refresh-app').isVisible(),'refresh must remain accessible on mobile');
    assert.ok(await page.locator('#ws-new').isVisible(),'New File action must remain accessible on mobile');
+   // Organizer: a real new-document reset must unload the PDF but preserve
+   // the active feature; cancellation must leave its editor state intact.
+   await page.goto(address,{waitUntil:'domcontentloaded'});
+   await page.evaluate(() => openTool(T.findIndex(t=>t[0]==='Chỉnh sửa PDF')));
+   await page.locator('#po-initial-upload').waitFor({state:'visible'});
+   assert.ok(await page.locator('#po-new-document').isVisible());
+   assert.ok(await page.locator('#po-back').isVisible());
+   assert.match((await page.locator('#po-back').innerText()).trim(),/Danh mục công cụ/);
+   assert.match((await page.locator('#po-tb-reset').innerText()).trim(),/Khôi phục/);
+   await page.locator('#po-file-input').setInputFiles({
+     name:'sample-original.pdf',mimeType:'application/pdf',buffer:await sample('Document original')
+   });
+   await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
+   assert.equal(await page.locator('#po-meta-title').innerText(),'sample-original');
+   const loaded=await page.evaluate(()=>window.organizerInstance.files.length);
+   assert.equal(loaded,1);
+
+   // Declining an explicit reset must keep the source, pages, and output.
+   const deny=dialog=>dialog.dismiss();
+   page.prependOnceListener('dialog',deny);
+   await page.locator('#po-new-document').click();
+   assert.ok(await page.locator('#po-ws').isVisible(),'cancel must retain open document');
+   assert.equal(await page.evaluate(()=>window.organizerInstance.files.length),1);
+   await page.locator('#po-new-document').click();
+   await page.locator('#po-initial-upload').waitFor({state:'visible'});
+   assert.ok(await page.locator('#po-new-document').isVisible());
+   assert.ok(await page.locator('#po-back').isVisible());
+   assert.equal(await page.evaluate(()=>window.organizerInstance.files.length),0);
+   assert.equal(await page.evaluate(()=>window.organizerInstance.pages.length),0);
+   assert.ok(await page.locator('#po-save').isDisabled());
+   assert.ok(await page.locator('#po-ws').isHidden());
+   await page.locator('#po-file-input').setInputFiles({
+     name:'another-file.pdf',mimeType:'application/pdf',buffer:await sample('Second document')
+   });
+   await page.locator('#po-ws').waitFor({state:'visible',timeout:30000});
+   assert.equal(await page.locator('#po-meta-title').innerText(),'another-file');
+   assert.ok(await page.locator('.po-header').isVisible());
    assert.deepEqual(failures,[],'No new browser JS errors');
-   console.log('PASS: browser PDF download stays in task, refresh, new file, native back-forward and mobile');
+   console.log('PASS: browser PDF download stays in task, organizer unload reset + cancel + reload, back-forward and mobile');
  }finally{
    await browser?.close();
    await new Promise(resolve=>server.close(resolve));
