@@ -262,17 +262,6 @@ async function saveFile() {""",
 async function saveFile() {""",
         "register original PDF bytes for lazy thumbnails only after open"
     )
-    source = replace_once(
-        source,
-        """    getFontInfo: hvdOriginalFontInfo,
-    ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,""",
-        """    getFontInfo: hvdOriginalFontInfo,
-    getPageCount: () => P()?.pageCount || 0,
-    getPageIndex: () => P()?.pageIndex ?? 0,
-    navigateToPage: index => goToPage(index),
-    ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,""",
-        "stable native PDFium paging API"
-    )
     # CIT caches web-renderable PDF font blobs by family + bold/italic.
     # When another PDF is loaded, that key may resolve to a DIFFERENT subset.
     # Clear only the per-document font cache to prevent cross-document glyphs.
@@ -349,6 +338,9 @@ if (typeof window !== 'undefined') {
     endEdit,
     hasActiveEdit: () => Boolean(state.editing),
     getFontInfo: hvdOriginalFontInfo,
+    getPageCount: () => P()?.pageCount || 0,
+    getPageIndex: () => P()?.pageIndex ?? 0,
+    navigateToPage: index => goToPage(index),
     ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,
     loadSelectedSystemFont: hvdLoadSelectedSystemFont,
     getAutoReflow: () => hvdAutoReflow,
