@@ -68,3 +68,12 @@ a{color:var(--orange2);text-decoration:none}a:hover{text-decoration:underline}[h
  .re-gallery-nav .re-btn{font-size:11px;white-space:normal}
  .re-editor-header>div:nth-child(2){min-width:130px}
 }
+
+/* Erase-all mode: keep signature consent visible and legible without modal spam. */
+.re-signature-consent{display:flex!important;align-items:flex-start!important;gap:10px!important;
+ border:1px solid #755333;border-radius:9px;padding:11px 10px;
+ background:rgba(245,138,51,.09);cursor:pointer}
+.re-signature-consent input{margin-top:3px;accent-color:var(--orange);width:18px;height:18px;flex-shrink:0}
+.re-signature-consent span{display:flex;flex-direction:column;gap:5px;font-size:12px;color:var(--text)}
+.re-signature-consent small{font-size:11px;color:var(--muted);line-height:1.5}
+.re-impact-note{border-left:3px solid var(--orange);padding:6px 9px;background:#2c2830;border-radius:4px}
