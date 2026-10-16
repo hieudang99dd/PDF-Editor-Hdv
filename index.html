@@ -669,14 +669,14 @@ function resetWorkspace(clearFiles=false){
  $('#ws-status').textContent=clearFiles?'Có thể tải tài liệu mới vào công cụ hiện tại.':'Đã làm mới tác vụ. Bạn có thể chỉnh tùy chọn và thực hiện lại.';
 }
 window.addEventListener('popstate',()=>{
- const match=location.hash.match(/^#hvd-tool=(\\d+)$/);
+ const match=location.hash.match(/^#hvd-tool=([0-9]+)$/);
  const idx=match?Number(match[1]):-1;
  if(idx>=0&&T[idx]&&!['cit-text-route','pdfium-inspect-route'].includes(T[idx][4])){
   openTool(idx,true);
  }else showCatalog();
 });
 window.addEventListener('DOMContentLoaded',()=>{
- const match=location.hash.match(/^#hvd-tool=(\\d+)$/);
+ const match=location.hash.match(/^#hvd-tool=([0-9]+)$/);
  if(match){
   const idx=Number(match[1]);
   if(T[idx]&&!['cit-text-route','pdfium-inspect-route'].includes(T[idx][4]))openTool(idx,true);
