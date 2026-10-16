@@ -77,6 +77,8 @@ function updateControls(){
  $('re-range-from').disabled=state.busy;
  $('re-range-to').disabled=state.busy;
  $('re-gallery-back').disabled=state.busy;
+ $('re-gallery-prev').disabled=state.busy||state.galleryStart===0;
+ $('re-gallery-next').disabled=state.busy||!state.pdf||state.galleryStart+24>=state.pdf.numPages;
  $('re-cancel').hidden=!state.abortController;
 }
 function setBusy(value){state.busy=value;updateControls();$('re-finish').disabled=value;}
@@ -397,6 +399,7 @@ async function apply(){
   catch(error){state.reviewPdf=null;URL.revokeObjectURL(state.reviewUrl);state.reviewUrl=null;
    throw Error('PDF đã xuất nhưng không mở được xem trước: '+error.message);}
   state.reviewMode=true;
+  $('re-before').className='re-btn re-ghost';$('re-after').className='re-btn re-primary';
   $('re-review-switch').hidden=false;
   await enterPage(state.pageIndex);
   $('re-result-title').textContent='PDF đã được xử lý · vùng đã cắt thật';
@@ -447,6 +450,41 @@ function wire(){
  dom.input.addEventListener('change',e=>{const f=e.target.files[0];if(f)load(f);});
  $('re-new').addEventListener('click',()=>reset());
  $('re-replace').addEventListener('click',()=>reset(true,true));
+ $('re-gallery-prev').addEventListener('click',()=>showGallery(state.galleryStart-24));
+ $('re-gallery-next').addEventListener('click',()=>showGallery(state.galleryStart+24));
+ $('re-gallery-back').addEventListener('click',returnGallery);
+ $('re-before').addEventListener('click',()=>{
+  if(!state.reviewPdf||state.busy)return;
+  state.reviewMode=false;
+  $('re-before').className='re-btn re-primary';
+  $('re-after').className='re-btn re-ghost';
+  renderPage();updateControls();
+ });
+ $('re-after').addEventListener('click',()=>{
+  if(!state.reviewPdf||state.busy)return;
+  state.reviewMode=true;
+  $('re-before').className='re-btn re-ghost';
+  $('re-after').className='re-btn re-primary';
+  renderPage();updateControls();
+ });
+ $('re-operation').addEventListener('change',()=>{
+  if(state.busy)return;
+  state.operation=$('re-operation').value;
+  $('re-role').value='erase';
+  const names={
+   union:'Hợp vùng: xóa đồng thời một hoặc nhiều vùng riêng biệt; có thể thêm vùng bảo vệ.',
+   between:'Giữa hai đường bao: vẽ vùng ngoài TRƯỚC, vùng trong SAU. Chỉ xóa phần nằm giữa hai vùng.',
+   intersection:'Giao hai vùng: vẽ đúng hai vùng có phần chồng nhau. Chỉ xóa nội dung ở phần giao.'
+  };
+  $('re-operation-help').textContent=names[state.operation];
+  stopDrawing();invalidateResult();refreshZones();drawRegions();updateControls();
+ });
+ $('re-scope').addEventListener('change',()=>{
+  $('re-range-fields').hidden=$('re-scope').value!=='range';
+  invalidateResult();updateControls();
+ });
+ $('re-range-from').addEventListener('change',invalidateResult);
+ $('re-range-to').addEventListener('change',invalidateResult);
  $('re-undo').addEventListener('click',()=>recover(state.cursor-1));
  $('re-redo').addEventListener('click',()=>recover(state.cursor+1));
  $('re-draw').addEventListener('click',startDrawing);
