@@ -1,6 +1,6 @@
 # PDF HVD — Đặc tả Xóa vector theo vùng v1
 
-Ngày: 16/10/2026. Phạm vi: công cụ Chỉnh sửa PDF (Organizer).
+Ngày: 16/10/2026. Phạm vi: trang `region-eraser.html` độc lập, không tích hợp vào Chỉnh sửa PDF (Organizer).
 
 ## 1. Mục tiêu và ranh giới
 
@@ -49,12 +49,12 @@ PDFium WASM của dự án đã xuất các API đọc path, tạo/xóa page obj
 
 ## 5. Tích hợp UI và lịch sử
 
-- Thanh công cụ Organizer bổ sung “Xóa vector theo vùng”.
+- Trang chủ có công cụ riêng **Xóa vector theo vùng**, dẫn đến `region-eraser.html`; không hiển thị trên thanh Organizer.
 - Người dùng chọn hình chữ nhật hoặc đa giác; bấm “Vẽ vùng”; kéo thả chữ nhật hoặc chọn từng đỉnh đa giác, kết thúc bằng Enter/nhấp đúp hoặc nút hoàn thành.
 - Chọn “Xóa trong vùng” để thêm vùng đỏ; chọn “Giữ vùng bên trong” để thêm vùng xanh. Hai thao tác này phối hợp thành miền giữa hai biên.
-- Có Bỏ vùng cuối, Xóa các vùng và Undo/Redo của Organizer. UI hiển thị vùng chọn, không tô trắng trang.
-- Page state có danh sách eraseRegions, mỗi phần tử gồm mode (erase/protect) và points (tọa độ tỷ lệ).
-- Khi Lưu: pdf-lib tổ chức trang, native text editor sửa chữ (nếu có), region worker cắt vector thực, sau đó PDF-lib chèn annotation. Nếu region worker thất bại, không xuất file sửa sai.
+- Có xóa từng vùng, xóa tất cả vùng trên trang và Undo/Redo độc lập của công cụ. UI hiển thị vùng chọn, không tô trắng trang.
+- State độc lập là `Map<pageIndex, regions[]>`, mỗi phần tử gồm mode (erase/protect) và points (tọa độ tỷ lệ); không lưu trong state Organizer.
+- Khi **Áp dụng & xuất PDF**: truyền bản sao bytes PDF nguồn cùng vùng chọn trực tiếp cho region worker, không đi qua Organizer, native text editor hay bước thêm annotation. Nếu worker thất bại, không tạo file đầu ra. Kết quả có nút tải xuống riêng; người dùng vẫn trong công cụ.
 - Worker được đóng sau khi xử lý hoặc timeout.
 
 ## 6. Module
@@ -63,15 +63,15 @@ PDFium WASM của dự án đã xuất các API đọc path, tạo/xóa page obj
 - pdf-region-native.mjs: đọc/sửa PDFium PATH thật.
 - pdf-region-worker.mjs: worker độc lập.
 - pdf-region-client.mjs: timeout và giải phóng worker.
-- pdf-region-ui.js: UI vùng chọn đa giác/chữ nhật và vùng bảo vệ.
-- organizer.js: quản lý eraseRegions trong lịch sử Undo/Redo, gọi worker khi lưu.
-- organizer.css: overlay và bảng thao tác responsive.
+- region-eraser.html / region-eraser.css / region-eraser.js: giao diện độc lập, vùng chọn đa giác/chữ nhật, xem trước PDF bằng PDF.js, Undo/Redo và xuất kết quả.
+- organizer.js: không import, không lưu `eraseRegions`, không gọi PDFium region worker.
+- organizer.css: không chứa overlay hoặc bảng của công cụ xóa vùng.
 
 ## 7. Nghiệm thu
 
 - Geometry test: giao đa giác, nhiều vùng xóa, vùng bảo vệ ở giữa, polygon lỗi.
 - Native PDFium test: tạo PDF chứa hai đường vector; cắt một đường, kiểm tra các PATH mới ở ngoài vùng, PATH khác không đổi, output vẫn là PDF vector.
-- Chromium test: mở PDF thật trên Organizer, vẽ vùng xóa + bảo vệ, lưu file, kiểm tra vẫn ở công cụ và PDF có nội dung hợp lệ.
+- Chromium test: truy cập `region-eraser.html`, chọn PDF, vẽ vùng xóa + bảo vệ, áp dụng/xuất và xác nhận PATH cắt thật; đồng thời kiểm tra Organizer không còn nút vùng.
 - GitHub Actions phải PASS; phải kiểm tra riêng deployment GitHub Pages.
 - Đối với hồ sơ sản xuất CAD A0/A1: cần test hình học, layer, clip, XObject, font, hairline/miter, nhiều trang, CropBox/MediaBox và so sánh render trước/sau.
 
@@ -83,3 +83,10 @@ v3: nested XObject, ảnh vùng, glyph chữ, transparency/blend và PDF redacti
 Tham khảo API chính thức: https://pdfium.googlesource.com/pdfium/+/refs/heads/main/public/fpdf_edit.h
 
 Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS.md.
+
+## 9. Tách độc lập khỏi trình Chỉnh sửa PDF (2026-10-16)
+
+- Phân tách hoàn toàn UI/UX, lưu dữ liệu trạng thái, lựa chọn tệp, lịch sử Undo/Redo và tác vụ xuất PDF.
+- `index.html` khai báo `region-eraser-route` hướng tới `region-eraser.html`; `organizer.js` không có `eraseRegions` hoặc `eraseRegionsInWorker`.
+- Giữ nguyên core `pdf-region-native.mjs`, `pdf-region-worker.mjs`, `pdf-region-geometry.mjs` đã kiểm thử; thay adapter Organizer bằng `region-eraser.js`.
+- Đường dẫn truy cập: `https://hieudang99dd.github.io/PDF-Editor1/region-eraser.html` sau khi GitHub Pages triển khai.
