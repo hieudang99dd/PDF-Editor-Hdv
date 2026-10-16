@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex">
+<title>Khôi phục giao diện chỉnh sửa PDF Đạo Chích</title>
+<style>
+:root{color-scheme:dark;font-family:"Segoe UI",system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;min-height:100dvh;display:grid;place-items:center;padding:24px;background:#10141c;color:#e9eff8}
+main{width:min(100%,620px);border:1px solid #42536b;background:#182233;border-radius:16px;padding:clamp(24px,4vw,38px);box-shadow:0 20px 80px #0006}
+small{color:#ffac82;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:750}
+h1{font-size:clamp(23px,4vw,31px);line-height:1.25;margin:10px 0 12px}p{color:#bfccdb;line-height:1.65;margin:12px 0}
+button,a{font:inherit}button{width:100%;margin-top:20px;border:none;border-radius:10px;padding:14px 18px;background:#e76f48;color:white;font-weight:750;cursor:pointer}button:disabled{opacity:.6;cursor:wait}
+a{color:#8cddd0;text-decoration:none}a:hover{text-decoration:underline}
+#status{min-height:24px;font-size:13px;color:#b7e5ce}
+:focus-visible{outline:3px solid #73e4d1;outline-offset:3px}
+</style>
+</head>
+<body>
+<main>
+<small>PDF Đạo Chích · Khắc phục lỗi giao diện</small>
+<h1>Khôi phục trình chỉnh sửa văn bản PDF</h1>
+<p>Trường hợp trang sửa text chỉ hiển thị chữ mặc định hoặc không mở được PDF, có thể bộ nhớ đệm của phiên bản cũ đang giữ CSS và JavaScript không tương thích.</p>
+<p>Thao tác này chỉ xóa bộ nhớ đệm tài nguyên Studio và đăng ký Service Worker của Studio. Không xóa tài liệu PDF trên máy hoặc các tệp đã tải xuống. Hãy hoàn thành và lưu mọi thao tác chỉnh sửa đang mở trước khi thực hiện.</p>
+<button id="repair" type="button">Khôi phục giao diện và mở trình chỉnh sửa</button>
+<p id="status" role="status" aria-live="polite">Sẵn sàng.</p>
+<a href="./edit-pdf-text.html">Quay lại trình chỉnh sửa</a>
+</main>
+<script>
+(() => {
+  const button=document.getElementById('repair');
+  const status=document.getElementById('status');
+  button.addEventListener('click',async()=>{
+    button.disabled=true;
+    status.textContent='Đang dọn bộ nhớ đệm của trình chỉnh sửa...';
+    const problems=[];
+    try{
+      if('serviceWorker' in navigator){
+        const regs=await navigator.serviceWorker.getRegistrations();
+        const studioPath=new URL('./',location.href).pathname;
+        for(const reg of regs){
+          try{const u=new URL(reg.scope);if(u.origin===location.origin&&u.pathname.startsWith(studioPath))await reg.unregister()}
+          catch(e){problems.push(String(e))}
+        }
+      }
+    }catch(e){problems.push('Service Worker: '+String(e))}
+    try{
+      if('caches' in window){
+        for(const key of await caches.keys()){
+          if(key.startsWith('bentopdf-')||key.startsWith('pdf-dao-chich-')){
+            try{await caches.delete(key)}catch(e){problems.push(String(e))}
+          }
+        }
+      }
+    }catch(e){problems.push('Cache: '+String(e))}
+    status.textContent=problems.length?'Đã đặt lại phần lớn tài nguyên, đang thử mở lại...':'Đã đặt lại tài nguyên, đang mở lại trình chỉnh sửa...';
+    // A unique query makes HTML request distinct from any previous cached document.
+    location.replace(new URL('./edit-pdf-text.html?clean='+Date.now(),location.href));
+  });
+})();
+</script>
+</body>
+</html>
