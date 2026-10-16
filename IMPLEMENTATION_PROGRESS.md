@@ -351,3 +351,13 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Tăng cache Service Worker từ `pdf-dao-chich-v12` lên `pdf-dao-chich-v13`; cache bust `hvd-text-apply.js/css?v=20261016-stallfix1`; sửa QA đường dẫn và thêm bài kiểm tra phục hồi.
 - Node/Pages smoke, Chromium website thật và build nguồn cit-pdf/PDFium đã đạt sau cập nhật; [source CI](https://github.com/hieudang99dd/PDF-Editor1/actions/runs/38917298592) hoàn tất thành công.
 - **Còn cần:** PDF gốc dẫn đến spinner và mẫu CAD/font subset/Unicode để bắt được đúng tình huống, phân biệt tải WASM chậm, browser caching, logic mở PDF và tính tương thích thuật toán. Không gọi tương đương cit-pdf “100%” vì có bản vá native result, tùy chọn cascade và UX Apply/Export.
+
+## 2026-10-16 — Khắc phục hồi quy mở PDF trong Studio text editor
+
+- Ghi nhận lỗi người dùng: thả/chọn PDF trên `/studio/edit-pdf-text.html` có thể dừng lâu ở vòng xoay “Đang tải Trình chỉnh sửa văn bản PDF”. Không quy kết lỗi giao diện chọn file khi chưa có bằng chứng.
+- Rà soát nguồn `cit-pdf 1.0.0`: `launchEditor(file)` gọi `batchDecryptIfNeeded()` trước khi khởi chạy PDFium. Hàm `isFileEncrypted()` trong `src/js/utils/password-prompt.ts` chờ `getPDFDocument().promise` không giới hạn; đây là đường treo có thể xảy ra với PDF.js/PDF phức tạp, dù PDFium có thể đọc được.
+- Bổ sung vào `scripts/cit-original/patch_source.py`: timeout 12 giây cho phép dò mã hóa **không thiết yếu**. Khi quá hạn, huỷ task PDF.js và chuyển nguyên PDF sang PDFium; PDF có mật khẩu vẫn dùng quy trình hỏi mật khẩu của PDFium. Giữ nguyên thuật toán PDFium C/C++/WASM.
+- Theo dõi từng giai đoạn `__HVD_PDF_OPEN_STAGE` và hiển thị nhãn thực: kiểm tra mật khẩu → tải mô-đun → khởi tạo PDFium → phân tích font/đối tượng → đã mở. Giới hạn 45 giây khi đợi `engineReady` để trả thông báo lỗi có chỉ dẫn thay vì treo im lặng. Giữ nút hồi phục loader sau 25 giây.
+- Bổ sung Chromium nghiệm thu trang thật `tests/studio-file-open-regression.cjs`, kiểm đúng entrypoint đang phát hành, **6/6** luồng chọn file thật/kéo-thả/setInputFiles trên PDF ba trang có chữ và vector, với Service Worker được bật và tắt.
+- Bổ sung `tests/cit-pdfjs-timeout.test.cjs`: mô phỏng PDF.js treo, file cần mật khẩu và PDF thường; cả ba đều **PASS**. Build TypeScript/Vite, regression Node, Chromium sửa + Xuất và kiểm tra PyMuPDF đều **PASS**, [CI run 38920803970](https://github.com/hieudang99dd/PDF-Editor1/actions/runs/38920803970), `# fail 0`.
+- Không sửa giao diện đã duyệt, chỉ tăng độ tin cậy trong bước khởi tạo tệp PDF. Do chưa nhận được PDF cụ thể của người dùng, không khẳng định đã tái hiện được *nguyên nhân chính xác* của tệp đó; nếu tiếp tục treo cần PDF gốc và console log (theo nhãn bước hiện trên giao diện) để kiểm tra nội dung và worker chuyên biệt.
