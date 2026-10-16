@@ -47,3 +47,9 @@ Ngày cập nhật: 2026-10-16. Tài liệu này là điểm tham chiếu chung 
 6. PR vào `master`, kiểm tra Pages/CI và ghi vào `IMPLEMENTATION_PROGRESS.md`.
 
 Không chứa tài liệu PDF cá nhân, token/secret, file test người dùng hoặc output debug trong repository phát hành.
+
+## Tác vụ riêng: Xóa vector theo vùng
+
+- Trang `region-eraser.html` là chức năng độc lập, route `region-eraser-route` từ trang chủ.
+- Adapter `region-eraser.js/css` quản lý PDF.js preview, state/Undo, UI vùng; core `pdf-region-*.mjs` dùng worker PDFium.
+- Không đưa `eraseRegions`, CSS `po-region-*` hoặc toolbar `po-tb-region` trở lại Organizer. Muốn mở rộng lõi xử lý thì thay trong `pdf-region-native.mjs` và kiểm thử ở `tests/pdf-region*.test.cjs`.
