@@ -158,7 +158,7 @@ async function sample(label){
      return c&&c.width>200&&c.height>100&&s.getBoundingClientRect().width>100;
    },{timeout:30000});
    async function drawZone(x0,x1,role,y0=.39,y1=.61){
-     await page.locator('#re-role').selectOption(role);
+     if(await page.locator('#re-role').isEnabled())await page.locator('#re-role').selectOption(role);
      await page.locator('#re-shape').selectOption('rect');
      await page.locator('#re-draw').click();
      const box=await page.locator('#re-overlay').boundingBox();
