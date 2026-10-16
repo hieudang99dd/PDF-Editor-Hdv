@@ -59,7 +59,8 @@ nav.hvd-original-nav,#tool-landing,footer.hvd-original-footer {display:none!impo
 #hvd-brand-footer a:hover {color:#fff}
 /* The Studio already supplies a navigation toolbar and a back-to-upload action.
    Do not show a second, unusable 60px-high brand navigation over the editor. */
-#hvd-brandbar {display:none!important}
+#hvd-brandbar {display:block!important}
+body:has(#text-editor-app:not([hidden])) #hvd-brandbar {display:none!important}
 @media(max-width:680px){
   #hvd-brandbar .hvd-inner {gap:8px;min-height:54px}
   #hvd-brandbar .hvd-tagline {display:none}
@@ -70,3 +71,13 @@ nav.hvd-original-nav,#tool-landing,footer.hvd-original-footer {display:none!impo
 @media(prefers-reduced-motion:reduce){
   #hvd-brandbar * {scroll-behavior:auto}
 }
+
+/* Text-editor upload presentation; keep native PDF editing canvas untouched. */
+#uploader{min-height:calc(100dvh - 60px);padding:clamp(22px,5vh,60px) 16px 35px;align-items:center}
+#tool-uploader{max-width:760px!important;border:1px solid #40536d;border-radius:16px;background:#182439!important;color:#ecf5fa;box-shadow:0 20px 60px #0005}
+#tool-uploader #back-to-tools{color:#91e1d7;font-size:13px}
+#tool-uploader #drop-zone{border-color:#55718a;background:#101827;transition:background .15s,border-color .15s}
+#tool-uploader #drop-zone:hover,#tool-uploader #drop-zone:focus-within{border-color:#20b9a7;background:#142d35;outline:2px solid #20b9a733;outline-offset:2px}
+#tool-uploader h1{font-size:clamp(22px,3.2vw,30px)}
+#tool-uploader p{line-height:1.6}
+@media(max-width:680px){#uploader{padding:18px 12px 24px;min-height:calc(100dvh - 54px)}#tool-uploader{padding:20px 16px!important}#hvd-brandbar .hvd-inner{padding:10px 12px}#hvd-brandbar .hvd-links{gap:4px}}
