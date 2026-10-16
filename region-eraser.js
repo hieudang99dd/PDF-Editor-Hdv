@@ -1,4 +1,4 @@
-import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-rotate2';
+import {eraseRegionsInWorker} from './pdf-region-client.mjs?v=20261016-all1';
 import {validateRegions} from './pdf-region-geometry.mjs';
 import {planRegionJobs} from './pdf-region-plan.mjs';
 import {MAX_INPUT_BYTES,LARGE_FILE_NOTICE_BYTES,PREVIEW_RANGE_CHUNK_BYTES,
@@ -76,6 +76,8 @@ function updateControls(){
  $('re-shape').disabled=state.busy;
  $('re-role').disabled=state.busy||state.operation!=='union';
  $('re-operation').disabled=state.busy;
+ $('re-object-mode').disabled=state.busy;
+ $('re-allow-signed').disabled=state.busy;
  $('re-scope').disabled=state.busy;
  $('re-range-from').disabled=state.busy;
  $('re-range-to').disabled=state.busy;
@@ -102,6 +104,7 @@ async function reset(check=true,selectNew=false){
  await teardown();stopDrawing();clearResults();
  state.file=null;state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
  state.galleryStart=0;state.operation='union';$('re-operation').value='union';
+ $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
  dom.input.value='';dom.workspace.hidden=true;dom.upload.hidden=false;
  dom.canvas.width=0;dom.canvas.height=0;dom.overlay.replaceChildren();dom.zones.replaceChildren();
  $('re-gallery-grid').replaceChildren();$('re-editor-view').hidden=true;$('re-gallery-panel').hidden=false;
@@ -120,6 +123,7 @@ async function load(file){
   await teardown();stopDrawing();clearResults();
   state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
   state.galleryStart=0;state.operation='union';$('re-operation').value='union';
+ $('re-object-mode').value='whole-object';$('re-allow-signed').checked=false;
   if(!window.pdfjsLib)throw new Error('Không tải được trình xem PDF. Vui lòng tải lại trang.');
   // Let PDF.js fetch the Blob URL. Do not allocate a full-size File.arrayBuffer()
   // on the main UI thread just to preview the first page.
@@ -388,6 +392,8 @@ async function apply(){
   // No File.arrayBuffer() or Uint8Array.slice() in the main UI save path.
   const result=await eraseRegionsInWorker(state.file,pages,{
    signal:controller.signal,
+   mode:$('re-object-mode').value,
+   allowInvalidSignatures:$('re-allow-signed').checked,
    onProgress:info=>{
     const total=Math.max(1,info.totalPages||pages.length);
     const done=Math.min(total,info.completedPages||0);
@@ -422,8 +428,15 @@ async function apply(){
   $('re-before').className='re-btn re-ghost';$('re-after').className='re-btn re-primary';
   $('re-review-switch').hidden=false;
   await enterPage(state.pageIndex);
-  $('re-result-title').textContent='PDF đã được xử lý · vùng đã cắt thật';
-  $('re-result-summary').textContent=result.report.changedObjects+' PATH bị thay đổi · '+result.report.newFragments+' đoạn vector được giữ lại · '+result.report.skippedNonVector+' đối tượng phi vector bị bỏ qua. Tệp nguồn vẫn nguyên vẹn.';
+  const whole=$('re-object-mode').value==='whole-object';
+  $('re-result-title').textContent=whole?'Đã xóa đối tượng PDF trong vùng':'Đã cắt đường vector trong vùng';
+  $('re-result-summary').textContent=(whole?
+   result.report.removedObjects+' đối tượng PDF được gỡ trực tiếp khỏi trang.':
+   result.report.changedObjects+' PATH được chỉnh · '+result.report.newFragments+
+    ' đoạn vector còn lại · '+result.report.skippedNonVector+' đối tượng khác không xử lý.')+
+   (result.report.signatureInvalidated?
+    ' PDF nguồn có chữ ký số; chữ ký cũ trên bản sao đã chỉnh sửa không còn hiệu lực.':'')+
+   ' Tệp nguồn vẫn nguyên vẹn. Kiểm tra bản Sau xử lý trước khi tải.';
   dom.results.hidden=false;
   dom.results.scrollIntoView({behavior:'smooth',block:'nearest'});
   status('Đã xóa vector thật và mở kết quả để kiểm tra. Chuyển Trước/Sau hoặc tải PDF.','success');
@@ -501,6 +514,14 @@ function wire(){
   $('re-operation-help').textContent=names[state.operation];
   stopDrawing();invalidateResult();refreshZones();drawRegions();updateControls();
  });
+ $('re-object-mode').addEventListener('change',()=>{
+  const mode=$('re-object-mode').value;
+  $('re-mode-explanation').textContent=mode==='whole-object'?
+   'Xóa thực nguyên đối tượng chữ, ảnh, Form và vector nếu hộp bao của chúng giao vùng. Một phần bên ngoài vùng cũng có thể mất theo.':
+   'Chỉ cắt PATH nét liền thành những đoạn nằm ngoài vùng, giữ nguyên chữ, ảnh và các đối tượng chưa hỗ trợ.';
+  invalidateResult();updateControls();
+ });
+ $('re-allow-signed').addEventListener('change',()=>{invalidateResult();updateControls();});
  $('re-scope').addEventListener('change',()=>{
   $('re-range-fields').hidden=$('re-scope').value!=='range';
   invalidateResult();updateControls();

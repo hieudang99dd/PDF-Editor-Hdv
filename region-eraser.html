@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>Xóa vector theo vùng — PDF HVD</title>
 <meta name="description" content="Xóa thực đoạn vector PATH nằm trong một hoặc nhiều vùng chọn, giữ lại phần bên ngoài. Hoạt động độc lập với Chỉnh sửa PDF.">
-<link rel="stylesheet" href="region-eraser.css?v=20261016-boolean1">
+<link rel="stylesheet" href="region-eraser.css?v=20261016-all1">
 </head>
 <body>
 <header class="re-topbar">
@@ -94,8 +94,23 @@
       <p class="re-hint">Dùng cùng tọa độ vùng của trang đang mở cho toàn bộ khoảng trang. Chỉ phù hợp các trang có bố cục tương ứng.</p>
     </div>
     <div class="re-sep"></div>
-    <h2>04 · Giới hạn kỹ thuật</h2>
-    <p class="re-hint">Chỉ xóa thực PATH vector nét liền không tô kín. Văn bản, ảnh, hatch, Bézier và đường nét đứt không được giả xóa. Trang xoay hoặc path không hỗ trợ có thể khiến tác vụ bị từ chối.</p>
+    <h2>04 · Kiểu xóa đối tượng</h2>
+    <label for="re-object-mode">Mức xóa nội dung</label>
+    <select id="re-object-mode">
+      <option value="whole-object">Xóa mọi đối tượng giao vùng — chữ, ảnh, vector, Form</option>
+      <option value="precise">Cắt chính xác đường vector được hỗ trợ</option>
+    </select>
+    <p id="re-mode-explanation" class="re-hint re-impact-note">
+      Xóa thực toàn bộ đối tượng có hộp bao giao vùng. Văn bản, hình ảnh hoặc đối tượng kéo dài
+      ra ngoài đường bao cũng có thể bị xóa nguyên khối. Xem bản Sau xử lý để kiểm tra.
+    </p>
+    <label class="re-signature-consent">
+      <input type="checkbox" id="re-allow-signed">
+      <span><strong>Cho phép xuất bản sao từ PDF đã ký số</strong>
+      <small>Chữ ký số gốc sẽ không còn hiệu lực sau khi chỉnh sửa; không thể bảo toàn chữ ký hợp lệ trên bản sao.</small></span>
+    </label>
+    <p class="re-hint">Tài liệu nguồn được giữ nguyên. Chế độ này xóa page objects trong cấu trúc PDF;
+      không phải công cụ redaction bảo đảm loại bỏ mọi dữ liệu ẩn, annotation và lịch sử PDF.</p>
     <a href="docs/REGION_ERASER.md" target="_blank" rel="noopener" class="re-doc-link">Đọc giới hạn thuật toán ↗</a>
    </aside>
    <section class="re-preview" aria-label="Xem trước tài liệu">
@@ -125,6 +140,6 @@
 window.pdfjsLib=window.pdfjsLib||window['pdfjs-dist/build/pdf'];
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';
 </script>
-<script type="module" src="region-eraser.js?v=20261016-rotate2"></script>
+<script type="module" src="region-eraser.js?v=20261016-all1"></script>
 </body>
 </html>

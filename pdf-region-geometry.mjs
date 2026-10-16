@@ -160,6 +160,70 @@ export function keepSegment(a,b,zones,operation='union'){
  }
  return kept;
 }
+
+// Does an axis-aligned page-object bounding rectangle have strictly positive
+// area overlap with the BOOLEAN erase region? This is intentionally a broad
+// object-level operation, NOT a guarantee of clipping text/images to the edge.
+// Uses vertical scanline cells; holes and intersections are respected.
+const regionRectCache=new WeakMap();
+function preparedRegionScanlines(zones,operation){
+ const cached=regionRectCache.get(zones);
+ if(cached?.operation===operation)return cached;
+ const allPoints=zones.flatMap(z=>z.points);
+ const bounds={
+  minX:Math.min(...allPoints.map(v=>v.x)),
+  maxX:Math.max(...allPoints.map(v=>v.x)),
+  minY:Math.min(...allPoints.map(v=>v.y)),
+  maxY:Math.max(...allPoints.map(v=>v.y))
+ };
+ const events=allPoints.map(v=>v.x),edges=[];
+ for(const z of zones)for(let i=0;i<z.points.length;i++)
+  edges.push([z.points[i],z.points[(i+1)%z.points.length]]);
+ // Cache pairwise edge crossings once PER PAGE, not once PER PDF OBJECT.
+ if(operation==='intersection'||operation==='union'){
+  for(let i=0;i<edges.length;i++)for(let j=i+1;j<edges.length;j++){
+   const [a,b]=edges[i],[c,d]=edges[j];
+   for(const t of intersectionT(a,b,c,d))
+    events.push(a.x+(b.x-a.x)*t);
+  }
+ }
+ const result={operation,edges,bounds,events:events.sort((a,b)=>a-b)};
+ regionRectCache.set(zones,result);
+ return result;
+}
+export function regionIntersectsRect(rect,zones,operation='union'){
+ if(!rect||![rect.x0,rect.y0,rect.x1,rect.y1].every(Number.isFinite))
+  throw Error('Khung đối tượng PDF không hợp lệ.');
+ if(!REGION_OPERATIONS.includes(operation)||!zones?.length)
+  throw Error('Phép xóa đối tượng không hợp lệ.');
+ const x0=Math.min(rect.x0,rect.x1),x1=Math.max(rect.x0,rect.x1);
+ const y0=Math.min(rect.y0,rect.y1),y1=Math.max(rect.y0,rect.y1);
+ if(x1-x0<EPS||y1-y0<EPS)return false;
+ const {bounds,edges,events}=preparedRegionScanlines(zones,operation);
+ if(x1<=bounds.minX||x0>=bounds.maxX||y1<=bounds.minY||y0>=bounds.maxY)return false;
+ const cuts=[x0,x1];
+ for(const xx of events)if(xx>x0&&xx<x1)cuts.push(xx);
+ cuts.sort((a,b)=>a-b);
+ const xs=cuts.filter((v,i)=>i===0||v-cuts[i-1]>EPS);
+ for(let i=0;i<xs.length-1;i++){
+  if(xs[i+1]-xs[i]<EPS)continue;
+  const x=(xs[i]+xs[i+1])/2;
+  const ys=[y0,y1];
+  for(const [a,b] of edges){
+   if((a.x>x)!==(b.x>x)){
+    const yy=a.y+(b.y-a.y)*(x-a.x)/(b.x-a.x);
+    if(yy>y0&&yy<y1)ys.push(yy);
+   }
+  }
+  ys.sort((a,b)=>a-b);
+  for(let k=0;k<ys.length-1;k++){
+   if(ys[k+1]-ys[k]<=EPS)continue;
+   if(eraseAt({x,y:(ys[k]+ys[k+1])/2},zones,operation))return true;
+  }
+ }
+ return false;
+}
+
 // PDF.js PageViewport uses a 6-component affine matrix which maps raw PDF
 // user coordinates directly to the on-screen page (origin top-left).
 // The inverse is the only reliable coordinate mapping for inherited /Rotate,

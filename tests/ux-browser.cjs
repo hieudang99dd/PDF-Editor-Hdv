@@ -169,6 +169,10 @@ async function sample(label){
      await page.mouse.move(box.x+box.width*x1,box.y+box.height*y1,{steps:8});
      await page.mouse.up();
    }
+   assert.equal(await page.locator('#re-object-mode').inputValue(),'whole-object');
+   assert.ok(await page.locator('#re-allow-signed').count());
+   // Preserve the previous precision workflow as its own explicit mode.
+   await page.locator('#re-object-mode').selectOption('precise');
    await page.locator('#re-operation').selectOption('between');
    await drawZone(.3,.7,'erase');
    assert.equal(await page.locator('.re-zone').count(),1);
@@ -214,6 +218,31 @@ async function sample(label){
    await page.locator('#re-uploader').waitFor({state:'visible'});
    assert.equal(await page.locator('.re-zone').count(),0);
    assert.match(page.url(),/region-eraser\.html/,'reset must remain inside standalone route');
+   // Whole-object mode must physically remove text, not simply cover it.
+   await page.locator('#re-input').setInputFiles({
+     name:'text-report.pdf',mimeType:'application/pdf',buffer:await sample('DELETE TEXT IN BOX')
+   });
+   await page.locator('#re-gallery-panel').waitFor({state:'visible'});
+   await page.locator('.re-page-card').first().click();
+   await page.locator('#re-editor-view').waitFor({state:'visible'});
+   assert.equal(await page.locator('#re-object-mode').inputValue(),'whole-object');
+   await drawZone(.04,.65,'erase',.07,.20);
+   await page.locator('#re-process').click();
+   await page.locator('#re-results').waitFor({state:'visible',timeout:120000});
+   assert.match(await page.locator('#re-result-summary').innerText(),/đối tượng PDF được gỡ/);
+   const textDownload=page.waitForEvent('download',{timeout:30000});
+   await page.locator('#re-download').click();
+   const textFile=await textDownload;
+   const textPath=path.join('/tmp','hvd-text-erase-'+process.pid+'.pdf');
+   await textFile.saveAs(textPath);
+   const textBytes=fs.readFileSync(textPath);fs.unlinkSync(textPath);
+   const verify=await PdfEngine.create();
+   try{
+    verify.open(new Uint8Array(textBytes));verify.loadPage(0);
+    const textCount=Array.from({length:verify.objectCount()},(_,i)=>verify.objectAt(i))
+       .filter(o=>o?.type===1).length;
+    assert.equal(textCount,0,'selected text objects must be physically removed from PDF content stream');
+   }finally{verify.close();}
    assert.deepEqual(failures,[],'No new browser JS errors');
    console.log('PASS: separate vector region eraser route + binary PDFium output + independent reset + Organizer regression');
  }finally{
