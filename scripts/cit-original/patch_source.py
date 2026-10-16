@@ -222,6 +222,57 @@ function syncInspector() {""",
   let r = fontInfo && p?.runs?.[fontInfo.runIndex] || p?.runs[0] || {};""",
         "original predominant font in inspector"
     )
+    # Native paging is exposed without duplicating PDFium geometry.
+    # A custom event after every page change keeps the thumbnail rail in sync
+    # with footer navigation, search, keyboard and direct page-number entry.
+    source = replace_once(
+        source,
+        """  $('pageLabel').textContent = has
+    ? `${eng.pageIndex + 1} / ${eng.pageCount}`
+    : '– / –';""",
+        """  $('pageLabel').textContent = has
+    ? `${eng.pageIndex + 1} / ${eng.pageCount}`
+    : '– / –';
+  if (has) {
+    const pageState = eng.pageIndex + ':' + eng.pageCount;
+    if (window.__HVD_LAST_PAGE_STATE !== pageState) {
+      window.__HVD_LAST_PAGE_STATE = pageState;
+      window.dispatchEvent(new CustomEvent('hvd:pagechange', {
+        detail: { index: eng.pageIndex, count: eng.pageCount }
+      }));
+    }
+  }""",
+        "notify page thumbnail rail of native page changes"
+    )
+    source = replace_once(
+        source,
+        """  fitZoom();
+  updateChrome();
+}
+
+async function saveFile() {""",
+        """  fitZoom();
+  updateChrome();
+  // Fire only after the PDFium document has successfully opened.
+  window.dispatchEvent(new CustomEvent('hvd:document-open', {
+    detail: { file, count: P().pageCount }
+  }));
+}
+
+async function saveFile() {""",
+        "register original PDF bytes for lazy thumbnails only after open"
+    )
+    source = replace_once(
+        source,
+        """    getFontInfo: hvdOriginalFontInfo,
+    ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,""",
+        """    getFontInfo: hvdOriginalFontInfo,
+    getPageCount: () => P()?.pageCount || 0,
+    getPageIndex: () => P()?.pageIndex ?? 0,
+    navigateToPage: index => goToPage(index),
+    ensureSelectedOriginalFont: hvdEnsureSelectedOriginalFont,""",
+        "stable native PDFium paging API"
+    )
     # CIT caches web-renderable PDF font blobs by family + bold/italic.
     # When another PDF is loaded, that key may resolve to a DIFFERENT subset.
     # Clear only the per-document font cache to prevent cross-document glyphs.
@@ -363,6 +414,94 @@ def main(upstream_root: pathlib.Path) -> None:
         // Export does not dismiss or close the active PDF workspace.
       });""",
         "export retains open document and avoids blocking dialog"
+    )
+    # PDF.js only powers thumbnails; native PDFium still handles all
+    # editing, navigation, history and saves. Thumbnails load lazily and
+    # an independent PDF.js document is never used as an editable source.
+    entry_source = replace_once(
+        entry_source,
+        "import { batchDecryptIfNeeded } from '../utils/password-prompt.js';",
+        """import { batchDecryptIfNeeded } from '../utils/password-prompt.js';
+import { getPDFDocument } from '../utils/helpers.js';""",
+        "PDFjs read-only thumbnail dependency"
+    )
+    entry_source = replace_once(
+        entry_source,
+        "function buildMenu(anchor: HTMLElement, cls: string): HTMLDivElement {",
+        """type HvdThumbnailDocument = {
+  getPage: (index: number) => Promise<{
+    getViewport: (opts: {scale: number}) => {width: number; height: number};
+    render: (opts: {
+      canvasContext: CanvasRenderingContext2D;
+      viewport: {width: number; height: number}
+    }) => {promise: Promise<unknown>};
+    cleanup?: () => void;
+  }>;
+  destroy?: () => Promise<void>;
+};
+let hvdThumbnailFile: File | null = null;
+let hvdThumbnailDoc: Promise<HvdThumbnailDocument> | null = null;
+let hvdThumbnailTask: {destroy: () => Promise<void>} | null = null;
+let hvdThumbnailVersion = 0;
+function hvdThumbnailSource(file: File) {
+  hvdThumbnailVersion++;
+  hvdThumbnailFile = file;
+  hvdThumbnailDoc = null;
+  const previous = hvdThumbnailTask;
+  hvdThumbnailTask = null;
+  if (previous) void previous.destroy().catch(() => {});
+}
+async function hvdRenderPageThumbnail(index: number): Promise<string | null> {
+  const file = hvdThumbnailFile;
+  const version = hvdThumbnailVersion;
+  if (!file || !Number.isInteger(index) || index < 0) return null;
+  if (!hvdThumbnailDoc) {
+    hvdThumbnailDoc = file.arrayBuffer().then(buffer => {
+      if (version !== hvdThumbnailVersion) throw new Error('PDF has changed');
+      const task = getPDFDocument({data: buffer.slice(0)});
+      hvdThumbnailTask = task;
+      return task.promise as Promise<HvdThumbnailDocument>;
+    }).catch(error => {
+      if (version === hvdThumbnailVersion) hvdThumbnailDoc = null;
+      throw error;
+    });
+  }
+  const doc = await hvdThumbnailDoc;
+  if (version !== hvdThumbnailVersion) return null;
+  const page = await doc.getPage(index + 1);
+  if (version !== hvdThumbnailVersion) return null;
+  const natural = page.getViewport({scale:1});
+  const scale = Math.min(152 / natural.width, 198 / natural.height, 0.55);
+  const viewport = page.getViewport({scale:Math.max(0.02,scale)});
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1,Math.round(viewport.width));
+  canvas.height = Math.max(1,Math.round(viewport.height));
+  const ctx = canvas.getContext('2d', {alpha:false});
+  if (!ctx) return null;
+  await page.render({canvasContext:ctx,viewport}).promise;
+  page.cleanup?.();
+  return version === hvdThumbnailVersion ? canvas.toDataURL('image/jpeg',0.78) : null;
+}
+if (typeof window !== 'undefined') {
+  const hvd = window as Window & {
+    __HVD_PDF_THUMBNAILS?: {
+      render: (index:number) => Promise<string|null>;
+      clear: () => void;
+    };
+  };
+  hvd.__HVD_PDF_THUMBNAILS = {
+    render: hvdRenderPageThumbnail,
+    clear: () => { hvdThumbnailVersion++; hvdThumbnailFile = null; hvdThumbnailDoc = null;
+      const task = hvdThumbnailTask; hvdThumbnailTask = null;
+      if (task) void task.destroy().catch(()=>{}); }
+  };
+  window.addEventListener('hvd:document-open', (event: Event) => {
+    const documentEvent = event as CustomEvent<{file:File}>;
+    if (documentEvent.detail?.file) hvdThumbnailSource(documentEvent.detail.file);
+  });
+}
+function buildMenu(anchor: HTMLElement, cls: string): HTMLDivElement {""",
+        "document-scoped lazy PDFjs page thumbnails"
     )
     # Report the actual load phase to the user instead of a permanent,
     # unqualified spinner. No changes to the PDFium parsing algorithms.
