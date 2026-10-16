@@ -273,3 +273,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - `region-eraser.js`: `Apply` chỉ thực hiện PDFium Worker và xem kết quả bằng PDF.js, không tải xuống. Export khóa khi chưa có kết quả/bị lỗi/bận; khi người dùng chỉnh lại, bỏ blob PDF cũ, giữ vùng chọn, buộc áp dụng lại; không vô tình xuất snapshot cũ.
 - Vẫn giữ nút Bản gốc/Sau xử lý, nhiều vùng, xóa mọi page object, chữ ký số có xác nhận, giới hạn 512 MiB và trải nghiệm không rời trang sau khi tải.
 - `tests/pdf-region-apply-export.test.cjs` và Chromium QA kiểm tra các trạng thái đầu/cuối, áp dụng 2 lần trước khi tải, Undo/Redo sau Chỉnh sửa lại và ngăn xuất nhầm.
+
+
+## 2026-10-16 — Đổi thương hiệu hiển thị thành PDF Đạo Chích
+
+- Đồng bộ tên **PDF Đạo Chích** trong trang chủ, Xóa vector theo vùng, PDFium Preflight, trình sửa Text gốc, adapter thanh thương hiệu, các tiêu đề SEO và tab trình duyệt.
+- Logo đổi ký hiệu **H** thành **Đ** tại các header chính và SVG `studio/hvd-mark.svg`. CSS responsive đảm bảo tên tiếng Việt không tràn trên mobile.
+- Bổ sung cache-busting cho CSS/JS/SVG thương hiệu trên GitHub Pages.
+- Thêm regression `tests/brand-dao-chich.test.cjs`, cập nhật test cũ và tên GitHub Actions.
+- Bảo toàn đường dẫn GitHub, định danh `hvd-*`, thuật toán PDF, NOTICE.md/LICENSE và ghi nhận thư viện nguồn mở; đổi thương hiệu không thay đổi nghĩa vụ giấy phép.
