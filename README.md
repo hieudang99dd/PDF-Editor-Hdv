@@ -56,3 +56,6 @@ Công cụ độc lập tại `region-eraser.html` nhận PDF tối đa **512 Mi
 Mở `region-eraser.html`, chọn trang trong dàn trang để phóng to. Hỗ trợ hợp nhiều vùng, xóa phần giữa hai đường bao lồng nhau và chỉ xóa phần giao của hai vùng. Có tùy chọn áp dụng các vùng đã vẽ hoặc áp dụng một mẫu vùng cho khoảng trang Từ–Đến. Nút **Áp dụng & xuất PDF** xử lý ngay, hiển thị PDF thực trước/sau, sau đó mới tải. Xem `docs/REGION_ERASER.md`.
 
 **PDF có trang xoay:** Xóa vector theo vùng tự căn chỉnh phép chọn trên các trang /Rotate 0°/90°/180°/270° và CropBox tùy biến, không cần chuẩn hóa trang thủ công. Các đối tượng không phải PATH vector hỗ trợ vẫn theo giới hạn trong `docs/REGION_ERASER.md`.
+
+
+**Xóa mọi đối tượng giao vùng:** công cụ độc lập hỗ trợ gỡ toàn bộ page object chữ/ảnh/đường tô/Form có hộp bao giao vùng. Có chế độ riêng giữ thuật toán cắt vector chính xác; với xóa nguyên object, nội dung ngoài đường bao cũng có thể mất. PDF đã ký có tùy chọn tạo bản sao sau khi chấp nhận chữ ký cũ mất hiệu lực. Đây chưa phải redaction bảo đảm loại bỏ dữ liệu bí mật; xem `docs/REGION_ERASER.md`.
