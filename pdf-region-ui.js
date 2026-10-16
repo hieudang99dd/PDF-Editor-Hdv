@@ -95,7 +95,13 @@
    if(!state.drawing)return;
    e.preventDefault();e.stopPropagation();
    if(state.shape==='rect'){state.start=coord(e);overlay.setPointerCapture(e.pointerId);}
-   else if(state.points.length<256){state.points.push(coord(e));render(state.points);}
+   else if(state.points.length<256){
+    const next=coord(e),prev=state.points[state.points.length-1];
+    // Double-click emits two pointerdown events at the same vertex; do not
+    // create a zero-length edge that would make the polygon invalid on Save.
+    if(prev&&Math.hypot(prev.x-next.x,prev.y-next.y)<.003)return;
+    state.points.push(next);render(state.points);
+   }
   });
   overlay.addEventListener('pointermove',e=>{
    if(!state.drawing||state.shape!=='rect'||!state.start)return;
