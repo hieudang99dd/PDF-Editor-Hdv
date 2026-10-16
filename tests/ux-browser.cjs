@@ -175,6 +175,68 @@ async function sample(label){
      const c=document.getElementById('re-canvas'),s=document.getElementById('re-page-surface');
      return c&&c.width>200&&c.height>100&&s.getBoundingClientRect().width>100;
    },{timeout:30000});
+   // Compact editor must keep the FULL PDF sheet inside the fixed viewport,
+   // not merely fit its width (which clips top/bottom on landscape CAD sheets).
+   const fitted=async()=>{
+    return page.evaluate(()=>{
+     const vp=document.getElementById('re-viewport'),
+       pageSurface=document.getElementById('re-page-surface');
+     const css=getComputedStyle(vp);
+     const paddingX=(parseFloat(css.paddingLeft)||0)+(parseFloat(css.paddingRight)||0);
+     const paddingY=(parseFloat(css.paddingTop)||0)+(parseFloat(css.paddingBottom)||0);
+     const p=pageSurface.getBoundingClientRect(),v=vp.getBoundingClientRect();
+     return {
+      width:p.width,height:p.height,
+      usableWidth:vp.clientWidth-paddingX,
+      usableHeight:vp.clientHeight-paddingY,
+      top:p.top,bottom:p.bottom,left:p.left,right:p.right,
+      vpTop:v.top,vpBottom:v.bottom,vpLeft:v.left,vpRight:v.right,
+      viewportWidth:vp.clientWidth
+     };
+    });
+   };
+   await page.waitForFunction(()=>{
+     const vp=document.getElementById('re-viewport'),sheet=document.getElementById('re-page-surface'),
+       css=getComputedStyle(vp);
+     return sheet.clientWidth<=vp.clientWidth-parseFloat(css.paddingLeft)-parseFloat(css.paddingRight)+1 &&
+       sheet.clientHeight<=vp.clientHeight-parseFloat(css.paddingTop)-parseFloat(css.paddingBottom)+1;
+   },{timeout:30000});
+   const pageFit=await fitted();
+   assert.ok(pageFit.top>=pageFit.vpTop-3&&pageFit.bottom<=pageFit.vpBottom+3,
+     'page-fit must display both top and bottom of landscape sheet');
+   assert.ok(pageFit.left>=pageFit.vpLeft-3&&pageFit.right<=pageFit.vpRight+3,
+     'page-fit must display both left and right of landscape sheet');
+   assert.ok(pageFit.vpTop<310,'compact top bars must leave adequate vertical drawing space');
+   assert.equal(await page.locator('#re-fit').getAttribute('aria-pressed'),'true');
+   await page.locator('#re-fit-width').click();
+   await page.waitForFunction(()=>{
+    const vp=document.getElementById('re-viewport'),sheet=document.getElementById('re-page-surface');
+    return sheet.clientHeight>vp.clientHeight+15;
+   },{timeout:30000});
+   assert.equal(await page.locator('#re-fit-width').getAttribute('aria-pressed'),'true');
+   await page.locator('#re-fit').click();
+   await page.waitForFunction(()=>{
+    const vp=document.getElementById('re-viewport'),sheet=document.getElementById('re-page-surface');
+    return sheet.clientHeight<=vp.clientHeight-10;
+   },{timeout:30000});
+   await page.locator('#re-toggle-tools').click();
+   assert.ok(await page.locator('.re-tools').isHidden(),'focus view should hide only the task sidebar');
+   const fullWidth=await fitted();
+   assert.ok(fullWidth.viewportWidth>pageFit.viewportWidth+140,
+     'hiding task sidebar must allocate more width to the PDF');
+   assert.equal(await page.locator('#re-toggle-tools').getAttribute('aria-pressed'),'true');
+   await page.locator('#re-toggle-tools').click();
+   assert.ok(await page.locator('.re-tools').isVisible(),'task sidebar must be recoverable');
+   assert.equal(await page.locator('#re-toggle-tools').getAttribute('aria-pressed'),'false');
+   // Responsive changes must recompute real page fitting, preserving the overlay.
+   await page.setViewportSize({width:1000,height:700});
+   await page.waitForFunction(()=>{
+    const vp=document.getElementById('re-viewport'),sheet=document.getElementById('re-page-surface');
+    return sheet.clientWidth<=vp.clientWidth+1&&sheet.clientHeight<=vp.clientHeight+1;
+   },{timeout:30000});
+   assert.equal(await page.evaluate(()=>window.scrollY),0);
+   await page.setViewportSize({width:1280,height:800});
+   await page.locator('#re-fit').click();
    const lockedLayout=await page.evaluate(()=>{
      const tools=document.querySelector('.re-tools'),preview=document.querySelector('.re-preview');
      const viewport=document.getElementById('re-viewport');
