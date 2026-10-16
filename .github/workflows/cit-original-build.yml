@@ -5,6 +5,7 @@ on:
     paths:
       - 'scripts/cit-original/**'
       - 'tests/studio-text-sync-browser.cjs'
+      - 'tests/cit-pdfjs-timeout.test.cjs'
       - 'tests/local-bridge.test.cjs'
       - 'tests/text-editor-asset-paths.cjs'
       - 'studio/hvd-text-apply.js'
