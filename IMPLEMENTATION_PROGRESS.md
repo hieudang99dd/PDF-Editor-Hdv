@@ -256,3 +256,12 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Xác minh góc xoay PDFium/PDF.js; không đoán tọa độ khi thiếu/ma trận suy biến. Hỗ trợ trang 0°/90°/180°/270° lẫn trong cùng khoảng trang.
 - Node/PDFium QA: `tests/pdf-region-rotation.test.cjs`, thêm Chromium fixture trang thứ hai xoay 90° và xác nhận xóa vật lý trong toàn khoảng.
 - Không sửa Organizer, core Native Text và giới hạn đầu vào 512 MiB.
+
+
+## 2026-10-16 — Bổ sung xóa rộng và PDF có chữ ký
+
+- `pdf-region-native.mjs` bổ sung mode `whole-object`: loại bỏ thật các page object chữ, ảnh, fill/path, Form giao vùng bằng PDFium. Giữ mode `precise` để cắt vector đúng biên; không dùng phủ trắng.
+- `pdf-region-geometry.mjs` kiểm tra vùng giao với bounding rect theo phép boolean, cache giao cạnh để tránh lặp tính toán với PDF nhiều đối tượng.
+- Checkbox cho phép tạo bản sao PDF có chữ ký số, với thông báo chữ ký cũ mất hiệu lực; không mặc định bỏ chặn, không tuyên bố giữ chữ ký hợp lệ.
+- Giao diện có hai chế độ và cảnh báo tường minh về xóa nguyên đối tượng có thể mất nội dung ngoài vùng; báo cáo số page object đã gỡ và xem PDF kết quả.
+- Tests `pdf-region-all-objects.test.cjs` và Chromium E2E thêm tình huống chữ bị xóa thực, không thay đổi Organizer.
