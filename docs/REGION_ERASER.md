@@ -195,3 +195,14 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - **Trong lúc kéo** chỉ hiển thị đường bao dự thảo trên SVG. **Khi thả chuột** mới cập nhật `state.regions` và thêm một snapshot vào lịch sử Undo/Redo; một cử chỉ kéo chỉ tương ứng một lần Hoàn tác. Escape, pointercancel hoặc điều hướng giữa trang sẽ hủy kéo đang thực hiện.
 - Khi đã **Áp dụng**, tay nắm chỉnh sửa bị khóa nhằm tránh kết quả PDF không tương ứng. Bấm **Chỉnh sửa lại** trước khi sửa đường bao và áp dụng lại.
 - Test: `tests/pdf-region-handles.test.cjs` kiểm tra chỉnh đỉnh/cạnh, immutable, giới hạn trang, topo union/between/intersection; Chromium E2E kéo thật trên PDF và xác minh Undo/Redo, rồi áp dụng PDFium.
+
+
+## 17. Compact drawing workspace và căn toàn trang theo viewport (2026-10-16)
+
+- Khi nhấn thumbnail để **Vẽ vùng / Chỉnh sửa**, trang chuyển `body.re-editor-active` và rút gọn 5 hàng chrome gồm logo/topbar, thanh tệp và nút áp dụng, chỉ dẫn quy trình, hàng Dàn trang và toolbar PDF. Bảng tác vụ còn ~248px thay vì 315px, cuộn riêng. Chỉ thay CSS giao diện editor, không rút các thông báo chữ ký, nội dung pháp lý hay giới hạn thuật toán.
+- **Vừa trang** là phép căn trang thật, tính từ `page.getViewport({scale:1})` (đúng rotation của PDF.js), trừ padding thực ở `#re-viewport`, sau đó lấy `min(usableWidth/pageWidth, usableHeight/pageHeight)`. Không còn mã cũ căn duy nhất theo width. `pdf-region-view.mjs` là helper đơn vị hình học, áp dụng tiếp `state.zoom` khi người dùng nhấn +/-.
+- **Vừa rộng** là phép `usableWidth/pageWidth` cho trường hợp muốn đọc nét/chữ lớn và cho phép cuộn theo chiều dọc. Phân biệt với `Vừa trang` bằng nút trạng thái `aria-pressed`; nhãn zoom thể hiện tỉ lệ render thực, có chỉ báo RAM khi cappedPreviewScale phải hạ độ phân giải.
+- **☷ Ẩn tác vụ / Hiện tác vụ** chuyển sang canvas chiếm toàn bộ chiều ngang mà không bỏ vùng chọn, không thay đổi engine xóa; bật lại panel khi muốn chọn phép xóa. `ResizeObserver` quan sát `#re-viewport`, tự căn lại theo chiều cao/rộng mới sau khi đóng/mở panel hoặc resize cửa sổ. Không tăng dung lượng canvas vượt giới hạn megapixel của PDF.js.
+- Bản vẽ có trang lớn hơn viewport do zoom sẽ cuộn ngang/dọc đúng trục, căn giữa khi vừa trang bằng `margin:auto` thay vì mất nội dung ngoài mép trái. Overlay SVG và tay nắm đỉnh/cạnh luôn có cùng bounding box với canvas PDF.
+- Từ dàn trang vào editor tự chọn `Vừa trang`; đổi trang khác khôi phục `Vừa trang` mặc định. Khi quay lại dàn trang, thoát chế độ editor compact. Khi làm mới/tệp khác, xóa trạng thái compact/focus.
+- QA: `tests/pdf-region-fit-layout.test.cjs` kiểm tra landscape, portrait, page/width, chiều rộng/chiều cao thực; Chromium `tests/ux-browser.cjs` xác minh nhìn toàn trang, thu/phóng, ẩn/hiện tác vụ, resize browser và thao tác kéo vùng/áp dụng PDFium.
