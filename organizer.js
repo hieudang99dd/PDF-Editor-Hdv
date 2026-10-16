@@ -1817,7 +1817,8 @@ class PDFOrganizer {
             width: p.width,
             height: p.height,
             textEdits: p.textEdits ? JSON.parse(JSON.stringify(p.textEdits)) : [],
-            annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : []
+            annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : [],
+            eraseRegions: p.eraseRegions ? JSON.parse(JSON.stringify(p.eraseRegions)) : []
         }));
         const state = JSON.stringify(snapshot);
         if (this.historyIndex >= 0 && this.history[this.historyIndex] === state) return;
@@ -1855,7 +1856,8 @@ class PDFOrganizer {
                 selected: selectedIds.has(p.id),
                 dataUrl: p.textEdits?.length ? null : (this.thumbCache.get(cacheKey) || null),
                 textEdits: p.textEdits ? JSON.parse(JSON.stringify(p.textEdits)) : [],
-                annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : []
+                annotations: p.annotations ? JSON.parse(JSON.stringify(p.annotations)) : [],
+                eraseRegions: p.eraseRegions ? JSON.parse(JSON.stringify(p.eraseRegions)) : []
             };
         });
         this.renderGrid();
@@ -3096,6 +3098,19 @@ class PDFOrganizer {
                 const client=await this.getNativeTextClient();
                 const rewritten=await client.rewrite(await finalDoc.save(),nativePages);
                 finalDoc=await PDFDocument.load(rewritten.bytes,{updateMetadata:false});
+            }
+            // True vector erasure: operate on PDFium PATH objects after text rewrite
+            // and before decorative annotations. Never use white rectangles here.
+            const regionJobs=targetPages.map((p,pageIndex)=>({
+                pageIndex,regions:p.eraseRegions||[]
+            })).filter(job=>job.regions.length);
+            if(regionJobs.length){
+                const {eraseRegionsInWorker}=await import('./pdf-region-client.mjs');
+                const result=await eraseRegionsInWorker(await finalDoc.save(),regionJobs);
+                finalDoc=await PDFDocument.load(result.bytes,{updateMetadata:false});
+                if(typeof toast==='function'){
+                    toast('Đã cắt thật '+result.report.changedObjects+' path vector; bỏ qua '+result.report.skippedNonVector+' đối tượng không phải vector.');
+                }
             }
             const finalPages = finalDoc.getPages();
 
