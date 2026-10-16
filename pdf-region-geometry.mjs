@@ -104,6 +104,18 @@ export function validateRegions(regions,operation='union'){
    const center=pts=>({x:pts.reduce((a,v)=>a+v.x,0)/pts.length,
     y:pts.reduce((a,v)=>a+v.y,0)/pts.length});
    pointsToSample.push(center(p),center(q));
+   // Collinear overlapping boundaries have no proper crossing and every
+   // vertex/midpoint may lie ON one boundary. Probe both infinitesimal sides
+   // of each edge to prove that a point is strictly inside BOTH polygons.
+   for(const pts of [p,q])for(let i=0;i<pts.length;i++){
+    const a=pts[i],b=pts[(i+1)%pts.length],dx=b.x-a.x,dy=b.y-a.y;
+    const length=Math.hypot(dx,dy);
+    if(length<=EPS)continue;
+    const m=midpoint(a,b),n=Math.min(1e-5,length*1e-3);
+    const offset={x:-dy/length*n,y:dx/length*n};
+    pointsToSample.push({x:m.x+offset.x,y:m.y+offset.y},
+      {x:m.x-offset.x,y:m.y-offset.y});
+   }
    let overlapping=pointsToSample.some(v=>interior(v,p)&&interior(v,q));
    if(!overlapping){
     outer:for(let i=0;i<p.length;i++)for(let j=0;j<q.length;j++){
