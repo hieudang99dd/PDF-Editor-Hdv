@@ -71,7 +71,7 @@ async function reset(check=true,selectNew=false){
  await teardown();stopDrawing();clearResults();
  state.file=null;state.regions=new Map();state.history=[];state.cursor=-1;state.pageIndex=0;state.zoom=1;
  dom.input.value='';dom.workspace.hidden=true;dom.upload.hidden=false;
- dom.canvas.width=0;dom.canvas.height=0;dom.overlay.replaceChildren();
+ dom.canvas.width=0;dom.canvas.height=0;dom.overlay.replaceChildren();dom.zones.replaceChildren();
  dom.filename.textContent='';status('Có thể mở PDF khác mà không cần quay về trang chủ.');
  if(selectNew)dom.input.click();
 }
