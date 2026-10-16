@@ -248,3 +248,11 @@ GitHub Pages chỉ chạy frontend tĩnh. Office/Tesseract/LibreOffice chạy na
 - Sau **Áp dụng & xuất PDF**, mở PDF kết quả thật bằng PDF.js, cho phép Bản gốc/Sau xử lý để kiểm tra chính xác trước khi tải xuống, không dùng phủ trắng.
 - Thêm `tests/pdf-region-boolean-gallery.test.cjs`, nâng Chromium E2E cho PDF 2 trang với dải giữa hai biên, khoảng 1–2 và xem trước/sau.
 - Giữ nguyên tách biệt khỏi Organizer, giới hạn 512 MiB, worker cancellation, cùng chính sách không sửa file PDF gốc.
+
+
+## 2026-10-16 — Sửa lỗi /Rotate ở Region Eraser
+
+- Loại bỏ chặn /Rotate của PDFium; chuyển UI viewport PDF.js theo từng trang tới worker để nghịch đảo chính xác vùng khoanh trên trang xoay, CropBox và UserUnit.
+- Xác minh góc xoay PDFium/PDF.js; không đoán tọa độ khi thiếu/ma trận suy biến. Hỗ trợ trang 0°/90°/180°/270° lẫn trong cùng khoảng trang.
+- Node/PDFium QA: `tests/pdf-region-rotation.test.cjs`, thêm Chromium fixture trang thứ hai xoay 90° và xác nhận xóa vật lý trong toàn khoảng.
+- Không sửa Organizer, core Native Text và giới hạn đầu vào 512 MiB.

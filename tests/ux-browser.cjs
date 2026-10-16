@@ -33,6 +33,7 @@ async function vectorSample(){
  const doc=await PDFLib.PDFDocument.create();
  for(let i=0;i<2;i++){
   const p=doc.addPage([600,400]);
+  if(i===1)p.setRotation(PDFLib.degrees(90)); // mixed portrait/landscape in one range
   p.drawLine({start:{x:30,y:200},end:{x:570,y:200},thickness:1,color:PDFLib.rgb(0,0,0)});
   p.drawLine({start:{x:30,y:70},end:{x:570,y:70},thickness:1,color:PDFLib.rgb(0,0,0)});
  }

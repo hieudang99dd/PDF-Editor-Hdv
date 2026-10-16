@@ -160,9 +160,36 @@ export function keepSegment(a,b,zones,operation='union'){
  }
  return kept;
 }
-export function normalizedToUser(zones,engine){
- // Region UI coordinates have origin at visible PDF page top-left.
- // Rotation/crop are not guessed: caller rejects nonzero /Rotate.
+// PDF.js PageViewport uses a 6-component affine matrix which maps raw PDF
+// user coordinates directly to the on-screen page (origin top-left).
+// The inverse is the only reliable coordinate mapping for inherited /Rotate,
+// CropBox!=MediaBox, off-origin page boxes and non-1 UserUnit together.
+// Never derive this from unrotated pageWidth/pageHeight on rotated documents.
+export function validatePageViewport(viewport){
+ const t=viewport?.transform;
+ if(!Array.isArray(t)||t.length!==6||t.some(v=>!Number.isFinite(v))||
+    !Number.isFinite(viewport.width)||!Number.isFinite(viewport.height)||
+    viewport.width<=0||viewport.height<=0)
+  throw Error('Thiếu ma trận hiển thị PDF hợp lệ; không thể xóa chính xác theo vùng.');
+ const det=t[0]*t[3]-t[1]*t[2];
+ if(!Number.isFinite(det)||Math.abs(det)<1e-12)
+  throw Error('Ma trận hiển thị PDF bị suy biến; không thể xác định tọa độ xóa.');
+ if(viewport.rotation!==undefined && ![0,90,180,270].includes(viewport.rotation))
+  throw Error('Góc xoay PDF không được hỗ trợ.');
+ return {width:viewport.width,height:viewport.height,transform:[...t],rotation:viewport.rotation};
+}
+export function normalizedToUser(zones,engine,viewport){
+ if(viewport){
+  const {width,height,transform:t}=validatePageViewport(viewport);
+  const det=t[0]*t[3]-t[1]*t[2];
+  const map=p=>{
+   const dx=p.x*width-t[4],dy=p.y*height-t[5];
+   return {x:(t[3]*dx-t[2]*dy)/det,y:(-t[1]*dx+t[0]*dy)/det};
+  };
+  return zones.map(z=>({mode:z.mode,points:z.points.map(map)}));
+ }
+ // Backwards-compatible path for existing unrotated callers that do not
+ // supply a PDF.js viewport. Never use for /Rotate (fail closed in native).
  const w=engine.pageWidth,h=engine.pageHeight;
  return zones.map(z=>({mode:z.mode,points:z.points.map(p=>engine.toUser(p.x*w,(1-p.y)*h))}));
 }
