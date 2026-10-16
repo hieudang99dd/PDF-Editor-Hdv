@@ -64,7 +64,7 @@ test('CIT route and editor engine stay unmodified',()=>{
  assert.match(cit,/home\(\);\s*\}\)\(\);/);
  assert.doesNotMatch(ui,/T\.push\(|T\[[^\]]+\]\s*=/);
  assert.match(html,/hvd-ui-v2\.js\?v=20261016-texttile2/);
- assert.match(html,/hvd-ui-v2\.css\?v=20261016-texttile2/);
+ assert.match(html,/hvd-ui-v2\.css\?v=20261016-ux3/);
 });
 test('catalog icon and featured text tile use explicit centered, responsive layout',()=>{
  assert.match(css,/\.catalog-tile \.catalog-icon\s*\{[^}]*display:grid;place-items:center/s,
