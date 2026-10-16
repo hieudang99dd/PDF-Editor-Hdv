@@ -86,6 +86,22 @@ async function main() {
     const editor = page.locator('#overlay .editor [contenteditable=true]');
     await editor.waitFor({ timeout: 30000 });
     assert.match(await editor.innerText(), /CIT ORIGINAL LINE/);
+    // Click a real PDF paragraph: the native inspector must identify the
+    // font in its original PDF run; no default Times New Roman substitution.
+    await page.waitForFunction(() =>
+      !!window.__HVD_CIT_TEXT_API?.getFontInfo?.() &&
+      !document.getElementById('hvd-original-font-info')?.hidden
+    , null, {timeout:10000});
+    const nativeFont = await page.evaluate(() =>
+      window.__HVD_CIT_TEXT_API.getFontInfo()
+    );
+    console.log('ORIGINAL PDF FONT', JSON.stringify(nativeFont));
+    assert.match(nativeFont.rawFamily, /Helvetica/i);
+    assert.ok(nativeFont.runIndex >= 0 && nativeFont.size >= 10);
+    const displayed = await page.locator('#hvd-original-font-info .hvd-original-font-name').innerText();
+    assert.equal(displayed, nativeFont.displayFamily);
+    assert.equal(await page.locator('#fFamily').inputValue(), nativeFont.rawFamily,
+      'Inspector must keep the original PDF run font before editing');
     await editor.click();
     await page.keyboard.press('ControlOrMeta+A');
     await page.keyboard.insertText('CIT NATIVE EDITED');
