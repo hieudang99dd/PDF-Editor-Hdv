@@ -126,3 +126,12 @@ test('successful save first commits pending input, then exports once', async () 
   assert.equal(app.getVendorSaveCount(), 1);
   assert.equal(app.window.__HVD_TEXT_LAST_RESULT.committed, true);
 });
+
+test('stalled PDF loading offers a non-blocking recovery action', () => {
+  assert.match(js, /installLoadRecovery/);
+  assert.match(js, /hvd-load-recovery/);
+  assert.match(js, /25000/);
+  assert.match(js, /window\.location\.reload\(\)/);
+  assert.match(js, /repair-editor\.html/);
+  assert.match(css, /#loader-modal #hvd-load-recovery\[hidden\]/);
+});
