@@ -56,3 +56,25 @@
 #loader-modal #hvd-load-recovery a {padding:8px 11px;min-height:35px;font:inherit;border-radius:7px;text-decoration:none;cursor:pointer}
 #loader-modal #hvd-load-recovery button {background:#f59e0b;color:#111827;border:1px solid #f59e0b;font-weight:700}
 #loader-modal #hvd-load-recovery a {background:#374151;color:#fff;border:1px solid #6b7280}
+
+/* Inspection only: original PDF run properties, never inferred from a fallback. */
+#text-editor-app #hvd-original-font-info {
+  margin: 6px 8px 12px; padding: 11px 12px;
+  border: 1px solid rgba(62,191,179,.55);
+  border-radius: 10px; background: rgba(11,35,40,.56);
+  font-size: 12px; line-height: 1.5; color: #dceaf0;
+}
+#text-editor-app #hvd-original-font-info[hidden] {display:none!important}
+#text-editor-app .hvd-original-font-title {display:block;color:#66e2d1;font-size:11px;letter-spacing:.03em;margin-bottom:5px}
+#text-editor-app .hvd-original-font-name {font-size:14px;font-weight:700;overflow-wrap:anywhere;color:#f4f7fc}
+#text-editor-app .hvd-original-font-detail {color:#d7e4e9;margin-top:4px}
+#text-editor-app .hvd-original-font-state {font-size:11px;color:#91dccc;margin-top:6px}
+#text-editor-app .hvd-original-font-state[data-state=unavailable] {color:#ffb29a}
+#text-editor-app .hvd-original-font-state[data-state=loading] {color:#ffd08b}
+#text-editor-app .hvd-original-font-hint {font-size:11px;line-height:1.4;color:#9fb3bd;margin:7px 0 10px}
+#text-editor-app .hvd-original-font-local {
+  border:1px solid #507f83; border-radius:7px; background:#203a3d; color:#e7f9f5;
+  padding:7px 10px; width:100%;min-height:33px;cursor:pointer;font-size:11px;
+}
+#text-editor-app .hvd-original-font-local:hover {background:#285359}
+#text-editor-app .hvd-original-font-local:focus-visible {outline:2px solid #7ee9d9;outline-offset:2px}
