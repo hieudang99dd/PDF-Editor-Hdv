@@ -16,7 +16,7 @@ function harness(kind) {
   const match = source.match(/async function isFileEncrypted\(file: File\): Promise<boolean> \{([\s\S]*?)\n\}\n/);
   assert.ok(match, 'Expected original PDF.js encryption detector entrypoint');
   const js = 'async function detector(file) {' +
-     match[1].replaceAll('encrypted: boolean','encrypted') +
+     match[1].replaceAll('encrypted: boolean','encrypted').replaceAll(' as ArrayBuffer','') +
      '\n}; return detector;';
   let timeoutMs = null;
   let onTimeout = null;
