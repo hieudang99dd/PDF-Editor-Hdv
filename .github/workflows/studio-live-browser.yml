@@ -54,7 +54,7 @@ jobs:
             js="$(curl --fail --silent --show-error "$base/hvd-text-apply.js?verify=$i" | sha256sum | awk '{print $1}')" || js=""
             css="$(curl --fail --silent --show-error "$base/hvd-text-apply.css?verify=$i" | sha256sum | awk '{print $1}')" || css=""
             html="$(curl --fail --silent --show-error "$base/edit-pdf-text.html?verify=$i")" || html=""
-            if [[ "$js" == "$desired_js" && "$css" == "$desired_css" && "$html" == *'hvd-text-apply.js?v=20261016-live1'* ]]; then
+            if [[ "$js" == "$desired_js" && "$css" == "$desired_css" && "$html" == *'hvd-text-apply.js?v=20261016-sync2'* ]]; then
               ready=1
               break
             fi
