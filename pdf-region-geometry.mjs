@@ -49,7 +49,10 @@ function selfIntersects(pts){
  }
  return false;
 }
-export function validateRegions(regions){
+export const REGION_OPERATIONS=Object.freeze(['union','between','intersection']);
+export function validateRegions(regions,operation='union'){
+ if(!REGION_OPERATIONS.includes(operation))
+  throw Error('Chế độ kết hợp vùng không hợp lệ.');
  if(!Array.isArray(regions)||!regions.length||regions.length>64)throw Error('Cần chọn từ 1 đến 64 vùng.');
  let sum=0,erase=0;
  const clean=regions.map((z,i)=>{
@@ -71,13 +74,53 @@ export function validateRegions(regions){
   return {mode:z.mode,points};
  });
  if(!erase)throw Error('Cần ít nhất một vùng xóa.');
+ if(operation!=='union'){
+  if(clean.length!==2||clean.some(z=>z.mode!=='erase'))
+   throw Error('Chế độ giữa hai vùng hoặc giao vùng yêu cầu đúng 2 đường bao xóa.');
+  if(operation==='between'){
+   const [outer,inner]=clean;
+   // Require strict containment without intersecting or touching boundary.
+   for(const p of inner.points){
+    if(!insidePolygon(p,outer.points) ||
+      outer.points.some((a,i)=>onEdge(p,a,outer.points[(i+1)%outer.points.length])))
+     throw Error('Vùng trong phải nằm hoàn toàn bên trong vùng ngoài.');
+   }
+   for(let i=0;i<outer.points.length;i++)
+    for(let j=0;j<inner.points.length;j++){
+     const a=outer.points[i],b=outer.points[(i+1)%outer.points.length];
+     const c=inner.points[j],d=inner.points[(j+1)%inner.points.length];
+     if(intersectionT(a,b,c,d).length)
+      throw Error('Hai đường bao lồng nhau không được cắt hay chạm nhau.');
+    }
+  }else if(operation==='intersection'){
+   // Positive-area overlap: crossing edges or a strictly interior vertex.
+   const interior=(p,polygon)=>insidePolygon(p,polygon) &&
+    !polygon.some((a,i)=>onEdge(p,a,polygon[(i+1)%polygon.length]));
+   const [p,q]=clean.map(z=>z.points);
+   let overlapping=p.some(v=>interior(v,q))||q.some(v=>interior(v,p));
+   if(!overlapping){
+    outer:for(let i=0;i<p.length;i++)for(let j=0;j<q.length;j++){
+     const a=p[i],b=p[(i+1)%p.length],c=q[j],d=q[(j+1)%q.length];
+     const r=subtract(b,a),t=subtract(d,c),den=cross(r,t);
+     if(Math.abs(den)<EPS)continue;
+     const ac=subtract(c,a),u=cross(ac,t)/den,v=cross(ac,r)/den;
+     if(u>EPS&&u<1-EPS&&v>EPS&&v<1-EPS){overlapping=true;break outer;}
+    }
+   }
+   if(!overlapping)throw Error('Hai vùng không giao nhau trên diện tích; hãy chỉnh đường bao.');
+  }
+ }
  return clean;
 }
-function eraseAt(point,zones){
+function eraseAt(point,zones,operation='union'){
+ if(operation==='between')
+  return insidePolygon(point,zones[0].points)&&!insidePolygon(point,zones[1].points);
+ if(operation==='intersection')
+  return zones.every(z=>insidePolygon(point,z.points));
  return zones.some(z=>z.mode==='erase'&&insidePolygon(point,z.points)) &&
         !zones.some(z=>z.mode==='protect'&&insidePolygon(point,z.points));
 }
-export function keepSegment(a,b,zones){
+export function keepSegment(a,b,zones,operation='union'){
  if(!Number.isFinite(a.x)||!Number.isFinite(a.y)||!Number.isFinite(b.x)||!Number.isFinite(b.y))throw Error('Tọa độ vector không hợp lệ.');
  if(Math.hypot(a.x-b.x,a.y-b.y)<EPS)return [];
  const ts=[0,1];
@@ -89,7 +132,7 @@ export function keepSegment(a,b,zones){
  const kept=[];
  for(let i=0;i<distinct.length-1;i++){
   const t0=distinct[i],t1=distinct[i+1];
-  if(t1-t0<EPS || eraseAt(lerp(a,b,(t0+t1)/2),zones))continue;
+  if(t1-t0<EPS || eraseAt(lerp(a,b,(t0+t1)/2),zones,operation))continue;
   kept.push({a:lerp(a,b,t0),b:lerp(a,b,t1)});
  }
  return kept;
