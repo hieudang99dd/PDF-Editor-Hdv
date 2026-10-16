@@ -36,7 +36,7 @@ Lưu ý: thuật toán cắt trên tâm đường. Biên stroke thực tế có 
 ## 4. Pipeline native PDFium
 
 1. Sao chép bytes từ PDF do Organizer chuẩn bị; chạy một Worker riêng. Không gửi lên server, không sửa PDF nguồn.
-2. Kiểm tra dung lượng tối đa 80MB, số vùng/đỉnh, chữ ký số ByteRange và mã hóa. Chặn file ký số/bảo vệ.
+2. Kiểm tra dung lượng tối đa 512 MiB, số vùng/đỉnh, chữ ký số ByteRange và mã hóa. Chặn file ký số/bảo vệ.
 3. Đọc từng trang cần xử lý; từ phải sang trái theo thứ tự object để giữ z-index.
 4. Lọc object có bounds giao vùng và type PATH. Text, image, Form được bỏ qua, không xóa.
 5. Kiểm tra mode stroke-only, solid, không fill, không clipping; đọc các điểm MoveTo, LineTo và FS_MATRIX. Path không hỗ trợ dẫn tới lỗi, không ghi file.
@@ -90,3 +90,16 @@ Bản quyền: ../NOTICE.md. Nhật ký tiến độ: ../IMPLEMENTATION_PROGRESS
 - `index.html` khai báo `region-eraser-route` hướng tới `region-eraser.html`; `organizer.js` không có `eraseRegions` hoặc `eraseRegionsInWorker`.
 - Giữ nguyên core `pdf-region-native.mjs`, `pdf-region-worker.mjs`, `pdf-region-geometry.mjs` đã kiểm thử; thay adapter Organizer bằng `region-eraser.js`.
 - Đường dẫn truy cập: `https://hieudang99dd.github.io/PDF-Editor1/region-eraser.html` sau khi GitHub Pages triển khai.
+
+
+## 10. Tệp lớn 512 MiB — tối ưu bộ nhớ và Worker (2026-10-16)
+
+- Giới hạn đầu vào **512 MiB (536.870.912 byte)**, dùng chung `pdf-region-limits.mjs` tại UI và engine. Đây là **giới hạn chấp nhận tệp, không bảo đảm** mọi tệp 512 MiB đều đủ RAM để thực thi. PDFium WASM và các bản sao bộ nhớ bên trong engine vẫn cần bộ nhớ trống.
+- Tệp từ **256 MiB** trở lên hiển thị xác nhận/cảnh báo dung lượng và RAM; không tự động từ chối nếu trong ngưỡng 512 MiB.
+- PDF.js xem trước từ `Blob URL`, tránh `file.arrayBuffer()` toàn tệp trên luồng giao diện. Tùy trình duyệt, PDF.js có thể tải nhiều phần hoặc toàn bộ Blob; không cam kết streaming thực nếu không được hỗ trợ.
+- Canvas PDF.js được chặn ở mức **16 triệu pixel vật lý**, đã tính devicePixelRatio. Các bản vẽ A0/A1 hiển thị ở tỷ lệ thấp hơn khi cần, vẫn lưu tọa độ vùng chuẩn hóa.
+- Khi xuất: gửi `File` qua structured clone (không tạo Uint8Array/copy thứ hai ở main thread), Worker tự đọc một lần rồi đưa buffer vào PDFium. Đối với input dạng ArrayBuffer, chỉ chuyển quyền sở hữu qua transferable khi có toàn bộ buffer; view rời mới copy.
+- PDFium worker gửi tiến trình khởi tạo, mở PDF, duyệt đối tượng theo từng 500 objects, hoàn thành từng trang và lưu; giao diện có progress bar + nút Hủy. Người dùng ở lại công cụ trong khi xử lý.
+- Timeout hoạt động: watchdog **8 phút không có tín hiệu**, timeout tổng thích ứng theo dung lượng/trang và chặn tối đa **30 phút**. Khi Worker lỗi, hủy hoặc quá thời gian, file nguồn giữ nguyên.
+- Đầu ra PDF trong bộ nhớ vẫn là một `Uint8Array` cho tới lúc tải; trình duyệt có thể tiêu thụ nhiều RAM hơn kích thước tệp nguồn vì WASM, render, buffers và kết quả.
+- QA: `tests/pdf-region-512mb.test.cjs` kiểm tra giới hạn 512 MiB không cấp phát tệp giả khổng lồ, thời gian và giới hạn canvas. `tests/pdf-region-large.test.cjs` tạo PDF thật có luồng dữ liệu >80 MiB, chạy vector surgery và xác nhận PDF có thể đọc lại. Đây chưa phải nghiệm thu 512 MiB thực tế; cần kiểm thử trên máy 8/16/32GB RAM và hồ sơ CAD A0/A1 với ảnh/XObject/hatch phức tạp trước khi công bố chứng nhận hiệu năng.
