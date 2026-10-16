@@ -1,0 +1,1 @@
+import{r as e}from"./main-DUjC_bSF.js";function t(){e.init(),console.log(`Global shortcuts initialized`)}export{t};
