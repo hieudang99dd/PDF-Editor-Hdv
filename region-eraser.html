@@ -6,7 +6,7 @@
 <meta name="color-scheme" content="dark">
 <title>Xóa vector theo vùng — PDF Đạo Chích</title>
 <meta name="description" content="Xóa thực đoạn vector PATH nằm trong một hoặc nhiều vùng chọn, giữ lại phần bên ngoài. Hoạt động độc lập với Chỉnh sửa PDF.">
-<link rel="stylesheet" href="region-eraser.css?v=20261016-fit2">
+<link rel="stylesheet" href="region-eraser.css?v=20261016-dock1">
 </head>
 <body>
 <header class="re-topbar">
@@ -59,7 +59,7 @@
    <span id="re-progress-note">Tệp lớn có thể cần vài phút và nhiều bộ nhớ.</span>
   </div>
   <section id="re-gallery-panel" class="re-gallery-panel" aria-label="Dàn trang PDF">
-    <div class="re-gallery-head"><div><p class="re-kicker">01 · DÀN TRANG</p><h2>Chọn trang để phóng to và vẽ vùng xóa</h2><p>Nhấp vào một trang bất kỳ để mở không gian thao tác. Dàn trang chỉ dựng ảnh nhỏ khi cần để tiết kiệm RAM.</p></div>
+    <div class="re-gallery-head"><div><p class="re-kicker">01 · DÀN TRANG</p><h2>Chọn trang để phóng to và vẽ vùng xóa</h2><p>Nhấp vào một trang bất kỳ để mở không gian thao tác. Dàn trang chỉ dựng ảnh nhỏ khi cần để tiết kiệm RAM.</p><p class="re-gallery-status" id="re-gallery-status" role="status" aria-live="polite"></p></div>
       <div class="re-gallery-nav"><button class="re-btn re-outline" id="re-gallery-prev" type="button">← 24 trang trước</button>
        <span id="re-gallery-range">1–24</span><button class="re-btn re-outline" id="re-gallery-next" type="button">24 trang sau →</button></div>
     </div>
@@ -73,9 +73,15 @@
        <button class="re-btn re-ghost" id="re-before" type="button">Bản gốc</button>
        <button class="re-btn re-primary" id="re-after" type="button">Sau xử lý</button>
       </div>
+      <button type="button" class="re-btn re-outline" id="re-rework" hidden>↶ Chỉnh sửa lại</button>
     </div>
     <div class="re-columns">
    <aside class="re-tools" aria-label="Tùy chọn vùng xóa">
+    <section id="re-results" class="re-results" aria-label="Kết quả áp dụng vùng xóa" hidden>
+     <strong id="re-result-title">Đã áp dụng — đang xem kết quả</strong>
+     <p id="re-result-summary"></p>
+     <p class="re-hint">Đối chiếu Bản gốc / Sau xử lý. Nếu cần sửa, bấm “Chỉnh sửa lại” ở thanh phía trên; chỉ Xuất PDF khi đúng.</p>
+    </section>
     <h2>01 · Kiểu vùng chọn</h2>
     <label for="re-shape">Hình dạng</label>
     <select id="re-shape"><option value="rect">Hình chữ nhật</option><option value="poly">Đa giác tự do</option></select>
@@ -136,14 +142,10 @@
       <svg id="re-overlay" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-label="Vùng chọn xóa vector"></svg>
      </div>
     </div>
-    <div class="re-footer-info"><span id="re-page-info">Chọn vùng trực tiếp trên trang PDF.</span><span>PDF gốc · vùng đỏ: xóa · vùng xanh: giữ</span></div>
+    <div class="re-footer-info"><span id="re-page-info">Chọn vùng trực tiếp trên trang PDF.</span><span id="re-editor-status" class="re-editor-status" role="status" aria-live="polite"></span><span>PDF gốc · vùng đỏ: xóa · vùng xanh: giữ</span></div>
    </section>
    </div>
    </div>
-  <section id="re-results" class="re-results" hidden>
-   <div><strong id="re-result-title">Đã áp dụng — đang xem kết quả</strong><p id="re-result-summary"></p><p class="re-hint">Kiểm tra “Bản gốc / Sau xử lý”. Nếu chưa đúng, bấm “Chỉnh sửa lại” để giữ các vùng đã vẽ, điều chỉnh rồi áp dụng lần nữa. Chỉ bấm “Xuất PDF” khi đã đúng.</p></div>
-   <button type="button" class="re-btn re-outline" id="re-rework">↶ Chỉnh sửa lại</button>
-  </section>
  </section>
  <div id="re-status" class="re-status" role="status" aria-live="polite">Sẵn sàng chọn tài liệu.</div>
 </main>
@@ -152,6 +154,6 @@
 window.pdfjsLib=window.pdfjsLib||window['pdfjs-dist/build/pdf'];
 if(window.pdfjsLib)window.pdfjsLib.GlobalWorkerOptions.workerSrc='pdf.worker.min.js';
 </script>
-<script type="module" src="region-eraser.js?v=20261016-fit2"></script>
+<script type="module" src="region-eraser.js?v=20261016-dock1"></script>
 </body>
 </html>
