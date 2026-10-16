@@ -1,4 +1,4 @@
-/* PDF Đạo Chích navigation adapter for the ORIGINAL CIT-PDF v1.0.0 frontend.
+/* PDF EDITOR navigation adapter for the ORIGINAL CIT-PDF v1.0.0 frontend.
  * AGPL-3.0-only. Does not alter or replace CIT's editor, CSS internals,
  * PdfEngine, render logic, rich-run handling, or export routines.
  */
@@ -44,8 +44,8 @@
     for (const id of ['nav-logo', 'footer-logo']) {
       const node = document.getElementById(id);
       if (node && typeof HTMLImageElement !== 'undefined' && node instanceof HTMLImageElement) {
-        node.src = new URL('hvd-mark.svg?v=20261016-dao1', window.location.href).href;
-        node.alt = 'PDF Đạo Chích';
+        node.src = new URL('hvd-mark.svg?v=20261016-editor1', window.location.href).href;
+        node.alt = 'PDF EDITOR';
       }
     }
   }
@@ -70,8 +70,8 @@
   function install() {
     if (document.body.dataset.hvdCitHub) return;
     document.body.dataset.hvdCitHub = 'original';
-    setBrand('nav-brand', 'PDF Đạo Chích');
-    setBrand('footer-brand', 'PDF Đạo Chích');
+    setBrand('nav-brand', 'PDF EDITOR');
+    setBrand('footer-brand', 'PDF EDITOR');
     brandImages();
     legalAccess();
     // Do not change upstream footer copyright: licensing details remain
@@ -81,21 +81,21 @@
     const backLabel = document.querySelector('#back-to-tools span');
     if (backLabel) {
       backLabel.removeAttribute('data-i18n');
-      backLabel.textContent = 'Trở về PDF Đạo Chích';
+      backLabel.textContent = 'Trở về PDF EDITOR';
     }
     const toolbarGroup = document.querySelector('#toolbar .tgroup');
-    addAnchor(toolbarGroup, 'hvd-cit-home', 'PDF Đạo Chích',
-      'Quay về bộ công cụ PDF Đạo Chích');
+    addAnchor(toolbarGroup, 'hvd-cit-home', 'PDF EDITOR',
+      'Quay về bộ công cụ PDF EDITOR');
     const landing = document.querySelector('#tool-uploader');
-    addAnchor(landing, 'hvd-cit-uploader-home', '↖ PDF Đạo Chích',
-      'Quay về trang chủ PDF Đạo Chích');
+    addAnchor(landing, 'hvd-cit-uploader-home', '↖ PDF EDITOR',
+      'Quay về trang chủ PDF EDITOR');
 
     // Document/SEO branding is applied during the site build, ahead of
     // first paint, to avoid a flash of the upstream name in browser tabs.
-    const title='Chỉnh sửa văn bản PDF – PDF Đạo Chích';
+    const title='Chỉnh sửa văn bản PDF – PDF EDITOR';
     if (document.title !== title) document.title = title;
     window.dispatchEvent(new CustomEvent('hvd-cit-hub:ready',
-      {detail:{product:'PDF Đạo Chích',home}}));
+      {detail:{product:'PDF EDITOR',home}}));
   }
 
   if (document.readyState === 'loading')

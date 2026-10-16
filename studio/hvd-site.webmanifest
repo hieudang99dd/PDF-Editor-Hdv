@@ -1,6 +1,6 @@
 {
-  "name": "PDF Đạo Chích – Chỉnh sửa PDF",
-  "short_name": "PDF Đạo Chích",
+  "name": "PDF EDITOR – Bộ công cụ chỉnh sửa PDF",
+  "short_name": "PDF EDITOR",
   "description": "Chỉnh sửa văn bản PDF, giữ định dạng và xuất PDF ngay trên trình duyệt.",
   "lang": "vi",
   "start_url": "../text-editor.html",
