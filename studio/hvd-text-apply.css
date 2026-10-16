@@ -45,3 +45,14 @@
 #text-editor-app #hvd-reflow-control input {
   width:16px;height:16px;accent-color:#f59e0b;flex:none;
 }
+
+/* Scoped recovery UI: visible only while a PDF fails to finish loading. */
+#loader-modal #hvd-load-recovery {max-width:330px;text-align:center;padding-top:12px;color:#f3f4f6;font-size:13px;line-height:1.5}
+#loader-modal #hvd-load-recovery[hidden] {display:none!important}
+#loader-modal #hvd-load-recovery strong {display:block;margin-bottom:7px;font-size:14px}
+#loader-modal #hvd-load-recovery p {margin:0 0 12px;color:#d1d5db}
+#loader-modal #hvd-load-recovery .hvd-load-actions {display:flex;gap:9px;align-items:center;justify-content:center;flex-wrap:wrap}
+#loader-modal #hvd-load-recovery button,
+#loader-modal #hvd-load-recovery a {padding:8px 11px;min-height:35px;font:inherit;border-radius:7px;text-decoration:none;cursor:pointer}
+#loader-modal #hvd-load-recovery button {background:#f59e0b;color:#111827;border:1px solid #f59e0b;font-weight:700}
+#loader-modal #hvd-load-recovery a {background:#374151;color:#fff;border:1px solid #6b7280}
