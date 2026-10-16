@@ -20,7 +20,7 @@ test('left navigator scripts and styles are wired to approved text editor',()=>{
  assert.match(js,/hvd-pages-jump-form/);
  assert.match(js,/setOpen\(!isOpened\(\)\)/);
  assert.match(css,/#text-editor-app #hvd-pages-rail\[hidden\]/);
- assert.match(css,/#text-editor-app #hvd-pages-list/);
+ assert.match(css,/#text-editor-app \.hvd-pages-list/);
  new vm.Script(js,{filename:'studio/hvd-text-pages.js'});
 });
 test('navigation commits edits through native engine and does not mutate PDF content in thumbnail renderer',()=>{
