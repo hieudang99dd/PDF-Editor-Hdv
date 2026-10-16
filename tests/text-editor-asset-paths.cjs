@@ -23,7 +23,7 @@ for (const p of paths) {
   assert.ok(!read(p).includes('/PDF-Editor-Hdv/studio/'), 'Old absolute base remains in ' + p);
 }
 const html = read('studio/edit-pdf-text.html');
-for (const asset of ['hvd-text-apply.css?v=20261016-live1','hvd-text-apply.js?v=20261016-live1']) {
+for (const asset of ['hvd-text-apply.css?v=20261016-live1','hvd-text-apply.js?v=20261016-sync2']) {
   assert.ok(html.includes(asset), 'Missing direct-apply asset: ' + asset);
 }
 
