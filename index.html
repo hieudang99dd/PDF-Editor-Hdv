@@ -145,6 +145,16 @@ const T=[
 ['Trình quét PDF','Chụp giấy tờ thành PDF','Quét','⎙','img','image/*']];
 let cat='Tất cả',tool=null,files=[];
 const cats=['Tất cả',...Object.keys(C)];
+const hvdDownloadUrls=new Set();
+function trackDownloadUrl(blob){const url=URL.createObjectURL(blob);hvdDownloadUrls.add(url);return url;}
+function releaseWorkspaceDownloads(){
+ if(!hvdDownloadUrls.size)return;
+ const urls=[...hvdDownloadUrls];hvdDownloadUrls.clear();
+ // Browsers start large downloads asynchronously: give the generated URL time to be read.
+ setTimeout(()=>urls.forEach(url=>URL.revokeObjectURL(url)),120000);
+}
+window.hvdTrackDownloadUrl=trackDownloadUrl;
+window.hvdReleaseWorkspaceDownloads=releaseWorkspaceDownloads;
 function toast(m){const t=$('#toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('on'),2200)}
 function home(){const q=$('#q').value.trim().toLowerCase();
  $('#chips').innerHTML=cats.map(c=>`<button class="chip ${c==cat?'on':''}" data-c="${c}">${c}</button>`).join('');
@@ -185,11 +195,12 @@ function openTool(i, restore=false){
  if(!Number.isInteger(i)||!T[i])return;
  if(T[i]?.[4]==='cit-text-route'){location.href='./text-editor.html';return;}
  if(T[i]?.[4]==='pdfium-inspect-route'){location.href='./pdfium-preflight.html';return;}
- tool=T[i];files=[];$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
+ const keptFiles=restore&&tool===T[i]?[...files]:[];
+ tool=T[i];files=keptFiles;$('#home').style.display='none';$('#ws').style.display='block';scrollTo(0,0);
  $('#wt').textContent=tool[0];$('#wd').textContent=tool[1];render();
  if(!restore)history.pushState({hvdTool:i},'', '#hvd-tool='+i);
 }
-function render(){const k=tool[4], o=(tool[0]==='Chồng 2 PDF (Overlay)'?OPT['cit-overlay']:OPT[k])||'', multi=k=='merge'||tool[5].includes('image');
+function render(){releaseWorkspaceDownloads();const k=tool[4], o=(tool[0]==='Chồng 2 PDF (Overlay)'?OPT['cit-overlay']:OPT[k])||'', multi=k=='merge'||tool[5].includes('image');
  let h='';
  if (k === 'compress') {
   h += `<div class="drop compress-drop" id="dz" style="border:2px dashed #ff4d4f; border-radius:16px; padding:60px 20px; background:#fff; position:relative;">
@@ -236,7 +247,7 @@ async function run(){
   return;
  }
  
- const b=$('#go');b.disabled=true;
+ const b=$('#go');releaseWorkspaceDownloads();b.disabled=true;
  $('#out').innerHTML=`<div class="bar"><i id="pb"></i></div><span style="color:var(--mute);font-size:13px" id="st">Đang xử lý trên trình duyệt...</span>`;
  
  if(k=='compress') {
@@ -256,7 +267,7 @@ async function run(){
    if(!res.ok) throw new Error("Backend không phản hồi");
    
    const blob = await res.blob();
-   const url = URL.createObjectURL(blob);
+   const url = trackDownloadUrl(blob);
    $('#pb').style.width = '100%';
    
    const originalSize = files[0].size;
@@ -325,7 +336,7 @@ async function run(){
    $('#pb').style.width = '80%';
    const pdfBytes = await resultPdf.save();
    const blob = new Blob([pdfBytes], {type: 'application/pdf'});
-   const url = URL.createObjectURL(blob);
+   const url = trackDownloadUrl(blob);
    
    $('#pb').style.width = '100%';
    $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="processed.pdf">Tải xuống</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
@@ -395,7 +406,7 @@ async function run(){
    }
    const pdfBytes = await doc.save();
    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-   const url = URL.createObjectURL(blob);
+   const url = trackDownloadUrl(blob);
    $('#pb').style.width = '100%';
    $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã tạo PDF từ ${files.length} ảnh.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="images_to_pdf.pdf">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
    $('#again').onclick=()=>{files=[];render()};
@@ -441,7 +452,7 @@ async function run(){
      $('#pb').style.width = Math.min(85, 15 + Math.round((70 * p) / numPages)) + '%';
    }
    if(numPages === 1){
-     const url = URL.createObjectURL(renderedImages[0].blob);
+     const url = trackDownloadUrl(renderedImages[0].blob);
      $('#pb').style.width = '100%';
      $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã xuất thành ảnh ${ext.toUpperCase()}.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="${files[0].name.replace(/\.pdf$/i,'')}_trang_1.${ext}">Tải xuống ảnh</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
    } else {
@@ -457,7 +468,7 @@ async function run(){
      const zip = new window.JSZip();
      renderedImages.forEach(img => zip.file(img.name, img.blob));
      const zipBlob = await zip.generateAsync({ type: 'blob' });
-     const url = URL.createObjectURL(zipBlob);
+     const url = trackDownloadUrl(zipBlob);
      $('#pb').style.width = '100%';
      $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã xuất ${numPages} trang thành ảnh ${ext.toUpperCase()} (tệp nén ZIP).<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="${files[0].name.replace(/\.pdf$/i,'')}_images.zip">Tải xuống file ZIP</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
    }
@@ -496,7 +507,7 @@ async function run(){
    }
    const pdfBytes = await doc.save();
    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-   const url = URL.createObjectURL(blob);
+   const url = trackDownloadUrl(blob);
    $('#pb').style.width = '100%';
    $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã chèn Watermark lên toàn bộ ${pages.length} trang.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="watermark_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
    $('#again').onclick=()=>{files=[];render()};
@@ -539,7 +550,7 @@ async function run(){
    }
    const pdfBytes = await doc.save();
    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-   const url = URL.createObjectURL(blob);
+   const url = trackDownloadUrl(blob);
    $('#pb').style.width = '100%';
    $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã đánh số trang cho ${total} trang.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="numbered_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
    $('#again').onclick=()=>{files=[];render()};
@@ -584,7 +595,7 @@ async function run(){
    $('#pb').style.width = '85%';
    const pdfBytes = await doc.save();
    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-   const url = URL.createObjectURL(blob);
+   const url = trackDownloadUrl(blob);
    $('#pb').style.width = '100%';
    $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Chữ ký đã được đóng dấu vào trang cuối cùng của tài liệu.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="signed_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
    $('#again').onclick=()=>{files=[];render()};
@@ -606,7 +617,7 @@ async function run(){
    $('#pb').style.width = '80%';
    const pdfBytes = await doc.save();
    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-   const url = URL.createObjectURL(blob);
+   const url = trackDownloadUrl(blob);
    $('#pb').style.width = '100%';
    $('#out').innerHTML=`<div class="res"><b>Hoàn tất.</b> Đã làm phẳng các trường biểu mẫu và chú thích vào tài liệu.<div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="${url}" download="flattened_${files[0].name}">Tải xuống PDF</a><button class="btn g" id="again">Xử lý tệp khác</button></div></div>`;
    $('#again').onclick=()=>{files=[];render()};
@@ -631,8 +642,12 @@ function showCatalog(){
  $('#ws').style.display='none';$('#home').style.display='block';home();
 }
 function back(){
+ if($('#ws').style.display!=='none'&&$('#go')?.disabled){
+  toast('Đang xử lý PDF. Vui lòng chờ hoàn tất trước khi rời tác vụ.');return;
+ }
  showCatalog();
  if(history.state?.hvdTool!==undefined)history.back();
+ else if(location.hash.startsWith('#hvd-tool='))history.replaceState(null,'',location.pathname+location.search);
 }
 function resetWorkspace(clearFiles=false){
  if($('#ws').style.display==='none'||!tool)return;
